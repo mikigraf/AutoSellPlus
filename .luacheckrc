@@ -39,7 +39,6 @@ read_globals = {
     "hooksecurefunc",
     "CreateColor",
     "StaticPopupDialogs",
-    "SlashCmdList",
     "GameFontNormal",
     "GameFontNormalLarge",
     "GameFontHighlight",
@@ -54,6 +53,7 @@ read_globals = {
 
 globals = {
     "AutoSellPlusDB",
+    "SlashCmdList",
     "SLASH_AUTOSELLPLUS1",
     "SLASH_AUTOSELLPLUS2",
 }
