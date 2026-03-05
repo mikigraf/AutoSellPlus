@@ -48,13 +48,13 @@
 
 ## Features
 
-|                            |                                                                              |
-| :------------------------- | :--------------------------------------------------------------------------- |
-| **Instant merchant popup** | Every vendorable item laid out the moment you talk to a vendor               |
-| **Smart auto-select**      | Grays, greens, and blues below your equipped ilvl are pre-checked            |
-| **Upgrade protection**     | Never sells upgrades, equipment sets, uncollected transmog, or refundables   |
-| **Auto ilvl thresholds**   | Adapts to your gear automatically, no manual config needed                   |
-| **Full control**           | One click to sell, Escape to cancel, uncheck anything you want to keep       |
+|                            |                                                                            |
+| :------------------------- | :------------------------------------------------------------------------- |
+| **Instant merchant popup** | Every vendorable item laid out the moment you talk to a vendor             |
+| **Smart auto-select**      | Grays, greens, and blues below your equipped ilvl are pre-checked          |
+| **Upgrade protection**     | Never sells upgrades, equipment sets, uncollected transmog, or refundables |
+| **Auto ilvl thresholds**   | Adapts to your gear automatically, no manual config needed                 |
+| **Full control**           | One click to sell, Escape to cancel, uncheck anything you want to keep     |
 
 <p align="right"><a href="#readme-top">back to top</a></p>
 
@@ -85,14 +85,14 @@ Or run the install script on macOS:
 
 ## Commands
 
-| Command            | Description                          |
-| :----------------- | :----------------------------------- |
-| `/asp`             | Show help                            |
-| `/asp toggle`      | Enable / disable                     |
-| `/asp dryrun`      | Preview mode, nothing gets sold      |
-| `/asp config`      | Open settings panel                  |
-| `/asp add <id>`    | Never sell this item                 |
-| `/asp remove <id>` | Remove from never-sell list          |
+| Command            | Description                           |
+| :----------------- | :------------------------------------ |
+| `/asp`             | Show help                             |
+| `/asp toggle`      | Enable / disable                      |
+| `/asp dryrun`      | Preview mode, nothing gets sold       |
+| `/asp config`      | Open settings panel                   |
+| `/asp add <id>`    | Never sell this item                  |
+| `/asp remove <id>` | Remove from never-sell list           |
 | `/asp list`        | Show never-sell and always-sell lists |
 
 > [!TIP]
@@ -104,9 +104,9 @@ Or run the install script on macOS:
 
 Open with `/asp config` or **Options > AddOns > AutoSellPlus**.
 
-| Category   | Options                                                  |
-| :--------- | :------------------------------------------------------- |
-| **Safety** | Protect equipment sets, protect uncollected transmog     |
+| Category   | Options                                                   |
+| :--------- | :-------------------------------------------------------- |
+| **Safety** | Protect equipment sets, protect uncollected transmog      |
 | **Output** | Sale summary, itemized log, dry run mode, buyback warning |
 
 Filter controls (sell grays / greens / blues, ilvl sliders, equippable-only toggle) live directly on the popup and persist between sessions.
@@ -118,5 +118,5 @@ Filter controls (sell grays / greens / blues, ilvl sliders, equippable-only togg
 <br>
 
 <p align="center">
-  Made by <a href="https://github.com/CloudsailDev">Cloudsail Digital Solutions</a>
+  Made by <a href="https://cloudsail.com">Cloudsail Digital Solutions</a>
 </p>
