@@ -17,9 +17,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/tag/CloudsailDev/AutoSellPlus?label=version&style=for-the-badge&color=0078D4" alt="Version">
+  <img src="https://img.shields.io/github/v/release/CloudsailDev/AutoSellPlus?style=for-the-badge&color=0078D4" alt="Version">
   &nbsp;
-  <img src="https://img.shields.io/badge/WoW-The_War_Within-148EFF?style=for-the-badge&logo=battle.net&logoColor=white" alt="WoW The War Within">
+  <img src="https://img.shields.io/badge/WoW-Midnight-148EFF?style=for-the-badge&logo=battle.net&logoColor=white" alt="WoW Midnight">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Proprietary-DA3B3B?style=for-the-badge" alt="License">
 </p>
