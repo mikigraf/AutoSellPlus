@@ -1,25 +1,25 @@
 <a id="readme-top"></a>
 
 <br>
-<br>
 
 <p align="center">
   <img src="assets/icon.png" alt="AutoSellPlus" width="128">
 </p>
 
-<h1 align="center">AutoSellPlus for World of Warcraft</h1>
+<h1 align="center">AutoSellPlus</h1>
 
 <p align="center">
-  <b>Mass-sell low item level greens and blues in one click.</b>
+  <b>Mass-sell low item level greens and blues in one click.</b><br>
+  <sub>A World of Warcraft addon</sub>
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> &middot;
-  <a href="#getting-started">Getting Started</a> &middot;
-  <a href="#commands">Commands</a> &middot;
-  <a href="#configuration">Configuration</a> &middot;
-  <a href="#development">Development</a> &middot;
-  <a href="#releasing">Releasing</a>
+  <a href="#-features">Features</a> &middot;
+  <a href="#-getting-started">Getting Started</a> &middot;
+  <a href="#-commands">Commands</a> &middot;
+  <a href="#-configuration">Configuration</a> &middot;
+  <a href="#-development">Development</a> &middot;
+  <a href="#-releasing">Releasing</a>
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@
 <br>
 
 <p align="center">
-  <img src="assets/demo.gif" alt="AutoSellPlus in action" width="640" style="border-radius:8px;">
+  <img src="assets/demo.gif" alt="AutoSellPlus in action" width="640">
 </p>
 
 <br>
@@ -52,19 +52,19 @@
 
 <br>
 
-## Features
+## &nbsp; Features
 
-|                            |                                                                            |
-| :------------------------- | :------------------------------------------------------------------------- |
-| **Instant merchant popup** | Every vendorable item laid out the moment you talk to a vendor             |
-| **Smart auto-select**      | Grays, greens, and blues below your equipped ilvl are pre-checked          |
-| **Upgrade protection**     | Never sells upgrades, equipment sets, uncollected transmog, or refundables |
-| **Auto ilvl thresholds**   | Adapts to your gear automatically, no manual config needed                 |
-| **Full control**           | One click to sell, Escape to cancel, uncheck anything you want to keep     |
+| | |
+| :--- | :--- |
+| **Instant merchant popup** | Every vendorable item laid out the moment you talk to a vendor |
+| **Smart auto-select** | Grays, greens, and blues below your equipped ilvl are pre-checked |
+| **Upgrade protection** | Never sells upgrades, equipment sets, uncollected transmog, or refundables |
+| **Auto ilvl thresholds** | Adapts to your gear automatically, no manual config needed |
+| **Full control** | One click to sell, Escape to cancel, uncheck anything you want to keep |
 
-<p align="right"><a href="#readme-top">back to top</a></p>
+<br>
 
-## Getting Started
+## &nbsp; Getting Started
 
 ### Installation
 
@@ -87,56 +87,63 @@ Or run the install script on macOS:
 3. Review, uncheck anything you want to keep
 4. Hit **Sell Selected**
 
-<p align="right"><a href="#readme-top">back to top</a></p>
+<br>
 
-## Commands
+## &nbsp; Commands
 
-| Command            | Description                           |
-| :----------------- | :------------------------------------ |
-| `/asp`             | Show help                             |
-| `/asp toggle`      | Enable / disable                      |
-| `/asp dryrun`      | Preview mode, nothing gets sold       |
-| `/asp config`      | Open settings panel                   |
-| `/asp add <id>`    | Never sell this item                  |
-| `/asp remove <id>` | Remove from never-sell list           |
-| `/asp list`        | Show never-sell and always-sell lists |
+| Command | Description |
+| :--- | :--- |
+| `/asp` | Show help |
+| `/asp toggle` | Enable / disable |
+| `/asp dryrun` | Preview mode, nothing gets sold |
+| `/asp config` | Open settings panel |
+| `/asp add <id>` | Never sell this item |
+| `/asp remove <id>` | Remove from never-sell list |
+| `/asp list` | Show never-sell and always-sell lists |
 
 > [!TIP]
 > `/autosell` works as an alias for `/asp`
 
-<p align="right"><a href="#readme-top">back to top</a></p>
+<br>
 
-## Configuration
+## &nbsp; Configuration
 
 Open with `/asp config` or **Options > AddOns > AutoSellPlus**.
 
-| Category   | Options                                                   |
-| :--------- | :-------------------------------------------------------- |
-| **Safety** | Protect equipment sets, protect uncollected transmog      |
+| Category | Options |
+| :--- | :--- |
+| **Safety** | Protect equipment sets, protect uncollected transmog |
 | **Output** | Sale summary, itemized log, dry run mode, buyback warning |
 
 Filter controls (sell grays / greens / blues, ilvl sliders, equippable-only toggle) live directly on the popup and persist between sessions.
 
-<p align="right"><a href="#readme-top">back to top</a></p>
+<br>
 
-## Development
+---
+
+<br>
+
+## &nbsp; Development
+
+> [!NOTE]
+> See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting changes.
 
 ### Project Structure
 
 ```
 AutoSellPlus/
-├── AutoSellPlus/          # Addon source
-│   ├── AutoSellPlus.toc   # Table of contents (loaded by WoW)
-│   ├── Config.lua          # Defaults and saved variables
-│   ├── Helpers.lua         # Utility functions (ilvl, transmog, formatting)
-│   ├── UI.lua              # Settings panel (Options > AddOns)
-│   ├── Popup.lua           # Main merchant popup frame
-│   └── Core.lua            # Sell logic, slash commands, event handling
-├── assets/                 # Images for README (excluded from package)
-├── .pkgmeta               # BigWigsMods packager config
-├── .luacheckrc             # Luacheck linting rules
-├── install.sh              # macOS symlink installer
-└── .github/workflows/      # CI/CD
+├── AutoSellPlus/            # Addon source
+│   ├── AutoSellPlus.toc     # Table of contents (loaded by WoW)
+│   ├── Config.lua           # Defaults and saved variables
+│   ├── Helpers.lua          # Utility functions (ilvl, transmog, formatting)
+│   ├── UI.lua               # Settings panel (Options > AddOns)
+│   ├── Popup.lua            # Main merchant popup frame
+│   └── Core.lua             # Sell logic, slash commands, event handling
+├── assets/                  # Images for README (excluded from package)
+├── .pkgmeta                 # BigWigsMods packager config
+├── .luacheckrc              # Luacheck linting rules
+├── install.sh               # macOS install script
+└── .github/workflows/       # CI/CD pipeline
 ```
 
 ### Local Testing
@@ -157,7 +164,7 @@ Reload the UI in-game with `/reload`.
 
 ### Linting
 
-Run [luacheck](https://github.com/mpeterv/luacheck) locally:
+Run [luacheck](https://github.com/mpeterv/luacheck) locally before pushing:
 
 ```bash
 luacheck AutoSellPlus/
@@ -165,20 +172,20 @@ luacheck AutoSellPlus/
 
 The CI pipeline runs luacheck automatically on every push.
 
-<p align="right"><a href="#readme-top">back to top</a></p>
+<br>
 
-## Releasing
+## &nbsp; Releasing
 
 Releases are fully automated via GitHub Actions using [BigWigsMods/packager](https://github.com/BigWigsMods/packager).
 
 ### How to Release
 
-1. Tag the commit:
+1. Tag the commit and push:
    ```bash
    git tag v1.2.3
    git push origin v1.2.3
    ```
-2. The pipeline will:
+2. The pipeline will automatically:
    - Run luacheck
    - Package the addon (respecting `.pkgmeta` ignores)
    - Upload to [CurseForge](https://www.curseforge.com/wow/addons) and [Wago](https://addons.wago.io)
@@ -188,18 +195,19 @@ Releases are fully automated via GitHub Actions using [BigWigsMods/packager](htt
 
 Set these in **GitHub > Settings > Secrets and variables > Actions**:
 
-| Secret            | Source                                                    |
-| :---------------- | :-------------------------------------------------------- |
-| `CF_API_KEY`      | [CurseForge API tokens](https://authors.curseforge.com)   |
-| `WAGO_API_TOKEN`  | [Wago developer settings](https://addons.wago.io)         |
+| Secret | Source |
+| :--- | :--- |
+| `CF_API_KEY` | [CurseForge API tokens](https://authors.curseforge.com) |
+| `WAGO_API_TOKEN` | [Wago developer settings](https://addons.wago.io) |
 
-`GITHUB_TOKEN` is provided automatically. Make sure **Settings > Actions > General > Workflow permissions** is set to **Read and write**.
+> [!IMPORTANT]
+> `GITHUB_TOKEN` is provided automatically. Make sure **Settings > Actions > General > Workflow permissions** is set to **Read and write**.
 
 ### Version Token
 
 The `.toc` file uses `@project-version@` which the packager replaces with the git tag at build time. Do not hardcode a version number.
 
-<p align="right"><a href="#readme-top">back to top</a></p>
+<br>
 
 ---
 
