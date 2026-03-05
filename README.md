@@ -4,15 +4,23 @@
 
 AutoSellPlus pops up at the merchant, auto-selects every green and blue below your gear level, and lets you vendor the entire pile instantly. It knows what you're wearing, protects upgrades and uncollected transmog, and sets ilvl thresholds automatically. No setup. No accidents. Just gold.
 
-![AutoSellPlus Demo](demo.gif)
+<br>
 
-## What it does
+<p align="center">
+  <img src="demo.gif" alt="AutoSellPlus in action" width="600">
+</p>
 
-- Pops up at the merchant with every vendorable item laid out
-- Auto-checks grays, greens, and blues below your equipped ilvl
-- Protects upgrades, equipment sets, uncollected transmog, and refundable items
-- Smart ilvl thresholds that adjust to your gear — no manual config needed
-- One click to sell. Escape to cancel. You stay in control
+<br>
+
+## Features
+
+- **Instant merchant popup** — every vendorable item laid out the moment you talk to a merchant
+- **Smart auto-select** — grays, greens, and blues below your equipped ilvl are pre-checked
+- **Upgrade protection** — never sells upgrades, equipment sets, uncollected transmog, or refundable items
+- **Auto ilvl thresholds** — adapts to your gear automatically, no manual config needed
+- **Full control** — one click to sell, Escape to cancel, uncheck anything you want to keep
+
+<br>
 
 ## Installation
 
@@ -24,10 +32,12 @@ World of Warcraft/_retail_/Interface/AddOns/AutoSellPlus/
 
 Or run `./install.sh` on macOS.
 
+<br>
+
 ## Commands
 
-| Command | What it does |
-|---------|--------------|
+| Command | Description |
+| --- | --- |
 | `/asp` | Show help |
 | `/asp toggle` | Enable / disable |
 | `/asp dryrun` | Preview mode — nothing gets sold |
@@ -36,13 +46,17 @@ Or run `./install.sh` on macOS.
 | `/asp remove <id>` | Remove from never-sell list |
 | `/asp list` | Show never-sell and always-sell lists |
 
-`/autosell` works as an alias.
+> `/autosell` works as an alias for `/asp`.
+
+<br>
 
 ## Settings
 
-Open with `/asp config` or **Options > AddOns > AutoSellPlus**.
+Open with `/asp config` or navigate to **Options > AddOns > AutoSellPlus**.
 
-**Safety** — Protect equipment sets, protect uncollected transmog
-**Output** — Sale summary, itemized log, dry run mode, buyback warning
+| Category | Options |
+| --- | --- |
+| **Safety** | Protect equipment sets, protect uncollected transmog |
+| **Output** | Sale summary, itemized log, dry run mode, buyback warning |
 
-Filter controls (sell grays/greens/blues, ilvl sliders, equippable-only toggle) live on the popup itself and persist between sessions.
+Filter controls (sell grays / greens / blues, ilvl sliders, equippable-only toggle) live directly on the popup and persist between sessions.
