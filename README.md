@@ -1,3 +1,8 @@
+<a id="readme-top"></a>
+
+<br>
+<br>
+
 <h1 align="center">AutoSellPlus for World of Warcraft</h1>
 
 <p align="center">
@@ -5,22 +10,35 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/tag/CloudsailDev/AutoSellPlus?label=version&style=flat-square&color=0078D4" alt="Version">
-  <img src="https://img.shields.io/badge/WoW-Retail-blue?style=flat-square" alt="WoW Retail">
-  <img src="https://img.shields.io/badge/license-Proprietary-red?style=flat-square" alt="License">
+  <a href="#features">Features</a> &middot;
+  <a href="#getting-started">Getting Started</a> &middot;
+  <a href="#commands">Commands</a> &middot;
+  <a href="#configuration">Configuration</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/github/v/tag/CloudsailDev/AutoSellPlus?label=version&style=for-the-badge&color=0078D4" alt="Version">
+  &nbsp;
+  <img src="https://img.shields.io/badge/WoW-The_War_Within-148EFF?style=for-the-badge&logo=battle.net&logoColor=white" alt="WoW The War Within">
+  &nbsp;
+  <img src="https://img.shields.io/badge/license-Proprietary-DA3B3B?style=for-the-badge" alt="License">
 </p>
 
 <br>
 
 <p align="center">
-  <img src="demo.gif" alt="AutoSellPlus in action" width="600">
+  <img src="demo.gif" alt="AutoSellPlus in action" width="640" style="border-radius:8px;">
 </p>
 
 <br>
 
 <p align="center">
-  AutoSellPlus pops up the moment you open a merchant and lays out every green and blue below your gear level — pre-checked and ready to vendor. It knows what you're wearing, protects upgrades and uncollected transmog, and sets ilvl thresholds automatically.<br><b>No setup. No accidents. Just gold.</b>
+  AutoSellPlus pops up the moment you open a merchant and lays out every green and blue<br>
+  below your gear level, pre-checked and ready to vendor. It knows what you're wearing,<br>
+  protects upgrades and uncollected transmog, and sets ilvl thresholds automatically.
 </p>
+
+<h3 align="center">No setup. No accidents. Just gold.</h3>
 
 <br>
 
@@ -30,15 +48,15 @@
 
 ## Features
 
-|                            |                                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| **Instant merchant popup** | Every vendorable item laid out the moment you talk to a vendor                  |
-| **Smart auto-select**      | Grays, greens, and blues below your equipped ilvl are pre-checked               |
-| **Upgrade protection**     | Never sells upgrades, equipment sets, uncollected transmog, or refundable items |
-| **Auto ilvl thresholds**   | Adapts to your gear automatically — no manual config needed                     |
-| **Full control**           | One click to sell, Escape to cancel, uncheck anything you want to keep          |
+|                            |                                                                              |
+| :------------------------- | :--------------------------------------------------------------------------- |
+| **Instant merchant popup** | Every vendorable item laid out the moment you talk to a vendor               |
+| **Smart auto-select**      | Grays, greens, and blues below your equipped ilvl are pre-checked            |
+| **Upgrade protection**     | Never sells upgrades, equipment sets, uncollected transmog, or refundables   |
+| **Auto ilvl thresholds**   | Adapts to your gear automatically, no manual config needed                   |
+| **Full control**           | One click to sell, Escape to cancel, uncheck anything you want to keep       |
 
-<br>
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 ## Getting Started
 
@@ -63,38 +81,41 @@ Or run the install script on macOS:
 3. Review, uncheck anything you want to keep
 4. Hit **Sell Selected**
 
-<br>
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 ## Commands
 
-| Command            | Description                           |
-| :----------------- | :------------------------------------ |
-| `/asp`             | Show help                             |
-| `/asp toggle`      | Enable / disable                      |
-| `/asp dryrun`      | Preview mode — nothing gets sold      |
-| `/asp config`      | Open settings panel                   |
-| `/asp add <id>`    | Never sell this item                  |
-| `/asp remove <id>` | Remove from never-sell list           |
+| Command            | Description                          |
+| :----------------- | :----------------------------------- |
+| `/asp`             | Show help                            |
+| `/asp toggle`      | Enable / disable                     |
+| `/asp dryrun`      | Preview mode, nothing gets sold      |
+| `/asp config`      | Open settings panel                  |
+| `/asp add <id>`    | Never sell this item                 |
+| `/asp remove <id>` | Remove from never-sell list          |
 | `/asp list`        | Show never-sell and always-sell lists |
 
+> [!TIP]
 > `/autosell` works as an alias for `/asp`
 
-<br>
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 ## Configuration
 
 Open with `/asp config` or **Options > AddOns > AutoSellPlus**.
 
-| Category   | Options                                                   |
-| :--------- | :-------------------------------------------------------- |
-| **Safety** | Protect equipment sets, protect uncollected transmog      |
+| Category   | Options                                                  |
+| :--------- | :------------------------------------------------------- |
+| **Safety** | Protect equipment sets, protect uncollected transmog     |
 | **Output** | Sale summary, itemized log, dry run mode, buyback warning |
 
-Filter controls — sell grays / greens / blues, ilvl sliders, equippable-only toggle — live directly on the popup and persist between sessions.
+Filter controls (sell grays / greens / blues, ilvl sliders, equippable-only toggle) live directly on the popup and persist between sessions.
 
-<br>
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 ---
+
+<br>
 
 <p align="center">
   Made by <a href="https://github.com/CloudsailDev">Cloudsail Digital Solutions</a>
