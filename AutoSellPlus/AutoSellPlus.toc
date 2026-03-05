@@ -4,7 +4,7 @@
 ## Author: Mikolaj Graf / Cloudsail Digital Solutions sp. z o.o.
 ## Version: @project-version@
 ## SavedVariables: AutoSellPlusDB
-## X-Curse-Project-ID:
+## X-Curse-Project-ID: 1478545
 ## X-Wago-ID:
 ## IconTexture: Interface\Icons\INV_Misc_Coin_01
 

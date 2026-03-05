@@ -5,7 +5,7 @@ move-folders:
 
 ignore:
     - README.md
-    - demo.gif
+    - assets
     - install.sh
     - .github
     - .editorconfig

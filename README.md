@@ -3,6 +3,10 @@
 <br>
 <br>
 
+<p align="center">
+  <img src="assets/icon.png" alt="AutoSellPlus" width="128">
+</p>
+
 <h1 align="center">AutoSellPlus for World of Warcraft</h1>
 
 <p align="center">
@@ -27,7 +31,7 @@
 <br>
 
 <p align="center">
-  <img src="demo.gif" alt="AutoSellPlus in action" width="640" style="border-radius:8px;">
+  <img src="assets/demo.gif" alt="AutoSellPlus in action" width="640" style="border-radius:8px;">
 </p>
 
 <br>
