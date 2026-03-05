@@ -17,7 +17,9 @@
   <a href="#features">Features</a> &middot;
   <a href="#getting-started">Getting Started</a> &middot;
   <a href="#commands">Commands</a> &middot;
-  <a href="#configuration">Configuration</a>
+  <a href="#configuration">Configuration</a> &middot;
+  <a href="#development">Development</a> &middot;
+  <a href="#releasing">Releasing</a>
 </p>
 
 <p align="center">
@@ -114,6 +116,88 @@ Open with `/asp config` or **Options > AddOns > AutoSellPlus**.
 | **Output** | Sale summary, itemized log, dry run mode, buyback warning |
 
 Filter controls (sell grays / greens / blues, ilvl sliders, equippable-only toggle) live directly on the popup and persist between sessions.
+
+<p align="right"><a href="#readme-top">back to top</a></p>
+
+## Development
+
+### Project Structure
+
+```
+AutoSellPlus/
+├── AutoSellPlus/          # Addon source
+│   ├── AutoSellPlus.toc   # Table of contents (loaded by WoW)
+│   ├── Config.lua          # Defaults and saved variables
+│   ├── Helpers.lua         # Utility functions (ilvl, transmog, formatting)
+│   ├── UI.lua              # Settings panel (Options > AddOns)
+│   ├── Popup.lua           # Main merchant popup frame
+│   └── Core.lua            # Sell logic, slash commands, event handling
+├── assets/                 # Images for README (excluded from package)
+├── .pkgmeta               # BigWigsMods packager config
+├── .luacheckrc             # Luacheck linting rules
+├── install.sh              # macOS symlink installer
+└── .github/workflows/      # CI/CD
+```
+
+### Local Testing
+
+Symlink the addon into your WoW addons folder:
+
+```bash
+./install.sh
+```
+
+Or manually copy `AutoSellPlus/` to:
+
+```
+World of Warcraft/_retail_/Interface/AddOns/AutoSellPlus/
+```
+
+Reload the UI in-game with `/reload`.
+
+### Linting
+
+Run [luacheck](https://github.com/mpeterv/luacheck) locally:
+
+```bash
+luacheck AutoSellPlus/
+```
+
+The CI pipeline runs luacheck automatically on every push.
+
+<p align="right"><a href="#readme-top">back to top</a></p>
+
+## Releasing
+
+Releases are fully automated via GitHub Actions using [BigWigsMods/packager](https://github.com/BigWigsMods/packager).
+
+### How to Release
+
+1. Tag the commit:
+   ```bash
+   git tag v1.2.3
+   git push origin v1.2.3
+   ```
+2. The pipeline will:
+   - Run luacheck
+   - Package the addon (respecting `.pkgmeta` ignores)
+   - Upload to [CurseForge](https://www.curseforge.com/wow/addons) and [Wago](https://addons.wago.io)
+   - Create a GitHub release with the zip attached
+
+### Required Secrets
+
+Set these in **GitHub > Settings > Secrets and variables > Actions**:
+
+| Secret            | Source                                                    |
+| :---------------- | :-------------------------------------------------------- |
+| `CF_API_KEY`      | [CurseForge API tokens](https://authors.curseforge.com)   |
+| `WAGO_API_TOKEN`  | [Wago developer settings](https://addons.wago.io)         |
+
+`GITHUB_TOKEN` is provided automatically. Make sure **Settings > Actions > General > Workflow permissions** is set to **Read and write**.
+
+### Version Token
+
+The `.toc` file uses `@project-version@` which the packager replaces with the git tag at build time. Do not hardcode a version number.
 
 <p align="right"><a href="#readme-top">back to top</a></p>
 
