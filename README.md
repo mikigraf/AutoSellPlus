@@ -1,4 +1,4 @@
-<h1 align="center">AutoSellPlus</h1>
+<h1 align="center">AutoSellPlus for World of Warcraft</h1>
 
 <p align="center">
   <b>Mass-sell low item level greens and blues in one click.</b>
@@ -30,13 +30,13 @@
 
 ## Features
 
-| | |
-| --- | --- |
-| **Instant merchant popup** | Every vendorable item laid out the moment you talk to a vendor |
-| **Smart auto-select** | Grays, greens, and blues below your equipped ilvl are pre-checked |
-| **Upgrade protection** | Never sells upgrades, equipment sets, uncollected transmog, or refundable items |
-| **Auto ilvl thresholds** | Adapts to your gear automatically — no manual config needed |
-| **Full control** | One click to sell, Escape to cancel, uncheck anything you want to keep |
+|                            |                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| **Instant merchant popup** | Every vendorable item laid out the moment you talk to a vendor                  |
+| **Smart auto-select**      | Grays, greens, and blues below your equipped ilvl are pre-checked               |
+| **Upgrade protection**     | Never sells upgrades, equipment sets, uncollected transmog, or refundable items |
+| **Auto ilvl thresholds**   | Adapts to your gear automatically — no manual config needed                     |
+| **Full control**           | One click to sell, Escape to cancel, uncheck anything you want to keep          |
 
 <br>
 
@@ -67,15 +67,15 @@ Or run the install script on macOS:
 
 ## Commands
 
-| Command | Description |
-| :--- | :--- |
-| `/asp` | Show help |
-| `/asp toggle` | Enable / disable |
-| `/asp dryrun` | Preview mode — nothing gets sold |
-| `/asp config` | Open settings panel |
-| `/asp add <id>` | Never sell this item |
-| `/asp remove <id>` | Remove from never-sell list |
-| `/asp list` | Show never-sell and always-sell lists |
+| Command            | Description                           |
+| :----------------- | :------------------------------------ |
+| `/asp`             | Show help                             |
+| `/asp toggle`      | Enable / disable                      |
+| `/asp dryrun`      | Preview mode — nothing gets sold      |
+| `/asp config`      | Open settings panel                   |
+| `/asp add <id>`    | Never sell this item                  |
+| `/asp remove <id>` | Remove from never-sell list           |
+| `/asp list`        | Show never-sell and always-sell lists |
 
 > `/autosell` works as an alias for `/asp`
 
@@ -85,9 +85,9 @@ Or run the install script on macOS:
 
 Open with `/asp config` or **Options > AddOns > AutoSellPlus**.
 
-| Category | Options |
-| :--- | :--- |
-| **Safety** | Protect equipment sets, protect uncollected transmog |
+| Category   | Options                                                   |
+| :--------- | :-------------------------------------------------------- |
+| **Safety** | Protect equipment sets, protect uncollected transmog      |
 | **Output** | Sale summary, itemized log, dry run mode, buyback warning |
 
 Filter controls — sell grays / greens / blues, ilvl sliders, equippable-only toggle — live directly on the popup and persist between sessions.
