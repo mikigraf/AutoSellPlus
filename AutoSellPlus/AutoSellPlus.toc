@@ -1,0 +1,15 @@
+## Interface: 120001
+## Title: AutoSellPlus
+## Notes: Shows a popup when visiting a merchant to review and sell junk and configurable item qualities.
+## Author: Cloudsail Development
+## Version: @project-version@
+## SavedVariables: AutoSellPlusDB
+## X-Curse-Project-ID:
+## X-Wago-ID:
+## IconTexture: Interface\Icons\INV_Misc_Coin_01
+
+Config.lua
+Helpers.lua
+UI.lua
+Popup.lua
+Core.lua

@@ -1,0 +1,14 @@
+package-as: AutoSellPlus
+
+move-folders:
+    AutoSellPlus/AutoSellPlus: AutoSellPlus
+
+ignore:
+    - README.md
+    - demo.gif
+    - install.sh
+    - .github
+    - .editorconfig
+    - .gitattributes
+    - .gitignore
+    - .luacheckrc

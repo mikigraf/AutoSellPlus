@@ -1,0 +1,9 @@
+.release/
+.DS_Store
+Thumbs.db
+*.zip
+*.tar.gz
+.vscode/
+.idea/
+Libs/
+luac.out
