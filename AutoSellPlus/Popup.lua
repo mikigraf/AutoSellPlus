@@ -478,7 +478,7 @@ end
 -- ============================================================
 
 local function CreateItemRow(parent, index)
-    local row = CreateFrame("Frame", nil, parent)
+    local row = CreateFrame("Button", nil, parent)
     row:SetHeight(ROW_HEIGHT)
 
     -- Alternating row background
