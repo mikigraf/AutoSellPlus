@@ -1207,6 +1207,79 @@ local function CreatePopupFrame()
     sessionText:Hide()
     f.sessionText = sessionText
 
+    -- Drag-to-sell button
+    local dropBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
+    dropBtn:SetSize(28, 28)
+    dropBtn:SetPoint("BOTTOMLEFT", 10, 9)
+    dropBtn:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    })
+    dropBtn:SetBackdropColor(0.15, 0.15, 0.15, 1)
+    dropBtn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+
+    local dropIcon = dropBtn:CreateTexture(nil, "ARTWORK")
+    dropIcon:SetSize(18, 18)
+    dropIcon:SetPoint("CENTER")
+    dropIcon:SetTexture("Interface\\Icons\\INV_Misc_Coin_01")
+    dropIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+    local function HandleDrop()
+        if not CursorHasItem() then return end
+        local infoType, itemID = GetCursorInfo()
+        if infoType ~= "item" or not itemID then
+            ClearCursor()
+            return
+        end
+        -- Find the item in bags and sell it
+        for bag = 0, 4 do
+            local numSlots = C_Container.GetContainerNumSlots(bag)
+            for slot = 1, numSlots do
+                local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+                if itemInfo and itemInfo.itemID == itemID then
+                    local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemInfo.hyperlink or "")
+                    if sellPrice and sellPrice > 0 then
+                        C_Container.UseContainerItem(bag, slot)
+                        local totalPrice = sellPrice * (itemInfo.stackCount or 1)
+                        ns:SafeCall(function()
+                            ns:RecordSale(itemInfo.hyperlink, itemID, itemInfo.stackCount or 1, totalPrice)
+                        end)
+                        ns:SafeCall(function()
+                            ns:UpdateSession(itemInfo.stackCount or 1, totalPrice)
+                        end)
+                        ns:Print(format("Sold %s for %s", itemInfo.hyperlink or "?", ns:FormatMoney(totalPrice)))
+                    end
+                    ClearCursor()
+                    -- Refresh popup
+                    displayList = ns:BuildDisplayList()
+                    ns:ApplyFilters()
+                    return
+                end
+            end
+        end
+        ClearCursor()
+    end
+
+    dropBtn:SetScript("OnReceiveDrag", HandleDrop)
+    dropBtn:SetScript("OnMouseUp", HandleDrop)
+    dropBtn:SetScript("OnEnter", function(self)
+        self:SetBackdropBorderColor(0.50, 0.50, 0.50, 1)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine("Drop to Sell")
+        GameTooltip:AddLine("Drag an item here to sell it instantly.", 0.7, 0.7, 0.7, true)
+        GameTooltip:Show()
+    end)
+    dropBtn:SetScript("OnLeave", function(self)
+        self:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+        GameTooltip:Hide()
+    end)
+    f.dropBtn = dropBtn
+
+    -- Shift totalText to the right of drop button
+    totalText:ClearAllPoints()
+    totalText:SetPoint("LEFT", dropBtn, "RIGHT", 8, 0)
+
     -- Sell button (accent style)
     local sellBtn = CreateFlatButton(f, "Sell Selected", 100, 26)
     sellBtn:SetPoint("BOTTOMRIGHT", -10, 10)

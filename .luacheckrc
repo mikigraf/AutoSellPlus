@@ -111,6 +111,8 @@ read_globals = {
     "time",
     "GetLootSlotLink",
     "LootSlot",
+    "CursorHasItem",
+    "GetCursorInfo",
 
     -- Third-party addon globals (read-only detection)
     "AllTheThings",
