@@ -72,8 +72,8 @@ local function OnEnter(self)
     end
 
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine("|cFFAAAAAALeft-click:|r Toggle popup", 0.8, 0.8, 0.8)
-    GameTooltip:AddLine("|cFFAAAAAARight-click:|r Settings", 0.8, 0.8, 0.8)
+    GameTooltip:AddLine("|cFFAAAAAALeft-click:|r Open settings", 0.8, 0.8, 0.8)
+    GameTooltip:AddLine("|cFFAAAAAARight-click:|r Toggle addon", 0.8, 0.8, 0.8)
     GameTooltip:AddLine("|cFFAAAAAAShift+click:|r Session stats", 0.8, 0.8, 0.8)
     GameTooltip:AddLine("|cFFAAAAAAShift+Right-click:|r Sale history", 0.8, 0.8, 0.8)
     GameTooltip:Show()
@@ -88,14 +88,18 @@ local function OnClick(self, btn)
         if IsShiftKeyDown() then
             ns:PrintSessionReport()
         else
-            ns.db.enabled = not ns.db.enabled
-            ns:Print("Addon " .. (ns.db.enabled and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
+            -- Open settings panel (works anytime — preset values even without a merchant)
+            if ns.settingsCategoryID then
+                Settings.OpenToCategory(ns.settingsCategoryID)
+            end
         end
     elseif btn == "RightButton" then
         if IsShiftKeyDown() then
             ns:ToggleHistoryPanel()
-        elseif ns.settingsCategoryID then
-            Settings.OpenToCategory(ns.settingsCategoryID)
+        else
+            -- Toggle addon on/off
+            ns.db.enabled = not ns.db.enabled
+            ns:Print("Addon " .. (ns.db.enabled and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
         end
     end
 end
