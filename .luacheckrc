@@ -109,6 +109,8 @@ read_globals = {
     "GetAddOnMetadata",
     "date",
     "time",
+    "GetLootSlotLink",
+    "LootSlot",
 
     -- Third-party addon globals (read-only detection)
     "AllTheThings",

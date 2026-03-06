@@ -401,6 +401,20 @@ function ns:InitMarking()
     lootFrame:RegisterEvent("CHAT_MSG_LOOT")
     lootFrame:SetScript("OnEvent", OnLootReceived)
 
+    -- Loot window ALT+Click marking
+    hooksecurefunc("LootSlot", function(slot)
+        if not IsAltKeyDown() then return end
+        local link = GetLootSlotLink(slot)
+        if not link then return end
+        local itemID = C_Item.GetItemInfoInstant(link)
+        if not itemID then return end
+        local markedItems = ns.db.markedItems
+        if not markedItems then return end
+        markedItems[itemID] = true
+        local itemName = C_Item.GetItemNameByID(itemID)
+        ns:Print(format("Marked %s as junk from loot", itemName or "item " .. itemID))
+    end)
+
     -- Initial overlay refresh
     C_Timer.After(1, RefreshOverlays)
 end
