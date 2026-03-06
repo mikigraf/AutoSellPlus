@@ -59,9 +59,13 @@ local function OnEnter(self)
                 GameTooltip:AddLine("Character Stats:", 0.5, 0.8, 1)
                 hasStats = true
             end
+            local rightText = FormatGoldShort(stats.totalCopper or 0) .. " (" .. (stats.totalItems or 0) .. " items)"
+            if stats.bagJunkValue and stats.bagJunkValue > 0 then
+                rightText = rightText .. " | Junk: " .. FormatGoldShort(stats.bagJunkValue)
+            end
             GameTooltip:AddDoubleLine(
                 charName,
-                FormatGoldShort(stats.totalCopper or 0) .. " (" .. (stats.totalItems or 0) .. " items)",
+                rightText,
                 0.7, 0.7, 0.7, 1, 0.82, 0
             )
         end
@@ -181,6 +185,41 @@ function ns:ToggleMinimapButton()
     else
         self:HideMinimapButton()
     end
+end
+
+-- Update current character's bag junk value for alt-tracking
+function ns:UpdateCharJunkValue()
+    local charName = UnitName("player")
+    local realm = GetRealmName()
+    local fullName = charName .. " - " .. realm
+
+    local stats = ns.db.charStats
+    if not stats then return end
+    if not stats[fullName] then
+        stats[fullName] = { totalCopper = 0, totalItems = 0, lastSeen = 0 }
+    end
+
+    local junkValue = 0
+    for bag = 0, 4 do
+        local numSlots = C_Container.GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+            if itemInfo and itemInfo.itemID and itemInfo.hyperlink then
+                local quality = itemInfo.quality or 99
+                local isJunk = (quality == Enum.ItemQuality.Poor)
+                    or ns:IsMarked(itemInfo.itemID)
+                    or ns:IsAlwaysSell(itemInfo.itemID)
+                if isJunk and not ns:IsNeverSell(itemInfo.itemID) then
+                    local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemInfo.hyperlink)
+                    if sellPrice and sellPrice > 0 then
+                        junkValue = junkValue + (sellPrice * (itemInfo.stackCount or 1))
+                    end
+                end
+            end
+        end
+    end
+
+    stats[fullName].bagJunkValue = junkValue
 end
 
 -- Update character stats for alt-tracking

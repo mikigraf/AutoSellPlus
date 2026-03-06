@@ -1061,6 +1061,9 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         -- Create minimap button
         ns:SafeCall(function() ns:CreateMinimapButton() end)
 
+        -- Update junk value for alt tracking
+        ns:SafeCall(function() ns:UpdateCharJunkValue() end)
+
         -- Conflict detection
         ns:SafeCall(DetectConflicts)
 
@@ -1103,5 +1106,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "BAG_UPDATE_DELAYED" then
         -- Check bag space
         ns:SafeCall(CheckBagSpace)
+        -- Update junk value
+        ns:SafeCall(function() ns:UpdateCharJunkValue() end)
     end
 end)
