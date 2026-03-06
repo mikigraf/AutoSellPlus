@@ -2,8 +2,8 @@ local addonName, ns = ...
 
 -- Layout constants
 local ROW_HEIGHT = 28
-local POPUP_WIDTH = 540
-local POPUP_HEIGHT = 500
+local POPUP_WIDTH = 580
+local POPUP_HEIGHT = 620
 
 -- Flat 1px border backdrop (ElvUI style)
 local FLAT_BACKDROP = {
@@ -16,6 +16,11 @@ local popup = nil
 local itemRows = {}
 local displayList = {}
 local userUnchecked = {}
+local contextMenu = nil
+
+-- Sorting state
+ns.sortColumn = "quality"
+ns.sortDirection = "asc"
 
 -- ============================================================
 -- Styled UI Helpers
@@ -43,7 +48,7 @@ end
 
 local function CreateStyledSlider(parent, minVal, maxVal, step)
     local slider = CreateFrame("Slider", nil, parent, "BackdropTemplate")
-    slider:SetSize(130, 14)
+    slider:SetSize(110, 14)
     slider:SetBackdrop(FLAT_BACKDROP)
     slider:SetBackdropColor(0.12, 0.12, 0.12, 1)
     slider:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
@@ -130,6 +135,115 @@ local function CreateFlatButton(parent, text, width, height)
 end
 
 -- ============================================================
+-- Context Menu
+-- ============================================================
+
+local function CreateContextMenu()
+    if contextMenu then return contextMenu end
+
+    local menu = CreateFrame("Frame", "AutoSellPlusContextMenu", UIParent, "BackdropTemplate")
+    menu:SetSize(200, 130)
+    menu:SetFrameStrata("TOOLTIP")
+    menu:SetBackdrop(FLAT_BACKDROP)
+    menu:SetBackdropColor(0.08, 0.08, 0.08, 0.98)
+    menu:SetBackdropBorderColor(0, 0, 0, 1)
+    menu:EnableMouse(true)
+    menu:Hide()
+
+    local options = {
+        { text = "Never sell (global)", action = "never_global" },
+        { text = "Never sell (this char)", action = "never_char" },
+        { text = "Always sell (global)", action = "always_global" },
+        { text = "Always sell (this char)", action = "always_char" },
+        { text = "Remove from lists", action = "remove" },
+    }
+
+    for i, opt in ipairs(options) do
+        local btn = CreateFrame("Button", nil, menu)
+        btn:SetSize(196, 24)
+        btn:SetPoint("TOPLEFT", 2, -2 - (i - 1) * 24)
+        btn.action = opt.action
+
+        local hl = btn:CreateTexture(nil, "HIGHLIGHT")
+        hl:SetAllPoints()
+        hl:SetColorTexture(0.15, 0.35, 0.55, 0.6)
+
+        local label = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        label:SetPoint("LEFT", 8, 0)
+        label:SetText(opt.text)
+
+        btn:SetScript("OnClick", function(self)
+            local itemID = menu.currentItemID
+            if not itemID then return end
+
+            if self.action == "never_global" then
+                ns.db.neverSellList[itemID] = true
+                ns.db.alwaysSellList[itemID] = nil
+                ns:Print(format("Added %s to never-sell list (global)", C_Item.GetItemNameByID(itemID) or itemID))
+            elseif self.action == "never_char" then
+                if AutoSellPlusCharDB then
+                    AutoSellPlusCharDB.charNeverSellList[itemID] = true
+                    AutoSellPlusCharDB.charAlwaysSellList[itemID] = nil
+                end
+                ns:Print(format("Added %s to never-sell list (this char)", C_Item.GetItemNameByID(itemID) or itemID))
+            elseif self.action == "always_global" then
+                ns.db.alwaysSellList[itemID] = true
+                ns.db.neverSellList[itemID] = nil
+                ns:Print(format("Added %s to always-sell list (global)", C_Item.GetItemNameByID(itemID) or itemID))
+            elseif self.action == "always_char" then
+                if AutoSellPlusCharDB then
+                    AutoSellPlusCharDB.charAlwaysSellList[itemID] = true
+                    AutoSellPlusCharDB.charNeverSellList[itemID] = nil
+                end
+                ns:Print(format("Added %s to always-sell list (this char)", C_Item.GetItemNameByID(itemID) or itemID))
+            elseif self.action == "remove" then
+                ns.db.neverSellList[itemID] = nil
+                ns.db.alwaysSellList[itemID] = nil
+                if AutoSellPlusCharDB then
+                    AutoSellPlusCharDB.charNeverSellList[itemID] = nil
+                    AutoSellPlusCharDB.charAlwaysSellList[itemID] = nil
+                end
+                ns:Print(format("Removed %s from all lists", C_Item.GetItemNameByID(itemID) or itemID))
+            end
+
+            menu:Hide()
+            -- Refresh popup
+            displayList = ns:BuildDisplayList()
+            ns:ApplyFilters()
+        end)
+    end
+
+    menu:SetHeight(2 + #options * 24 + 2)
+
+    -- Close on click elsewhere
+    menu:SetScript("OnShow", function()
+        menu:SetScript("OnUpdate", function()
+            if not menu:IsMouseOver() and not IsMouseButtonDown("RightButton") then
+                local elapsed = menu.showTime and (GetTime() - menu.showTime) or 1
+                if elapsed > 0.3 then
+                    menu:Hide()
+                end
+            end
+        end)
+    end)
+    menu:SetScript("OnHide", function()
+        menu:SetScript("OnUpdate", nil)
+    end)
+
+    contextMenu = menu
+    return menu
+end
+
+local function ShowContextMenu(itemID, anchor)
+    local menu = CreateContextMenu()
+    menu.currentItemID = itemID
+    menu.showTime = GetTime()
+    menu:ClearAllPoints()
+    menu:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 2, 0)
+    menu:Show()
+end
+
+-- ============================================================
 -- Data Functions
 -- ============================================================
 
@@ -149,35 +263,61 @@ function ns:BuildDisplayList()
 
                 if itemID and itemLink then
                     local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemLink)
-                    local isAlwaysSell = self.db.alwaysSellList[itemID]
+                    local isAlwaysSell = self:IsAlwaysSell(itemID)
+                    local isMarked = self:IsMarked(itemID)
 
-                    if not self.db.neverSellList[itemID]
+                    if not self:IsNeverSell(itemID)
                         and not isLocked
                         and not self:IsRefundable(bag, slot)
                         and (sellPrice and sellPrice > 0 or isAlwaysSell)
                         and not hasNoValue
                         and not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemID))
                         and not (self.db.protectUncollectedTransmog and self:IsEquippable(itemID) and self:IsUncollectedTransmog(itemID))
+                        and not (self.db.protectTransmogSource and self:IsEquippable(itemID) and self:IsUncollectedTransmogSource(itemID))
                     then
-                        local ilvl = self:GetEffectiveItemLevel(itemLink)
-                        local isEquippable = self:IsEquippable(itemID)
-                        local equippedIlvl = isEquippable and self:GetEquippedIlvlForItem(itemID) or 0
-                        list[#list + 1] = {
-                            bag = bag,
-                            slot = slot,
-                            itemID = itemID,
-                            itemLink = itemLink,
-                            quality = quality,
-                            ilvl = ilvl,
-                            equippedIlvl = equippedIlvl,
-                            sellPrice = sellPrice or 0,
-                            stackCount = stackCount,
-                            totalPrice = (sellPrice or 0) * stackCount,
-                            isEquippable = isEquippable,
-                            isAlwaysSell = isAlwaysSell,
-                            checked = false,
-                            visible = false,
-                        }
+                        -- BoE protection
+                        local isBoe = self:IsBindOnEquip(bag, slot)
+                        if self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
+                            -- Skip protected BoE
+                        else
+                            local ilvl = self:GetEffectiveItemLevel(itemLink)
+                            local isEquippable = self:IsEquippable(itemID)
+                            local equippedIlvl = isEquippable and self:GetEquippedIlvlForItem(itemID) or 0
+                            local classID = self:GetItemClassID(itemID)
+                            local expansionID = self:GetItemExpansion(itemLink)
+
+                            -- AH value lookup
+                            local ahValue = 0
+                            if TSM_API and TSM_API.GetCustomPriceValue then
+                                local ok, val = pcall(TSM_API.GetCustomPriceValue, "DBMarket", "i:" .. itemID)
+                                if ok and val then ahValue = val end
+                            elseif Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.GetAuctionPriceByItemLink then
+                                local ok, val = pcall(Auctionator.API.v1.GetAuctionPriceByItemLink, "AutoSellPlus", itemLink)
+                                if ok and val then ahValue = val end
+                            end
+
+                            list[#list + 1] = {
+                                bag = bag,
+                                slot = slot,
+                                itemID = itemID,
+                                itemLink = itemLink,
+                                quality = quality,
+                                ilvl = ilvl,
+                                equippedIlvl = equippedIlvl,
+                                sellPrice = sellPrice or 0,
+                                stackCount = stackCount,
+                                totalPrice = (sellPrice or 0) * stackCount,
+                                isEquippable = isEquippable,
+                                isAlwaysSell = isAlwaysSell,
+                                isMarked = isMarked,
+                                isBoe = isBoe,
+                                classID = classID,
+                                expansionID = expansionID,
+                                ahValue = ahValue,
+                                checked = false,
+                                visible = false,
+                            }
+                        end
                     end
                 end
             end
@@ -188,21 +328,77 @@ end
 
 function ns:ApplyFilters()
     local db = self.db
-    for _, item in ipairs(displayList) do
+    for _, item in ipairs(displayList) do repeat
         local visible = false
         local autoChecked = false
 
         item.isUpgrade = item.isEquippable and item.equippedIlvl > 0 and item.ilvl > item.equippedIlvl
 
-        if item.isAlwaysSell then
+        -- Expansion filter
+        if db.filterExpansion > 0 and item.expansionID ~= db.filterExpansion then
+            item.visible = false
+            item.checked = false
+            break
+        end
+
+        -- Exclude current expansion filter
+        if db.excludeCurrentExpansion and item.expansionID == ns.CURRENT_EXPANSION then
+            item.visible = false
+            item.checked = false
+            break
+        end
+
+        -- Equipment slot filter
+        local filterSlots = db.filterSlots
+        if filterSlots and next(filterSlots) then
+            if item.isEquippable then
+                local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(item.itemID)
+                local slots = ns.EQUIP_LOC_TO_SLOTS and ns.EQUIP_LOC_TO_SLOTS[itemEquipLoc]
+                local slotMatch = false
+                if slots then
+                    for _, slotID in ipairs(slots) do
+                        if filterSlots[slotID] then
+                            slotMatch = true
+                            break
+                        end
+                    end
+                end
+                if not slotMatch then
+                    item.visible = false
+                    item.checked = false
+                    break
+                end
+            else
+                item.visible = false
+                item.checked = false
+                break
+            end
+        end
+
+        -- Always-sell and marked items
+        if item.isAlwaysSell or item.isMarked then
             visible = true
             autoChecked = true
         elseif item.quality == Enum.ItemQuality.Poor then
+            -- Grays
             if db.sellGrays then
                 visible = true
                 autoChecked = true
             end
+        elseif item.quality == Enum.ItemQuality.Common then
+            -- Whites
+            if db.sellWhites then
+                if db.onlyEquippable and not item.isEquippable then
+                    visible = false
+                else
+                    visible = true
+                    if item.ilvl > 0 and db.whiteMaxIlvl > 0 and item.ilvl <= db.whiteMaxIlvl then
+                        autoChecked = not item.isUpgrade
+                    end
+                end
+            end
         elseif item.quality == Enum.ItemQuality.Uncommon then
+            -- Greens
             if db.sellGreens then
                 if db.onlyEquippable and not item.isEquippable then
                     visible = false
@@ -214,6 +410,7 @@ function ns:ApplyFilters()
                 end
             end
         elseif item.quality == Enum.ItemQuality.Rare then
+            -- Blues
             if db.sellBlues then
                 if db.onlyEquippable and not item.isEquippable then
                     visible = false
@@ -223,6 +420,35 @@ function ns:ApplyFilters()
                         autoChecked = not item.isUpgrade
                     end
                 end
+            end
+        elseif item.quality == Enum.ItemQuality.Epic then
+            -- Epics
+            if db.sellEpics then
+                if db.onlyEquippable and not item.isEquippable then
+                    visible = false
+                else
+                    visible = true
+                    if item.ilvl > 0 and db.epicMaxIlvl > 0 and item.ilvl <= db.epicMaxIlvl then
+                        autoChecked = not item.isUpgrade
+                    end
+                end
+            end
+        end
+
+        -- Category filters (non-equippable items)
+        if not visible then
+            if item.classID == 0 and db.sellConsumables then
+                visible = true
+                autoChecked = true
+            elseif item.classID == 7 and db.sellTradeGoods then
+                visible = true
+                autoChecked = true
+            elseif item.classID == 12 and db.sellQuestItems then
+                visible = true
+                autoChecked = true
+            elseif item.classID == 15 and db.sellMiscItems then
+                visible = true
+                autoChecked = true
             end
         end
 
@@ -236,7 +462,8 @@ function ns:ApplyFilters()
         else
             item.checked = false
         end
-    end
+
+    until true end
 
     self:RefreshPopupList()
 end
@@ -297,29 +524,55 @@ local function CreateItemRow(parent, index)
     -- Item name
     local name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     name:SetPoint("LEFT", icon, "RIGHT", 8, 0)
-    name:SetWidth(190)
+    name:SetWidth(170)
     name:SetJustifyH("LEFT")
     name:SetWordWrap(false)
     row.name = name
 
+    -- Badges (BoE, Marked)
+    local badge = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    badge:SetPoint("LEFT", name, "RIGHT", 2, 0)
+    badge:SetWidth(40)
+    badge:SetJustifyH("LEFT")
+    badge:SetTextColor(0.7, 0.7, 0.3)
+    row.badge = badge
+
     -- Item level
     local ilvlText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    ilvlText:SetPoint("LEFT", name, "RIGHT", 6, 0)
-    ilvlText:SetWidth(95)
+    ilvlText:SetPoint("LEFT", badge, "RIGHT", 2, 0)
+    ilvlText:SetWidth(80)
     ilvlText:SetJustifyH("CENTER")
     ilvlText:SetTextColor(0.55, 0.55, 0.55)
     row.ilvlText = ilvlText
 
+    -- AH value column (shown when TSM/Auctionator detected)
+    local ahText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    ahText:SetPoint("LEFT", ilvlText, "RIGHT", 2, 0)
+    ahText:SetWidth(60)
+    ahText:SetJustifyH("RIGHT")
+    ahText:SetTextColor(0.3, 1, 0.3)
+    row.ahText = ahText
+
     -- Price
     local price = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     price:SetPoint("RIGHT", row, "RIGHT", -6, 0)
-    price:SetWidth(90)
+    price:SetWidth(80)
     price:SetJustifyH("RIGHT")
     price:SetTextColor(1, 0.82, 0)
     row.price = price
 
-    -- Tooltip on hover
+    -- High value warning icon
+    local highValueIcon = row:CreateTexture(nil, "OVERLAY")
+    highValueIcon:SetSize(14, 14)
+    highValueIcon:SetPoint("RIGHT", price, "LEFT", -2, 0)
+    highValueIcon:SetTexture("Interface\\Icons\\INV_Misc_Coin_02")
+    highValueIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    highValueIcon:Hide()
+    row.highValueIcon = highValueIcon
+
+    -- Tooltip on hover + right-click context menu
     row:EnableMouse(true)
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     row:SetScript("OnEnter", function(self)
         if self.itemData and self.itemData.itemLink then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -330,9 +583,16 @@ local function CreateItemRow(parent, index)
     row:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
+    row:SetScript("OnMouseDown", function(self, button)
+        if button == "RightButton" and self.itemData then
+            ShowContextMenu(self.itemData.itemID, self)
+        end
+    end)
 
     return row
 end
+
+local hasAHAddon = false
 
 local function SetRowData(row, item)
     row.itemData = item
@@ -352,6 +612,13 @@ local function SetRowData(row, item)
         row.iconBorder:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
     end
 
+    -- Badges
+    local badges = {}
+    if item.isBoe then badges[#badges + 1] = "|cFFFFCC00BoE|r" end
+    if item.isMarked then badges[#badges + 1] = "|cFFFF6600Junk|r" end
+    row.badge:SetText(table.concat(badges, " "))
+
+    -- ilvl display
     if item.ilvl and item.ilvl > 0 then
         if item.isEquippable and item.equippedIlvl and item.equippedIlvl > 0 then
             row.ilvlText:SetText(item.ilvl .. " (eq:" .. item.equippedIlvl .. ")")
@@ -368,13 +635,75 @@ local function SetRowData(row, item)
         row.ilvlText:SetTextColor(0.55, 0.55, 0.55)
     end
 
+    -- AH value
+    if hasAHAddon and item.ahValue and item.ahValue > 0 then
+        row.ahText:SetText(ns:FormatMoney(item.ahValue))
+        if item.ahValue > item.totalPrice * 10 then
+            row.ahText:SetTextColor(0.1, 1.0, 0.1) -- Green: AH much higher, don't vendor
+        elseif item.ahValue > item.totalPrice * 2 then
+            row.ahText:SetTextColor(1, 0.82, 0) -- Yellow
+        else
+            row.ahText:SetTextColor(0.5, 0.5, 0.5) -- Gray: AH similar to vendor
+        end
+    else
+        row.ahText:SetText("")
+    end
+
+    -- Price + high value warning
     row.price:SetText(ns:FormatMoney(item.totalPrice))
+    local isHighValue = ns.db.highValueConfirm and item.totalPrice >= ns.db.highValueThreshold
+    row.highValueIcon:SetShown(isHighValue)
+
     row:Show()
 end
 
 -- ============================================================
 -- List and Total Functions
 -- ============================================================
+
+local function SortItems(a, b)
+    local col = ns.sortColumn
+    local dir = ns.sortDirection
+
+    local va, vb
+    if col == "quality" then
+        if a.quality ~= b.quality then
+            va, vb = a.quality, b.quality
+        elseif a.ilvl ~= b.ilvl then
+            va, vb = a.ilvl, b.ilvl
+        else
+            va, vb = (a.itemLink or ""), (b.itemLink or "")
+        end
+    elseif col == "ilvl" then
+        if a.ilvl ~= b.ilvl then
+            va, vb = a.ilvl, b.ilvl
+        else
+            va, vb = a.quality, b.quality
+        end
+    elseif col == "price" then
+        if a.totalPrice ~= b.totalPrice then
+            va, vb = a.totalPrice, b.totalPrice
+        else
+            va, vb = a.quality, b.quality
+        end
+    elseif col == "ah" then
+        local ahA = a.ahValue or 0
+        local ahB = b.ahValue or 0
+        if ahA ~= ahB then
+            va, vb = ahA, ahB
+        else
+            va, vb = a.totalPrice, b.totalPrice
+        end
+    else
+        va, vb = a.quality, b.quality
+    end
+
+    if dir == "desc" then
+        return va > vb
+    else
+        return va < vb
+    end
+end
 
 function ns:RefreshPopupList()
     if not popup then return end
@@ -386,11 +715,7 @@ function ns:RefreshPopupList()
         end
     end
 
-    table.sort(visibleItems, function(a, b)
-        if a.quality ~= b.quality then return a.quality < b.quality end
-        if a.ilvl ~= b.ilvl then return a.ilvl < b.ilvl end
-        return (a.itemLink or "") < (b.itemLink or "")
-    end)
+    table.sort(visibleItems, SortItems)
 
     local scrollChild = popup.scrollChild
 
@@ -428,6 +753,73 @@ function ns:UpdateTotals()
 
     popup.totalText:SetText(format("Total: %s (%d item%s)", self:FormatMoney(totalCopper), totalCount, totalCount == 1 and "" or "s"))
     popup.sellBtn:SetEnabled(totalCount > 0)
+    popup.sellAllBtn:SetEnabled(totalCount > 0)
+
+    -- Session counter
+    if popup.sessionText and ns.sessionData then
+        if ns.sessionData.totalCopper > 0 then
+            popup.sessionText:SetText(format("Session: +%s", self:FormatMoney(ns.sessionData.totalCopper)))
+            popup.sessionText:Show()
+        else
+            popup.sessionText:Hide()
+        end
+    end
+end
+
+-- ============================================================
+-- Filter Row Builder Helper
+-- ============================================================
+
+local function CreateQualityFilterRow(f, filterTop, label, checkKey, sliderKey, editKey, y)
+    local check = CreateStyledCheck(f, 18)
+    check:SetPoint("TOPLEFT", 14, filterTop + y)
+    local checkLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    checkLabel:SetPoint("LEFT", check, "RIGHT", 6, 0)
+    checkLabel:SetText(label)
+    check:SetScript("OnClick", function(self)
+        ns.db[checkKey] = self:GetChecked()
+        ns:ApplyFilters()
+    end)
+
+    if sliderKey and editKey then
+        local sliderLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        sliderLabel:SetPoint("LEFT", checkLabel, "RIGHT", 12, 0)
+        sliderLabel:SetText("ilvl <=")
+        sliderLabel:SetTextColor(0.50, 0.50, 0.50)
+
+        local slider = CreateStyledSlider(f, 0, 700, 5)
+        slider:SetPoint("LEFT", sliderLabel, "RIGHT", 8, 0)
+
+        local editBox = CreateStyledEditBox(f, 38)
+        editBox:SetPoint("LEFT", slider, "RIGHT", 6, 0)
+
+        local function CommitValue(self)
+            local val = tonumber(self:GetText()) or 0
+            val = math.max(0, math.min(700, val))
+            ns.db[sliderKey] = val
+            slider:SetValue(val)
+            self:SetText(tostring(val))
+            self:ClearFocus()
+        end
+
+        editBox:SetScript("OnEnterPressed", CommitValue)
+        editBox:SetScript("OnTabPressed", CommitValue)
+        editBox:SetScript("OnEscapePressed", function(self)
+            self:SetText(tostring(ns.db[sliderKey]))
+            self:ClearFocus()
+        end)
+
+        slider:SetScript("OnValueChanged", function(self, value)
+            value = math.floor(value + 0.5)
+            ns.db[sliderKey] = value
+            editBox:SetText(tostring(value))
+            ns:ApplyFilters()
+        end)
+
+        return check, slider, editBox
+    end
+
+    return check
 end
 
 -- ============================================================
@@ -476,6 +868,7 @@ local function CreatePopupFrame()
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOP", 0, -8)
     title:SetText("|cFF00CCFFAutoSellPlus|r")
+    f.titleText = title
 
     -- Close button (flat styled)
     local closeBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
@@ -527,144 +920,162 @@ local function CreatePopupFrame()
     -- ============================================================
     local filterTop = -36
     local filterLeft = 14
+    local rowY = 0
 
     -- Filter section background
     local filterBg = CreateFrame("Frame", nil, f, "BackdropTemplate")
     filterBg:SetPoint("TOPLEFT", 1, filterTop + 2)
     filterBg:SetPoint("TOPRIGHT", -1, filterTop + 2)
-    filterBg:SetHeight(98)
     filterBg:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
     filterBg:SetBackdropColor(0.04, 0.04, 0.04, 0.5)
     filterBg:EnableMouse(false)
+    f.filterBg = filterBg
 
     -- Row 1: Sell Grays
-    local grayCheck = CreateStyledCheck(f, 18)
-    grayCheck:SetPoint("TOPLEFT", filterLeft, filterTop)
-    local grayLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    grayLabel:SetPoint("LEFT", grayCheck, "RIGHT", 6, 0)
-    grayLabel:SetText("Sell Grays")
-    grayCheck:SetScript("OnClick", function(self)
-        ns.db.sellGrays = self:GetChecked()
-        ns:ApplyFilters()
-    end)
-    f.grayCheck = grayCheck
+    f.grayCheck = CreateQualityFilterRow(f, filterTop, "Sell Grays", "sellGrays", nil, nil, rowY)
+    rowY = rowY - 22
 
-    -- Row 2: Sell Greens + slider + editbox
-    local greenCheck = CreateStyledCheck(f, 18)
-    greenCheck:SetPoint("TOPLEFT", filterLeft, filterTop - 24)
-    local greenLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    greenLabel:SetPoint("LEFT", greenCheck, "RIGHT", 6, 0)
-    greenLabel:SetText("Sell Greens")
-    greenCheck:SetScript("OnClick", function(self)
-        ns.db.sellGreens = self:GetChecked()
-        ns:ApplyFilters()
-    end)
-    f.greenCheck = greenCheck
+    -- Row 2: Sell Whites + slider
+    f.whiteCheck, f.whiteSlider, f.whiteEditBox = CreateQualityFilterRow(f, filterTop, "Sell Whites", "sellWhites", "whiteMaxIlvl", "whiteMaxIlvl", rowY)
+    rowY = rowY - 22
 
-    local greenSliderLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    greenSliderLabel:SetPoint("LEFT", greenLabel, "RIGHT", 12, 0)
-    greenSliderLabel:SetText("ilvl <=")
-    greenSliderLabel:SetTextColor(0.50, 0.50, 0.50)
+    -- Row 3: Sell Greens + slider
+    f.greenCheck, f.greenSlider, f.greenEditBox = CreateQualityFilterRow(f, filterTop, "Sell Greens", "sellGreens", "greenMaxIlvl", "greenMaxIlvl", rowY)
+    rowY = rowY - 22
 
-    local greenSlider = CreateStyledSlider(f, 0, 700, 5)
-    greenSlider:SetPoint("LEFT", greenSliderLabel, "RIGHT", 8, 0)
-    f.greenSlider = greenSlider
+    -- Row 4: Sell Blues + slider
+    f.blueCheck, f.blueSlider, f.blueEditBox = CreateQualityFilterRow(f, filterTop, "Sell Blues", "sellBlues", "blueMaxIlvl", "blueMaxIlvl", rowY)
+    rowY = rowY - 22
 
-    local greenEditBox = CreateStyledEditBox(f, 40)
-    greenEditBox:SetPoint("LEFT", greenSlider, "RIGHT", 6, 0)
-    local function CommitGreenValue(self)
-        local val = tonumber(self:GetText()) or 0
-        val = math.max(0, math.min(700, val))
-        ns.db.greenMaxIlvl = val
-        f.greenSlider:SetValue(val)
-        self:SetText(tostring(val))
-        self:ClearFocus()
+    -- Row 5: Sell Epics + slider
+    f.epicCheck, f.epicSlider, f.epicEditBox = CreateQualityFilterRow(f, filterTop, "Sell Epics", "sellEpics", "epicMaxIlvl", "epicMaxIlvl", rowY)
+    rowY = rowY - 22
+
+    -- Row 6: Only Equippable
+    f.equipCheck = CreateQualityFilterRow(f, filterTop, "Only Equippable", "onlyEquippable", nil, nil, rowY)
+    rowY = rowY - 22
+
+    -- Row 7: Category filters
+    local catLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    catLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    catLabel:SetText("Categories:")
+    catLabel:SetTextColor(0.50, 0.50, 0.50)
+
+    local catX = 80
+    local catNames = {
+        { key = "sellConsumables", label = "Consum." },
+        { key = "sellTradeGoods", label = "Trade" },
+        { key = "sellQuestItems", label = "Quest" },
+        { key = "sellMiscItems", label = "Misc" },
+    }
+    f.categoryChecks = {}
+    for _, cat in ipairs(catNames) do
+        local catCheck = CreateStyledCheck(f, 14)
+        catCheck:SetPoint("TOPLEFT", filterLeft + catX, filterTop + rowY + 2)
+        local catLbl = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        catLbl:SetPoint("LEFT", catCheck, "RIGHT", 3, 0)
+        catLbl:SetText(cat.label)
+        catLbl:SetTextColor(0.70, 0.70, 0.70)
+        local catKey = cat.key
+        catCheck:SetScript("OnClick", function(self)
+            ns.db[catKey] = self:GetChecked()
+            ns:ApplyFilters()
+        end)
+        f.categoryChecks[cat.key] = catCheck
+        catX = catX + 70
     end
-    greenEditBox:SetScript("OnEnterPressed", CommitGreenValue)
-    greenEditBox:SetScript("OnTabPressed", CommitGreenValue)
-    greenEditBox:SetScript("OnEscapePressed", function(self)
-        self:SetText(tostring(ns.db.greenMaxIlvl))
-        self:ClearFocus()
-    end)
-    f.greenEditBox = greenEditBox
+    rowY = rowY - 22
 
-    greenSlider:SetScript("OnValueChanged", function(self, value)
-        value = math.floor(value + 0.5)
-        ns.db.greenMaxIlvl = value
-        f.greenEditBox:SetText(tostring(value))
+    -- Row 8: Expansion filter
+    local expLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    expLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    expLabel:SetText("Expansion:")
+    expLabel:SetTextColor(0.50, 0.50, 0.50)
+
+    local expBtn = CreateFlatButton(f, "All", 80, 18)
+    expBtn:SetPoint("LEFT", expLabel, "RIGHT", 8, 0)
+    expBtn:SetScript("OnClick", function()
+        local current = ns.db.filterExpansion
+        current = current + 1
+        if current > 12 then current = 0 end
+        ns.db.filterExpansion = current
+        expBtn.label:SetText(ns.EXPANSION_NAMES[current] or "All")
         ns:ApplyFilters()
     end)
+    f.expBtn = expBtn
 
-    -- Row 3: Sell Blues + slider + editbox
-    local blueCheck = CreateStyledCheck(f, 18)
-    blueCheck:SetPoint("TOPLEFT", filterLeft, filterTop - 48)
-    local blueLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    blueLabel:SetPoint("LEFT", blueCheck, "RIGHT", 6, 0)
-    blueLabel:SetText("Sell Blues")
-    blueCheck:SetScript("OnClick", function(self)
-        ns.db.sellBlues = self:GetChecked()
+    -- Exclude current expansion checkbox
+    local exclCurCheck = CreateStyledCheck(f, 14)
+    exclCurCheck:SetPoint("LEFT", expBtn, "RIGHT", 8, 0)
+    local exclCurLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    exclCurLabel:SetPoint("LEFT", exclCurCheck, "RIGHT", 3, 0)
+    exclCurLabel:SetText("Exclude current")
+    exclCurLabel:SetTextColor(0.70, 0.70, 0.70)
+    exclCurCheck:SetScript("OnClick", function(self)
+        ns.db.excludeCurrentExpansion = self:GetChecked()
         ns:ApplyFilters()
     end)
-    f.blueCheck = blueCheck
+    f.exclCurCheck = exclCurCheck
+    rowY = rowY - 22
 
-    local blueSliderLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    blueSliderLabel:SetPoint("LEFT", blueLabel, "RIGHT", 16, 0)
-    blueSliderLabel:SetText("ilvl <=")
-    blueSliderLabel:SetTextColor(0.50, 0.50, 0.50)
+    -- Row 9: Equipment slot filter
+    local slotLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    slotLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    slotLabel:SetText("Slots:")
+    slotLabel:SetTextColor(0.50, 0.50, 0.50)
 
-    local blueSlider = CreateStyledSlider(f, 0, 700, 5)
-    blueSlider:SetPoint("LEFT", blueSliderLabel, "RIGHT", 8, 0)
-    f.blueSlider = blueSlider
-
-    local blueEditBox = CreateStyledEditBox(f, 40)
-    blueEditBox:SetPoint("LEFT", blueSlider, "RIGHT", 6, 0)
-    local function CommitBlueValue(self)
-        local val = tonumber(self:GetText()) or 0
-        val = math.max(0, math.min(700, val))
-        ns.db.blueMaxIlvl = val
-        f.blueSlider:SetValue(val)
-        self:SetText(tostring(val))
-        self:ClearFocus()
+    local slotBtnX = 50
+    local slotIDs = {1, 3, 5, 6, 7, 8, 9, 10, 15, 16, 17}
+    local slotShortNames = {
+        [1] = "H", [3] = "S", [5] = "C", [6] = "W", [7] = "L",
+        [8] = "F", [9] = "Wr", [10] = "G", [15] = "Bk", [16] = "MH", [17] = "OH",
+    }
+    f.slotButtons = {}
+    for _, slotID in ipairs(slotIDs) do
+        local slotBtn = CreateFlatButton(f, slotShortNames[slotID] or "?", 24, 18)
+        slotBtn:SetPoint("TOPLEFT", filterLeft + slotBtnX, filterTop + rowY)
+        slotBtn.slotID = slotID
+        slotBtn:SetScript("OnClick", function(self)
+            local slots = ns.db.filterSlots
+            if slots[slotID] then
+                slots[slotID] = nil
+                self:SetBackdropColor(0.18, 0.18, 0.18, 1)
+                self:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+            else
+                slots[slotID] = true
+                self:SetBackdropColor(0.0, 0.30, 0.50, 1)
+                self:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+            end
+            ns:ApplyFilters()
+        end)
+        slotBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:AddLine(ns.SLOT_NAMES[slotID] or "Slot " .. slotID)
+            GameTooltip:Show()
+        end)
+        slotBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        f.slotButtons[slotID] = slotBtn
+        slotBtnX = slotBtnX + 28
     end
-    blueEditBox:SetScript("OnEnterPressed", CommitBlueValue)
-    blueEditBox:SetScript("OnTabPressed", CommitBlueValue)
-    blueEditBox:SetScript("OnEscapePressed", function(self)
-        self:SetText(tostring(ns.db.blueMaxIlvl))
-        self:ClearFocus()
-    end)
-    f.blueEditBox = blueEditBox
+    rowY = rowY - 4
 
-    blueSlider:SetScript("OnValueChanged", function(self, value)
-        value = math.floor(value + 0.5)
-        ns.db.blueMaxIlvl = value
-        f.blueEditBox:SetText(tostring(value))
-        ns:ApplyFilters()
-    end)
-
-    -- Row 4: Only Equippable
-    local equipCheck = CreateStyledCheck(f, 18)
-    equipCheck:SetPoint("TOPLEFT", filterLeft, filterTop - 72)
-    local equipLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    equipLabel:SetPoint("LEFT", equipCheck, "RIGHT", 6, 0)
-    equipLabel:SetText("Only Equippable")
-    equipCheck:SetScript("OnClick", function(self)
-        ns.db.onlyEquippable = self:GetChecked()
-        ns:ApplyFilters()
-    end)
-    f.equipCheck = equipCheck
+    -- Set filter background height
+    local filterHeight = math.abs(rowY) + 6
+    filterBg:SetHeight(filterHeight)
 
     -- ============================================================
     -- Divider + Avg ilvl
     -- ============================================================
 
+    local dividerY = filterTop + rowY - 4
     local divider = f:CreateTexture(nil, "ARTWORK")
     divider:SetHeight(1)
-    divider:SetPoint("TOPLEFT", filterLeft, filterTop - 96)
+    divider:SetPoint("TOPLEFT", filterLeft, dividerY)
     divider:SetPoint("RIGHT", f, "RIGHT", -filterLeft, 0)
     divider:SetColorTexture(0.20, 0.20, 0.20, 0.8)
 
     local avgIlvlText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    avgIlvlText:SetPoint("TOPLEFT", filterLeft, filterTop - 103)
+    avgIlvlText:SetPoint("TOPLEFT", filterLeft, dividerY - 7)
     avgIlvlText:SetTextColor(0.45, 0.70, 0.90)
     f.avgIlvlText = avgIlvlText
 
@@ -672,7 +1083,7 @@ local function CreatePopupFrame()
     -- Column Headers + Scroll Area
     -- ============================================================
 
-    local listTop = filterTop - 118
+    local listTop = dividerY - 22
 
     -- Header background
     local headerBg = f:CreateTexture(nil, "ARTWORK")
@@ -681,20 +1092,56 @@ local function CreatePopupFrame()
     headerBg:SetHeight(18)
     headerBg:SetColorTexture(0.08, 0.08, 0.08, 1)
 
-    local hdrName = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    hdrName:SetPoint("LEFT", headerBg, "LEFT", 50, 0)
-    hdrName:SetText("Item")
-    hdrName:SetTextColor(0.70, 0.70, 0.55)
+    -- Clickable column headers for sorting
+    local function CreateHeaderButton(text, col, anchorPoint, anchorTo, anchorRelPoint, xOff, width)
+        local hdr = CreateFrame("Button", nil, f)
+        hdr:SetSize(width, 18)
+        hdr:SetPoint(anchorPoint, anchorTo or headerBg, anchorRelPoint or "LEFT", xOff, 0)
+        local hdrText = hdr:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        hdrText:SetPoint("LEFT")
+        hdrText:SetText(text)
+        hdrText:SetTextColor(0.70, 0.70, 0.55)
+        hdr.hdrText = hdrText
+        hdr:SetScript("OnClick", function()
+            if ns.sortColumn == col then
+                ns.sortDirection = ns.sortDirection == "asc" and "desc" or "asc"
+            else
+                ns.sortColumn = col
+                ns.sortDirection = "asc"
+            end
+            -- Update arrow indicators
+            local arrow = ns.sortDirection == "asc" and " v" or " ^"
+            -- Reset all
+            for _, h in ipairs(f.headerButtons) do
+                h.hdrText:SetTextColor(0.70, 0.70, 0.55)
+                h.hdrText:SetText(h.baseText)
+            end
+            hdrText:SetText(text .. arrow)
+            hdrText:SetTextColor(1, 0.82, 0)
+            ns:RefreshPopupList()
+        end)
+        hdr.baseText = text
+        return hdr
+    end
 
-    local hdrIlvl = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    hdrIlvl:SetPoint("LEFT", headerBg, "LEFT", 258, 0)
-    hdrIlvl:SetText("ilvl")
-    hdrIlvl:SetTextColor(0.70, 0.70, 0.55)
+    f.headerButtons = {}
+    local hdrItem = CreateHeaderButton("Item", "quality", "LEFT", headerBg, "LEFT", 50, 170)
+    f.headerButtons[#f.headerButtons + 1] = hdrItem
 
-    local hdrPrice = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local hdrIlvl = CreateHeaderButton("ilvl", "ilvl", "LEFT", headerBg, "LEFT", 260, 80)
+    f.headerButtons[#f.headerButtons + 1] = hdrIlvl
+
+    -- Detect AH addon for column
+    hasAHAddon = (TSM_API ~= nil) or (Auctionator ~= nil)
+
+    if hasAHAddon then
+        local hdrAH = CreateHeaderButton("AH", "ah", "LEFT", headerBg, "LEFT", 342, 60)
+        f.headerButtons[#f.headerButtons + 1] = hdrAH
+    end
+
+    local hdrPrice = CreateHeaderButton("Price", "price", "RIGHT", headerBg, "RIGHT", -6, 80)
     hdrPrice:SetPoint("RIGHT", headerBg, "RIGHT", -6, 0)
-    hdrPrice:SetText("Price")
-    hdrPrice:SetTextColor(0.70, 0.70, 0.55)
+    f.headerButtons[#f.headerButtons + 1] = hdrPrice
 
     -- Scroll frame
     local scrollFrame = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
@@ -723,8 +1170,15 @@ local function CreatePopupFrame()
     totalText:SetTextColor(0.85, 0.85, 0.85)
     f.totalText = totalText
 
+    -- Session counter (right of total)
+    local sessionText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    sessionText:SetPoint("LEFT", totalText, "RIGHT", 12, 0)
+    sessionText:SetTextColor(0.5, 0.8, 0.5)
+    sessionText:Hide()
+    f.sessionText = sessionText
+
     -- Sell button (accent style)
-    local sellBtn = CreateFlatButton(f, "Sell Selected", 110, 26)
+    local sellBtn = CreateFlatButton(f, "Sell Selected", 100, 26)
     sellBtn:SetPoint("BOTTOMRIGHT", -10, 10)
     sellBtn:SetBackdropColor(0.0, 0.30, 0.50, 1)
     sellBtn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
@@ -753,11 +1207,67 @@ local function CreatePopupFrame()
     sellBtn:SetScript("OnClick", function() ns:SellFromPopup() end)
     f.sellBtn = sellBtn
 
-    local cancelBtn = CreateFlatButton(f, "Cancel", 70, 26)
-    cancelBtn:SetPoint("RIGHT", sellBtn, "LEFT", -4, 0)
+    -- Sell All Junk button
+    local sellAllBtn = CreateFlatButton(f, "Sell All Junk", 90, 26)
+    sellAllBtn:SetPoint("RIGHT", sellBtn, "LEFT", -4, 0)
+    sellAllBtn:SetBackdropColor(0.35, 0.15, 0.0, 1)
+    sellAllBtn:SetBackdropBorderColor(0.50, 0.25, 0.0, 1)
+    sellAllBtn:SetScript("OnEnter", function(self)
+        if self:IsEnabled() then
+            self:SetBackdropColor(0.45, 0.20, 0.0, 1)
+            self:SetBackdropBorderColor(0.60, 0.30, 0.0, 1)
+            -- Tooltip with quality breakdown
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:AddLine("Sell All Junk")
+            local counts = {}
+            local coppers = {}
+            for _, item in ipairs(displayList) do
+                if item.visible and item.checked then
+                    local q = item.quality
+                    counts[q] = (counts[q] or 0) + 1
+                    coppers[q] = (coppers[q] or 0) + item.totalPrice
+                end
+            end
+            for q = 0, 4 do
+                if counts[q] then
+                    local color = ITEM_QUALITY_COLORS[q]
+                    local qName = _G["ITEM_QUALITY" .. q .. "_DESC"] or ("Quality " .. q)
+                    if color then
+                        GameTooltip:AddDoubleLine(qName .. ": " .. counts[q], ns:FormatMoney(coppers[q]), color.r, color.g, color.b, 1, 0.82, 0)
+                    end
+                end
+            end
+            GameTooltip:Show()
+        end
+    end)
+    sellAllBtn:SetScript("OnLeave", function(self)
+        if self:IsEnabled() then
+            self:SetBackdropColor(0.35, 0.15, 0.0, 1)
+            self:SetBackdropBorderColor(0.50, 0.25, 0.0, 1)
+        end
+        GameTooltip:Hide()
+    end)
+    sellAllBtn:SetScript("OnClick", function()
+        -- Select all gray + marked items, then sell
+        for _, item in ipairs(displayList) do
+            if item.visible then
+                if item.quality == Enum.ItemQuality.Poor or item.isMarked then
+                    item.checked = true
+                    local key = item.bag .. ":" .. item.slot
+                    userUnchecked[key] = nil
+                end
+            end
+        end
+        ns:RefreshPopupList()
+        ns:SellFromPopup()
+    end)
+    f.sellAllBtn = sellAllBtn
+
+    local cancelBtn = CreateFlatButton(f, "Cancel", 60, 26)
+    cancelBtn:SetPoint("RIGHT", sellAllBtn, "LEFT", -4, 0)
     cancelBtn:SetScript("OnClick", function() ns:HidePopup() end)
 
-    local deselectBtn = CreateFlatButton(f, "Deselect All", 90, 26)
+    local deselectBtn = CreateFlatButton(f, "None", 50, 26)
     deselectBtn:SetPoint("RIGHT", cancelBtn, "LEFT", -4, 0)
     deselectBtn:SetScript("OnClick", function()
         for _, item in ipairs(displayList) do
@@ -770,7 +1280,7 @@ local function CreatePopupFrame()
         ns:RefreshPopupList()
     end)
 
-    local selectBtn = CreateFlatButton(f, "Select All", 80, 26)
+    local selectBtn = CreateFlatButton(f, "All", 40, 26)
     selectBtn:SetPoint("RIGHT", deselectBtn, "LEFT", -4, 0)
     selectBtn:SetScript("OnClick", function()
         for _, item in ipairs(displayList) do
@@ -810,15 +1320,64 @@ function ns:ShowPopup()
         end
     end
 
+    -- Vendor mount badge
+    if self:IsVendorMount() then
+        popup.titleText:SetText("|cFF00CCFFAutoSellPlus|r |cFFFFCC00[Mount Vendor]|r")
+    else
+        popup.titleText:SetText("|cFF00CCFFAutoSellPlus|r")
+    end
+
     -- Sync filter controls with saved settings
     popup.grayCheck:SetChecked(self.db.sellGrays)
+    if popup.whiteCheck then popup.whiteCheck:SetChecked(self.db.sellWhites) end
     popup.greenCheck:SetChecked(self.db.sellGreens)
     popup.blueCheck:SetChecked(self.db.sellBlues)
+    if popup.epicCheck then popup.epicCheck:SetChecked(self.db.sellEpics) end
     popup.equipCheck:SetChecked(self.db.onlyEquippable)
+
+    if popup.whiteSlider then
+        popup.whiteSlider:SetValue(self.db.whiteMaxIlvl)
+        popup.whiteEditBox:SetText(tostring(self.db.whiteMaxIlvl))
+    end
     popup.greenSlider:SetValue(self.db.greenMaxIlvl)
     popup.greenEditBox:SetText(tostring(self.db.greenMaxIlvl))
     popup.blueSlider:SetValue(self.db.blueMaxIlvl)
     popup.blueEditBox:SetText(tostring(self.db.blueMaxIlvl))
+    if popup.epicSlider then
+        popup.epicSlider:SetValue(self.db.epicMaxIlvl)
+        popup.epicEditBox:SetText(tostring(self.db.epicMaxIlvl))
+    end
+
+    -- Category filter sync
+    if popup.categoryChecks then
+        for key, check in pairs(popup.categoryChecks) do
+            check:SetChecked(self.db[key])
+        end
+    end
+
+    -- Expansion filter sync
+    if popup.expBtn then
+        popup.expBtn.label:SetText(ns.EXPANSION_NAMES[self.db.filterExpansion] or "All")
+    end
+
+    -- Exclude current expansion sync
+    if popup.exclCurCheck then
+        popup.exclCurCheck:SetChecked(self.db.excludeCurrentExpansion)
+    end
+
+    -- Slot filter sync
+    if popup.slotButtons then
+        local filterSlots = self.db.filterSlots or {}
+        for slotID, btn in pairs(popup.slotButtons) do
+            if filterSlots[slotID] then
+                btn:SetBackdropColor(0.0, 0.30, 0.50, 1)
+                btn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+            else
+                btn:SetBackdropColor(0.18, 0.18, 0.18, 1)
+                btn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+            end
+        end
+    end
 
     -- Reset manual unchecks for new merchant visit
     wipe(userUnchecked)
@@ -847,6 +1406,23 @@ function ns:ShowPopup()
     displayList = self:BuildDisplayList()
     self:ApplyFilters()
 
+    -- Eviction / reclaim space mode
+    if self.db.evictionEnabled and ns:CountFreeSlots() == 0 then
+        -- Pre-sort by price ascending for eviction
+        ns.sortColumn = "price"
+        ns.sortDirection = "asc"
+        -- Select cheapest items
+        for _, item in ipairs(displayList) do
+            if item.visible then
+                item.checked = true
+                local key = item.bag .. ":" .. item.slot
+                userUnchecked[key] = nil
+            end
+        end
+        self:RefreshPopupList()
+        popup.titleText:SetText("|cFF00CCFFAutoSellPlus|r |cFFFF6600[Reclaim Space]|r")
+    end
+
     -- Show with fade-in
     popup:SetAlpha(0)
     popup:Show()
@@ -857,24 +1433,116 @@ function ns:HidePopup()
     if popup then
         popup:Hide()
     end
+    if contextMenu then
+        contextMenu:Hide()
+    end
+end
+
+-- Flash sell button green (verified) or red (items removed)
+local function FlashSellButton(success)
+    if not popup or not popup.sellBtn then return end
+    local btn = popup.sellBtn
+    local r, g, b = 0.1, 0.8, 0.1
+    if not success then r, g, b = 0.8, 0.1, 0.1 end
+
+    btn:SetBackdropColor(r, g, b, 1)
+    btn:SetBackdropBorderColor(r + 0.2, g + 0.2, b + 0.2, 1)
+
+    -- Create a one-shot bounce animation
+    local flashGroup = btn:CreateAnimationGroup()
+    local fadeOut = flashGroup:CreateAnimation("Alpha")
+    fadeOut:SetFromAlpha(1)
+    fadeOut:SetToAlpha(0.4)
+    fadeOut:SetDuration(0.2)
+    fadeOut:SetOrder(1)
+    local fadeIn = flashGroup:CreateAnimation("Alpha")
+    fadeIn:SetFromAlpha(0.4)
+    fadeIn:SetToAlpha(1)
+    fadeIn:SetDuration(0.2)
+    fadeIn:SetOrder(2)
+    flashGroup:SetScript("OnFinished", function()
+        btn:SetBackdropColor(0.0, 0.30, 0.50, 1)
+        btn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+        btn:SetAlpha(1)
+    end)
+    flashGroup:Play()
 end
 
 function ns:SellFromPopup()
     local queue = {}
+    local hasEpics = false
+    local highValueItems = {}
+
     for _, item in ipairs(displayList) do
         if item.visible and item.checked then
             queue[#queue + 1] = {
                 bag = item.bag,
                 slot = item.slot,
                 itemLink = item.itemLink,
+                itemID = item.itemID,
                 sellPrice = item.sellPrice,
                 stackCount = item.stackCount,
                 totalPrice = item.totalPrice,
             }
+            if item.quality == Enum.ItemQuality.Epic then
+                hasEpics = true
+            end
+            if item.totalPrice >= (self.db.highValueThreshold or 50000) then
+                highValueItems[#highValueItems + 1] = item
+            end
         end
     end
 
     if #queue == 0 then return end
+
+    -- Flash sell button based on verification
+    local beforeCount = #queue
+    -- Note: verification happens inside StartSelling, flash based on queue validity
+    FlashSellButton(beforeCount > 0)
+
+    -- Epic confirmation
+    if hasEpics and self.db.epicConfirm then
+        StaticPopupDialogs["ASP_EPIC_CONFIRM"] = {
+            text = "AutoSellPlus: You are about to sell EPIC quality items. Continue?",
+            button1 = "Sell",
+            button2 = "Cancel",
+            OnAccept = function()
+                self:HidePopup()
+                self:StartSelling(queue)
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("ASP_EPIC_CONFIRM")
+        return
+    end
+
+    -- High value confirmation
+    if #highValueItems > 0 and self.db.highValueConfirm then
+        local topItems = {}
+        table.sort(highValueItems, function(a, b) return a.totalPrice > b.totalPrice end)
+        for i = 1, math.min(3, #highValueItems) do
+            topItems[#topItems + 1] = format("%s (%s)", highValueItems[i].itemLink, self:FormatMoney(highValueItems[i].totalPrice))
+        end
+
+        StaticPopupDialogs["ASP_HIGH_VALUE_CONFIRM"] = {
+            text = "AutoSellPlus: Selling high-value items:\n" .. table.concat(topItems, "\n") .. "\n\nContinue?",
+            button1 = "Sell",
+            button2 = "Cancel",
+            OnAccept = function()
+                self:HidePopup()
+                self:StartSelling(queue)
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("ASP_HIGH_VALUE_CONFIRM")
+        return
+    end
 
     self:HidePopup()
     self:StartSelling(queue)
