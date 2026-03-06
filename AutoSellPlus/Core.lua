@@ -651,6 +651,94 @@ function ns:_ShowHighValueConfirm(queue, highValueItems)
 end
 
 -- ============================================================
+-- Value-Based Eviction
+-- ============================================================
+
+function ns:EvictAtVendor()
+    if not self.db.evictionEnabled then return end
+    local threshold = self.db.freeSlotThreshold
+    if threshold <= 0 then return end
+
+    local freeSlots = self:CountFreeSlots()
+    if freeSlots >= threshold then return end
+
+    local slotsNeeded = threshold - freeSlots
+    local candidates = {}
+
+    for bag = 0, 4 do
+        local numSlots = C_Container.GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+            if itemInfo and itemInfo.itemID and itemInfo.hyperlink then
+                local quality = itemInfo.quality or 99
+                local isLocked = itemInfo.isLocked
+
+                -- Only Poor quality or marked items
+                if not isLocked and (quality == Enum.ItemQuality.Poor or self:IsMarked(itemInfo.itemID)) then
+                    if not self:IsNeverSell(itemInfo.itemID) then
+                        if not self:IsRefundable(bag, slot) then
+                            if not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemInfo.itemID)) then
+                                local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemInfo.hyperlink)
+                                if sellPrice and sellPrice > 0 then
+                                    local stackCount = itemInfo.stackCount or 1
+                                    candidates[#candidates + 1] = {
+                                        bag = bag,
+                                        slot = slot,
+                                        itemLink = itemInfo.hyperlink,
+                                        itemID = itemInfo.itemID,
+                                        sellPrice = sellPrice,
+                                        stackCount = stackCount,
+                                        totalPrice = sellPrice * stackCount,
+                                    }
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if #candidates == 0 then return end
+
+    -- Sort cheapest first
+    table.sort(candidates, function(a, b) return a.totalPrice < b.totalPrice end)
+
+    -- Take only what we need
+    local evictList = {}
+    local evictTotal = 0
+    for i = 1, math.min(slotsNeeded, #candidates) do
+        evictList[#evictList + 1] = candidates[i]
+        evictTotal = evictTotal + candidates[i].totalPrice
+    end
+
+    -- Show confirmation
+    local itemNames = {}
+    for _, item in ipairs(evictList) do
+        itemNames[#itemNames + 1] = format("  %s (%s)", item.itemLink, self:FormatMoney(item.totalPrice))
+    end
+
+    StaticPopupDialogs["ASP_EVICT_CONFIRM"] = {
+        text = format(
+            "AutoSellPlus: Sell %d item%s to free bag space?\n%s\n\nTotal: %s",
+            #evictList, #evictList == 1 and "" or "s",
+            table.concat(itemNames, "\n"),
+            ns:FormatMoney(evictTotal)
+        ),
+        button1 = "Sell",
+        button2 = "Cancel",
+        OnAccept = function()
+            ns:StartSelling(evictList)
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+    StaticPopup_Show("ASP_EVICT_CONFIRM")
+end
+
+-- ============================================================
 -- Auto-Sell Modes
 -- ============================================================
 
@@ -1272,13 +1360,13 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             -- Auto-repair first
             ns:SafeCall(DoAutoRepair)
 
+            -- Evict cheapest items if bags are full (before auto-sell)
+            if ns.db.evictionEnabled and ns.db.freeSlotThreshold > 0 then
+                ns:SafeCall(function() ns:EvictAtVendor() end)
+            end
+
             -- Then handle sell mode
             HandleAutoSell()
-
-            -- Check if bags are full and eviction enabled
-            if ns.db.evictionEnabled and ns:CountFreeSlots() == 0 then
-                ns:DebugPrint("Bags full, entering eviction mode")
-            end
         end
 
     elseif event == "MERCHANT_CLOSED" then
@@ -1287,6 +1375,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         CancelAutoSell()
         StaticPopup_Hide("ASP_AUTOSELL_EPIC_CONFIRM")
         StaticPopup_Hide("ASP_AUTOSELL_HIGHVALUE_CONFIRM")
+        StaticPopup_Hide("ASP_EVICT_CONFIRM")
 
     elseif event == "EQUIPMENT_SETS_CHANGED" then
         ns:RebuildEquipmentSetCache()
