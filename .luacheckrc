@@ -16,7 +16,7 @@ ignore = {
 }
 
 read_globals = {
-    -- WoW API
+    -- WoW API: Core
     "CreateFrame",
     "UIParent",
     "C_Container",
@@ -24,12 +24,16 @@ read_globals = {
     "C_Timer",
     "C_EquipmentSet",
     "C_TransmogCollection",
+    "C_MountJournal",
     "GameTooltip",
     "GetInventoryItemLink",
     "GetDetailedItemLevelInfo",
     "GetInventoryItemID",
     "EquipmentManager_UnpackLocation",
     "IsControlKeyDown",
+    "IsAltKeyDown",
+    "IsShiftKeyDown",
+    "IsMouseButtonDown",
     "ITEM_QUALITY_COLORS",
     "Enum",
     "Settings",
@@ -38,7 +42,6 @@ read_globals = {
     "tinsert",
     "hooksecurefunc",
     "CreateColor",
-    "StaticPopupDialogs",
     "GameFontNormal",
     "GameFontNormalLarge",
     "GameFontHighlight",
@@ -49,11 +52,101 @@ read_globals = {
     "Mixin",
     "UISpecialFrames",
     "UIPanelScrollFrameTemplate",
+
+    -- WoW API: Money & Repair
+    "GetMoney",
+    "GetServerTime",
+    "CanMerchantRepair",
+    "GetRepairAllCost",
+    "RepairAllItems",
+    "IsInGuild",
+    "CanGuildBankRepair",
+
+    -- WoW API: Buyback
+    "BuybackItem",
+    "GetBuybackItemInfo",
+    "GetNumBuybackItems",
+
+    -- WoW API: Sound
+    "MuteSoundFile",
+    "UnmuteSoundFile",
+
+    -- WoW API: Item Location
+    "ItemLocation",
+
+    -- WoW API: Destroy
+    "DeleteCursorItem",
+    "ClearCursor",
+
+    -- WoW API: Mount & Unit
+    "IsMounted",
+    "UnitName",
+    "GetRealmName",
+
+    -- WoW API: Minimap
+    "Minimap",
+    "GetCursorPosition",
+    "MainMenuBarBackpackButton",
+    "GetTime",
+
+    -- WoW API: Tooltip
+    "TooltipDataProcessor",
+
+    -- WoW API: Static Popup
+    "StaticPopup_Show",
+    "StaticPopup_Hide",
+
+    -- WoW API: UI
+    "UIErrorsFrame",
+    "MinimalSliderWithSteppersMixin",
+
+    -- WoW API: Inventory
+    "GetInventorySlotInfo",
+
+    -- WoW API: Misc
+    "strsplit",
+    "strtrim",
+    "pcall",
+    "setmetatable",
+    "GetAddOnMetadata",
+    "date",
+    "time",
+    "GetLootSlotLink",
+    "LootSlot",
+    "CursorHasItem",
+    "GetCursorInfo",
+    "OpenAllBags",
+    "CloseAllBags",
+
+    -- Third-party addon globals (read-only detection)
+    "AllTheThings",
+    "CanIMogIt",
+    "TSM_API",
+    "Auctionator",
+    "Bagnon",
+    "Baganator",
+    "AdiBags",
+    "ArkInventory",
+    "LeaPlusDB",
+    "Postal",
+
+    -- Quality description globals
+    "ITEM_QUALITY0_DESC",
+    "ITEM_QUALITY1_DESC",
+    "ITEM_QUALITY2_DESC",
+    "ITEM_QUALITY3_DESC",
+    "ITEM_QUALITY4_DESC",
 }
 
 globals = {
+    "StaticPopupDialogs",
     "AutoSellPlusDB",
+    "AutoSellPlusCharDB",
     "SlashCmdList",
     "SLASH_AUTOSELLPLUS1",
     "SLASH_AUTOSELLPLUS2",
+    "AutoSellPlus_SessionData",
+    "AutoSellPlus_LastEvent",
+    "AutoSellPlus_LastSellCount",
+    "AutoSellPlus_Events",
 }
