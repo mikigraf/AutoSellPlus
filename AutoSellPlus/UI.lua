@@ -648,11 +648,18 @@ local function RegisterSettingsPanel()
         return setting
     end
 
-    local function AddSlider(cat, key, name, tooltip, minVal, maxVal, step, db, defaultOverride)
+    local function AddSlider(cat, key, name, tooltip, minVal, maxVal, step, db, defaultOverride, formatter)
         db = db or globalDB
         local def = defaultOverride or ns.globalDefaults[key] or 0
         local setting = Settings.RegisterAddOnSetting(cat, key, key, db, Settings.VarType.Number, name, def)
         local options = Settings.CreateSliderOptions(minVal, maxVal, step)
+        if formatter then
+            options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, formatter)
+        else
+            options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(val)
+                return tostring(val)
+            end)
+        end
         Settings.CreateSlider(cat, setting, options, tooltip)
         return setting
     end
@@ -695,7 +702,7 @@ local function RegisterSettingsPanel()
 
     AddSlider(automationCat, "autoSellDelay", "Auto-Sell Delay (seconds)",
         "Seconds to wait before auto-selling (autosell mode only). Set 0 for immediate.",
-        0, 10, 1)
+        0, 10, 1, nil, nil, function(val) return val .. "s" end)
 
     AddBool(automationCat, "autoRepair", "Auto-Repair",
         "Automatically repair gear at merchants.")
@@ -731,7 +738,8 @@ local function RegisterSettingsPanel()
 
     AddSlider(protectionCat, "highValueThreshold", "High-Value Threshold (gold)",
         "Items above this gold value trigger a confirmation dialog.",
-        0, 100, 1, goldProxy, math.floor((ns.globalDefaults.highValueThreshold or 50000) / 10000))
+        0, 100, 1, goldProxy, math.floor((ns.globalDefaults.highValueThreshold or 50000) / 10000),
+        function(val) return val .. "g" end)
 
     AddBool(protectionCat, "excludeCurrentExpansion", "Exclude Current Expansion",
         "Hide all items from the current expansion in the sell popup.")
@@ -801,7 +809,8 @@ local function RegisterSettingsPanel()
 
     AddSlider(destroyCat, "autoDestroyMaxValue", "Max Destroy Value (gold)",
         "Only destroy items worth less than this gold amount. Set 0 to destroy regardless of value.",
-        0, 100, 1, goldProxy, math.floor((ns.globalDefaults.autoDestroyMaxValue or 0) / 10000))
+        0, 100, 1, goldProxy, math.floor((ns.globalDefaults.autoDestroyMaxValue or 0) / 10000),
+        function(val) return val .. "g" end)
 
     -- ══════════════════════════════════════════
     -- Canvas sub-categories

@@ -4,12 +4,17 @@
 ## Author: Mikolaj Graf / Cloudsail Digital Solutions sp. z o.o.
 ## Version: @project-version@
 ## SavedVariables: AutoSellPlusDB
+## SavedVariablesPerCharacter: AutoSellPlusCharDB
 ## X-Curse-Project-ID: 1478545
 ## X-Wago-ID:
 ## IconTexture: Interface\Icons\INV_Misc_Coin_01
 
 Config.lua
 Helpers.lua
+History.lua
+Marking.lua
+MinimapButton.lua
+Wizard.lua
 UI.lua
 Popup.lua
 Core.lua

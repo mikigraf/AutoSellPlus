@@ -98,6 +98,7 @@ read_globals = {
 
     -- WoW API: UI
     "UIErrorsFrame",
+    "MinimalSliderWithSteppersMixin",
 
     -- WoW API: Inventory
     "GetInventorySlotInfo",
