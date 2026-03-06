@@ -115,6 +115,45 @@ local function CreatePage1(parent)
         page.modeButtons[#page.modeButtons + 1] = btn
     end
 
+    -- Template quick-apply buttons
+    if ns.profileTemplates then
+        local tplLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        tplLabel:SetPoint("TOPLEFT", 40, -270)
+        tplLabel:SetText("Quick-start template (optional):")
+
+        local tplY = -295
+        for tplName, tpl in pairs(ns.profileTemplates) do
+            local tplBtn = CreateFrame("Button", nil, page, "BackdropTemplate")
+            tplBtn:SetSize(330, 22)
+            tplBtn:SetPoint("TOPLEFT", 50, tplY)
+            tplBtn:SetBackdrop(FLAT_BACKDROP)
+            tplBtn:SetBackdropColor(0.14, 0.14, 0.14, 1)
+            tplBtn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+
+            local tplText = tplBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            tplText:SetPoint("LEFT", 8, 0)
+            tplText:SetText(format("|cFF00CCFF%s|r - %s", tplName, tpl.description))
+            tplText:SetWidth(314)
+            tplText:SetJustifyH("LEFT")
+
+            tplBtn:SetScript("OnClick", function()
+                ns:ApplyTemplate(tplName)
+                -- Update mode radio buttons to reflect template
+                for _, b in ipairs(page.modeButtons) do
+                    b:SetChecked(b.value == ns.db.autoSellMode)
+                end
+            end)
+            tplBtn:SetScript("OnEnter", function(self)
+                self:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+            end)
+            tplBtn:SetScript("OnLeave", function(self)
+                self:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+            end)
+
+            tplY = tplY - 26
+        end
+    end
+
     return page
 end
 
@@ -188,7 +227,7 @@ end
 
 local function CreateWizardFrame()
     local f = CreateFrame("Frame", "AutoSellPlusWizard", UIParent, "BackdropTemplate")
-    f:SetSize(420, 380)
+    f:SetSize(420, 480)
     f:SetPoint("CENTER")
     f:SetFrameStrata("DIALOG")
     f:SetMovable(true)

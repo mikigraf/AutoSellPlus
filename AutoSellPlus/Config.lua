@@ -105,6 +105,104 @@ ns.charDefaults = {
     charFirstRunComplete = false,
 }
 
+-- Profile templates for common playstyles
+ns.profileTemplates = {
+    ["Raid Farmer"] = {
+        description = "Sell grays, whites, and greens. Protect transmog. Popup mode.",
+        settings = {
+            sellGrays = true,
+            sellWhites = true,
+            sellGreens = true,
+            sellBlues = false,
+            sellEpics = false,
+            protectUncollectedTransmog = true,
+            protectTransmogSource = true,
+            protectEquipmentSets = true,
+            protectBoE = true,
+            autoSellMode = "popup",
+            onlyEquippable = true,
+        },
+    },
+    ["Transmog Hunter"] = {
+        description = "Sell grays only. Protect all uncollected appearances.",
+        settings = {
+            sellGrays = true,
+            sellWhites = false,
+            sellGreens = false,
+            sellBlues = false,
+            sellEpics = false,
+            protectUncollectedTransmog = true,
+            protectTransmogSource = true,
+            protectBoE = true,
+            autoSellMode = "popup",
+        },
+    },
+    ["Leveling Alt"] = {
+        description = "Sell grays through blues. Auto-sell with 2s delay.",
+        settings = {
+            sellGrays = true,
+            sellWhites = true,
+            sellGreens = true,
+            sellBlues = true,
+            sellEpics = false,
+            protectUncollectedTransmog = false,
+            protectBoE = true,
+            autoSellMode = "autosell",
+            autoSellDelay = 2,
+            onlyEquippable = true,
+        },
+    },
+    ["Gold Farmer"] = {
+        description = "Aggressive selling. Protect BoE. Sell consumables.",
+        settings = {
+            sellGrays = true,
+            sellWhites = true,
+            sellGreens = true,
+            sellBlues = true,
+            sellEpics = false,
+            sellConsumables = true,
+            sellTradeGoods = true,
+            protectUncollectedTransmog = false,
+            protectBoE = true,
+            onlyEquippable = false,
+            autoSellMode = "popup",
+        },
+    },
+}
+
+function ns:ApplyTemplate(name)
+    -- Case-insensitive match
+    local matchedName
+    for tplName in pairs(self.profileTemplates) do
+        if tplName:lower() == name:lower() then
+            matchedName = tplName
+            break
+        end
+    end
+    if not matchedName then
+        self:Print(format("Template '%s' not found. Use /asp template list.", name))
+        return false
+    end
+    local template = self.profileTemplates[matchedName]
+
+    -- Reset to defaults then apply overrides
+    for key, value in pairs(ns.globalDefaults) do
+        AutoSellPlusDB.global[key] = ns.DeepCopy(value)
+    end
+    for key, value in pairs(template.settings) do
+        AutoSellPlusDB.global[key] = ns.DeepCopy(value)
+    end
+    self:Print(format("Applied template: |cFF00FF00%s|r - %s", matchedName, template.description))
+    return true
+end
+
+function ns:ListTemplates()
+    self:Print("Available templates:")
+    for name, tpl in pairs(self.profileTemplates) do
+        print(format("  |cFF00CCFF%s|r - %s", name, tpl.description))
+    end
+end
+
 -- Legacy flat defaults for migration detection
 ns.defaults = {}
 for k, v in pairs(ns.globalDefaults) do ns.defaults[k] = v end

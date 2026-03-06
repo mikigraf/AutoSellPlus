@@ -824,6 +824,7 @@ local function HandleSlashCommand(msg)
         print("  /asp keep clear [itemID] - Clear stack limit(s)")
         print("  /asp destroy - Destroy junk items")
         print("  /asp profile save|load|list|delete <name>")
+        print("  /asp template [name|list] - Apply a preset template")
         print("  /asp wizard - Re-run setup wizard")
         print("  /asp reset - Reset all settings (with confirm)")
         print("  /asp reset lists - Clear all lists")
@@ -1052,6 +1053,16 @@ local function HandleSlashCommand(msg)
             ns:ListProfiles()
         else
             ns:Print("Usage: /asp profile save|load|list|delete <name>")
+        end
+        return
+    end
+
+    if cmd == "template" then
+        if not args[2] or args[2] == "list" then
+            ns:ListTemplates()
+        else
+            local name = table.concat(args, " ", 2)
+            ns:ApplyTemplate(name)
         end
         return
     end
