@@ -3,6 +3,7 @@ local addonName, ns = ...
 ns.equipmentSetItems = {}
 
 function ns:RebuildEquipmentSetCache()
+    if not self.features.equipSets then return end
     wipe(self.equipmentSetItems)
 
     local setIDs = C_EquipmentSet.GetEquipmentSetIDs()
@@ -40,6 +41,7 @@ function ns:IsInEquipmentSet(itemID)
 end
 
 function ns:IsUncollectedTransmog(itemID)
+    if not self.features.transmog then return false end
     if not C_TransmogCollection or not C_TransmogCollection.PlayerHasTransmog then
         return false
     end
@@ -186,6 +188,20 @@ function ns:SafeCall(func, ...)
 end
 
 ns.debugMode = false
+
+-- Feature availability flags (set by RunSelfTest in Core.lua)
+ns.features = {
+    selling = true,
+    scanning = true,
+    itemInfo = true,
+    transmog = true,
+    equipSets = true,
+    destroying = true,
+}
+
+function ns:IsFeatureAvailable(name)
+    return self.features[name] ~= false
+end
 
 function ns:DebugPrint(msg)
     if self.debugMode then

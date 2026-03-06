@@ -224,6 +224,10 @@ local function VerifyQueue(queue)
 end
 
 function ns:StartSelling(explicitQueue)
+    if not self:IsFeatureAvailable("selling") then
+        self:Print("|cFFFF0000Selling is disabled:|r Required API (C_Container.UseContainerItem) is unavailable.")
+        return
+    end
     if isSelling then return end
 
     sellQueue = explicitQueue or self:BuildSellQueue()
@@ -613,6 +617,10 @@ end
 -- ============================================================
 
 function ns:DestroyJunk()
+    if not self:IsFeatureAvailable("destroying") then
+        self:Print("|cFFFF0000Destroying is disabled:|r Required API (C_Container.PickupContainerItem) is unavailable.")
+        return
+    end
     if not self.db.autoDestroyEnabled then
         self:Print("Auto-destroy is disabled. Enable it in settings first.")
         return
@@ -748,20 +756,35 @@ end
 -- ============================================================
 
 local function RunSelfTest()
-    local missing = {}
+    local disabled = {}
+
+    if not C_Container or not C_Container.UseContainerItem then
+        ns.features.selling = false
+        disabled[#disabled + 1] = "selling"
+    end
     if not C_Container or not C_Container.GetContainerNumSlots then
-        missing[#missing + 1] = "C_Container.GetContainerNumSlots"
+        ns.features.scanning = false
+        disabled[#disabled + 1] = "scanning"
     end
     if not C_Item or not C_Item.GetItemInfo then
-        missing[#missing + 1] = "C_Item.GetItemInfo"
+        ns.features.itemInfo = false
+        disabled[#disabled + 1] = "itemInfo"
     end
-    if not C_Container or not C_Container.UseContainerItem then
-        missing[#missing + 1] = "C_Container.UseContainerItem"
+    if not C_TransmogCollection or not C_TransmogCollection.PlayerHasTransmog then
+        ns.features.transmog = false
+        disabled[#disabled + 1] = "transmog"
+    end
+    if not C_EquipmentSet or not C_EquipmentSet.GetEquipmentSetIDs then
+        ns.features.equipSets = false
+        disabled[#disabled + 1] = "equipSets"
+    end
+    if not C_Container or not C_Container.PickupContainerItem then
+        ns.features.destroying = false
+        disabled[#disabled + 1] = "destroying"
     end
 
-    if #missing > 0 then
-        ns:Print("|cFFFF0000Warning:|r Missing WoW APIs: " .. table.concat(missing, ", "))
-        ns:Print("Some features may not work correctly.")
+    if #disabled > 0 then
+        ns:Print("|cFFFF0000Warning:|r Disabled features due to missing APIs: " .. table.concat(disabled, ", "))
     end
 end
 
