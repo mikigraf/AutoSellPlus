@@ -478,7 +478,8 @@ function ns:UndoLastSale()
     end
 
     if buffer.expiry and GetServerTime() > buffer.expiry then
-        self:Print("Undo expired (5 min limit). Use Blizzard's Item Restoration for older sales.")
+        local timestamp = date("!%Y-%m-%d %H:%M", time())
+        self:Print(format("Undo expired (5 min limit). Use Blizzard Item Restoration: https://battle.net/support/restoration (%s UTC)", timestamp))
         wipe(self.undoBuffer)
         return
     end
@@ -507,7 +508,8 @@ function ns:UndoLastSale()
     if repurchased > 0 then
         self:Print(format("Repurchased %d item%s for %s", repurchased, repurchased == 1 and "" or "s", self:FormatMoney(repurchaseCost)))
     else
-        self:Print("Could not find items in buyback. Try Blizzard's Item Restoration.")
+        local timestamp = date("!%Y-%m-%d %H:%M", time())
+        self:Print(format("Could not find items in buyback. Use Blizzard Item Restoration: https://battle.net/support/restoration (%s UTC)", timestamp))
     end
 
     wipe(self.undoBuffer)
