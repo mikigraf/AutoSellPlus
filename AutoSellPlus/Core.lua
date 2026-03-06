@@ -635,7 +635,15 @@ function ns:DestroyJunk()
 
                     -- Only destroy items at or below max value
                     if totalValue <= (self.db.autoDestroyMaxValue or 0) then
-                        if not self:IsNeverSell(itemInfo.itemID) then
+                        -- Skip items within stack limit
+                        local withinLimit = false
+                        local limits = self.db.stackLimits
+                        if limits and limits[itemInfo.itemID] then
+                            if (itemInfo.stackCount or 1) <= limits[itemInfo.itemID] then
+                                withinLimit = true
+                            end
+                        end
+                        if not withinLimit and not self:IsNeverSell(itemInfo.itemID) then
                             items[#items + 1] = {
                                 bag = bag,
                                 slot = slot,
@@ -788,6 +796,9 @@ local function HandleSlashCommand(msg)
         print("  /asp export - Export lists")
         print("  /asp import - Import lists")
         print("  /asp overlay - Cycle overlay visual mode")
+        print("  /asp keep <itemID> <count> - Set stack limit")
+        print("  /asp keep list - Show stack limits")
+        print("  /asp keep clear [itemID] - Clear stack limit(s)")
         print("  /asp destroy - Destroy junk items")
         print("  /asp profile save|load|list|delete <name>")
         print("  /asp wizard - Re-run setup wizard")
@@ -959,6 +970,43 @@ local function HandleSlashCommand(msg)
                     ns:Print("Import failed.")
                 end
             end
+        end
+        return
+    end
+
+    if cmd == "keep" then
+        local sub = args[2]
+        if sub == "list" then
+            local limits = ns.db.stackLimits
+            if not limits or not next(limits) then
+                ns:Print("No stack limits set.")
+            else
+                ns:Print("Stack limits:")
+                for itemID, limit in pairs(limits) do
+                    local itemName = C_Item.GetItemNameByID(itemID)
+                    print(format("  [%d] %s: keep %d", itemID, itemName or "Unknown", limit))
+                end
+            end
+        elseif sub == "clear" then
+            local itemID = tonumber(args[3])
+            if itemID then
+                ns.db.stackLimits[itemID] = nil
+                local itemName = C_Item.GetItemNameByID(itemID)
+                ns:Print(format("Cleared stack limit for %s", itemName or "item " .. itemID))
+            else
+                wipe(ns.db.stackLimits)
+                ns:Print("All stack limits cleared.")
+            end
+        else
+            local itemID = tonumber(sub)
+            local count = tonumber(args[3])
+            if not itemID or not count then
+                ns:Print("Usage: /asp keep <itemID> <count>")
+                return
+            end
+            ns.db.stackLimits[itemID] = count
+            local itemName = C_Item.GetItemNameByID(itemID)
+            ns:Print(format("Will keep up to %d of %s", count, itemName or "item " .. itemID))
         end
         return
     end

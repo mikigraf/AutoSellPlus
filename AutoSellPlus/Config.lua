@@ -12,6 +12,7 @@ local TOP_LEVEL_KEYS = {
     charStats = true,
     saleHistory = true,
     markedItems = true,
+    stackLimits = true,
 }
 
 -- Default global settings (stored in AutoSellPlusDB.global)
@@ -92,6 +93,7 @@ ns.topLevelDefaults = {
     charStats = {},
     saleHistory = {},
     markedItems = {},
+    stackLimits = {},
 }
 
 -- Default per-character settings (stored in AutoSellPlusCharDB)
