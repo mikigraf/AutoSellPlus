@@ -114,6 +114,8 @@ read_globals = {
     "LootSlot",
     "CursorHasItem",
     "GetCursorInfo",
+    "OpenAllBags",
+    "CloseAllBags",
 
     -- Third-party addon globals (read-only detection)
     "AllTheThings",

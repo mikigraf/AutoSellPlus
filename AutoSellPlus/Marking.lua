@@ -415,6 +415,74 @@ function ns:InitMarking()
         ns:Print(format("Marked %s as junk from loot", itemName or "item " .. itemID))
     end)
 
+    -- Drag-to-mark target button
+    local markTarget = CreateFrame("Button", "AutoSellPlusMarkTarget", UIParent, "BackdropTemplate")
+    markTarget:SetSize(36, 36)
+    markTarget:SetPoint("TOP", MainMenuBarBackpackButton or UIParent, "BOTTOM", 36, -4)
+    markTarget:SetFrameStrata("HIGH")
+    markTarget:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    })
+    markTarget:SetBackdropColor(0.10, 0.10, 0.10, 0.9)
+    markTarget:SetBackdropBorderColor(1.0, 0.4, 0.0, 0.8)
+
+    local markIcon = markTarget:CreateTexture(nil, "ARTWORK")
+    markIcon:SetSize(24, 24)
+    markIcon:SetPoint("CENTER")
+    markIcon:SetTexture("Interface\\Icons\\INV_Misc_Coin_01")
+    markIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+    local markLabel = markTarget:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    markLabel:SetPoint("BOTTOMRIGHT", -2, 2)
+    markLabel:SetText("|cFFFF6600J|r")
+
+    markTarget:SetScript("OnReceiveDrag", function()
+        if CursorHasItem() then
+            local infoType, itemID = GetCursorInfo()
+            if infoType == "item" and itemID then
+                ClearCursor()
+                ns:ToggleMark(itemID)
+            end
+        end
+    end)
+
+    markTarget:SetScript("OnMouseUp", function()
+        if CursorHasItem() then
+            local infoType, itemID = GetCursorInfo()
+            if infoType == "item" and itemID then
+                ClearCursor()
+                ns:ToggleMark(itemID)
+            end
+        end
+    end)
+
+    markTarget:SetScript("OnEnter", function(btn)
+        btn:SetBackdropBorderColor(1.0, 0.6, 0.0, 1)
+        GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("|cFF00CCFFMark as Junk|r", 1, 1, 1)
+        GameTooltip:AddLine("Drag an item here to toggle its junk mark.", 0.7, 0.7, 0.7, true)
+        GameTooltip:Show()
+    end)
+
+    markTarget:SetScript("OnLeave", function(btn)
+        btn:SetBackdropBorderColor(1.0, 0.4, 0.0, 0.8)
+        GameTooltip:Hide()
+    end)
+
+    markTarget:Hide()
+
+    -- Show/hide with bags
+    ns._markTarget = markTarget
+
+    hooksecurefunc("OpenAllBags", function()
+        if ns._markTarget then ns._markTarget:Show() end
+    end)
+    hooksecurefunc("CloseAllBags", function()
+        if ns._markTarget then ns._markTarget:Hide() end
+    end)
+
     -- Initial overlay refresh
     C_Timer.After(1, RefreshOverlays)
 end
