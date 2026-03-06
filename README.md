@@ -13,6 +13,18 @@
   <sub>A World of Warcraft addon</sub>
 </p>
 
+<br>
+
+<p align="center">
+  Tired of Scrap/Aardvark breaking every patch? Or hopping vendors mid-farm because your bags<br>
+  exploded from old raid greens? AutoSellPlus marks while you loot, auto-keeps space open,<br>
+  and sells safe—no more accidental BoE/transmog losses.
+</p>
+
+<h3 align="center">Midnight ready &bull; Works post-patch &bull; Farmer approved</h3>
+
+<br>
+
 <p align="center">
   <a href="#-why-this-over-scrapaardvarklegacy-vendor">Why AutoSellPlus</a> &middot;
   <a href="#-quick-start">Quick Start</a> &middot;
