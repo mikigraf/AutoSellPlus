@@ -67,6 +67,12 @@ local function GetOverlay()
         })
         overlay:SetBackdropBorderColor(1.0, 0.4, 0.0, 0.9)
 
+        -- Tint texture (semi-transparent color overlay)
+        local tint = overlay:CreateTexture(nil, "ARTWORK")
+        tint:SetAllPoints()
+        tint:SetColorTexture(1.0, 0.4, 0.0, 0.25)
+        overlay.tint = tint
+
         -- Coin icon in corner
         local coin = overlay:CreateTexture(nil, "OVERLAY")
         coin:SetSize(14, 14)
@@ -78,6 +84,23 @@ local function GetOverlay()
         overlay:EnableMouse(false)
     end
     return overlay
+end
+
+local function ApplyOverlayMode(overlay)
+    local mode = ns.db and ns.db.overlayMode or "border"
+    if mode == "border" then
+        overlay:SetBackdropBorderColor(1.0, 0.4, 0.0, 0.9)
+        overlay.coin:Show()
+        overlay.tint:Hide()
+    elseif mode == "tint" then
+        overlay:SetBackdropBorderColor(0, 0, 0, 0)
+        overlay.coin:Hide()
+        overlay.tint:Show()
+    elseif mode == "full" then
+        overlay:SetBackdropBorderColor(1.0, 0.4, 0.0, 0.9)
+        overlay.coin:Show()
+        overlay.tint:Show()
+    end
 end
 
 local function ReleaseOverlay(overlay)
@@ -109,6 +132,7 @@ local function RefreshOverlays()
                     overlay:SetParent(frame)
                     overlay:SetAllPoints(frame)
                     overlay:SetFrameLevel(frame:GetFrameLevel() + 5)
+                    ApplyOverlayMode(overlay)
                     overlay:Show()
                     activeOverlays[#activeOverlays + 1] = overlay
                 end
