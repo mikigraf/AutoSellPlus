@@ -75,6 +75,7 @@ local function OnEnter(self)
     GameTooltip:AddLine("|cFFAAAAAALeft-click:|r Toggle popup", 0.8, 0.8, 0.8)
     GameTooltip:AddLine("|cFFAAAAAARight-click:|r Settings", 0.8, 0.8, 0.8)
     GameTooltip:AddLine("|cFFAAAAAAShift+click:|r Session stats", 0.8, 0.8, 0.8)
+    GameTooltip:AddLine("|cFFAAAAAAShift+Right-click:|r Sale history", 0.8, 0.8, 0.8)
     GameTooltip:Show()
 end
 
@@ -91,7 +92,9 @@ local function OnClick(self, btn)
             ns:Print("Addon " .. (ns.db.enabled and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
         end
     elseif btn == "RightButton" then
-        if ns.settingsCategoryID then
+        if IsShiftKeyDown() then
+            ns:ToggleHistoryPanel()
+        elseif ns.settingsCategoryID then
             Settings.OpenToCategory(ns.settingsCategoryID)
         end
     end

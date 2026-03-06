@@ -983,6 +983,7 @@ local function HandleSlashCommand(msg)
         print("  /asp session - View session stats")
         print("  /asp session reset - Reset session")
         print("  /asp log - Show last 10 sales")
+        print("  /asp log ui - Open sale history panel")
         print("  /asp log clear - Clear sale history")
         print("  /asp add <itemID> - Add to never-sell list")
         print("  /asp remove <itemID> - Remove from never-sell list")
@@ -1068,6 +1069,8 @@ local function HandleSlashCommand(msg)
     if cmd == "log" then
         if args[2] == "clear" then
             ns:ClearSaleHistory()
+        elseif args[2] == "ui" then
+            ns:ShowHistoryPanel()
         else
             ns:PrintSaleLog(tonumber(args[2]) or 10)
         end
