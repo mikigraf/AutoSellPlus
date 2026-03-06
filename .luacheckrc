@@ -94,6 +94,7 @@ read_globals = {
 
     -- WoW API: Static Popup
     "StaticPopup_Show",
+    "StaticPopup_Hide",
 
     -- WoW API: UI
     "UIErrorsFrame",

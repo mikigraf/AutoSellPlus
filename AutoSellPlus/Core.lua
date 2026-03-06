@@ -568,6 +568,89 @@ local function DoAutoRepair()
 end
 
 -- ============================================================
+-- Auto-Sell Safety Confirmations
+-- ============================================================
+
+function ns:ConfirmAndSell(queue)
+    if #queue == 0 then return end
+
+    local hasEpics = false
+    local highValueItems = {}
+
+    for _, item in ipairs(queue) do
+        if item.itemLink then
+            local _, _, quality = C_Item.GetItemInfo(item.itemLink)
+            if quality == Enum.ItemQuality.Epic then
+                hasEpics = true
+            end
+        end
+        if item.totalPrice >= (self.db.highValueThreshold or 50000) then
+            highValueItems[#highValueItems + 1] = item
+        end
+    end
+
+    -- Epic confirmation
+    if hasEpics and self.db.epicConfirm then
+        StaticPopupDialogs["ASP_AUTOSELL_EPIC_CONFIRM"] = {
+            text = format("AutoSellPlus: Auto-sell includes EPIC quality items (%d total). Continue?", #queue),
+            button1 = "Sell",
+            button2 = "Cancel",
+            OnAccept = function()
+                -- Chain to high-value check
+                if #highValueItems > 0 and ns.db.highValueConfirm then
+                    ns:_ShowHighValueConfirm(queue, highValueItems)
+                else
+                    ns:StartSelling(queue)
+                end
+            end,
+            OnCancel = function()
+                ns:Print("Auto-sell cancelled.")
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("ASP_AUTOSELL_EPIC_CONFIRM")
+        return
+    end
+
+    -- High value confirmation
+    if #highValueItems > 0 and self.db.highValueConfirm then
+        self:_ShowHighValueConfirm(queue, highValueItems)
+        return
+    end
+
+    -- No confirmations needed
+    self:StartSelling(queue)
+end
+
+function ns:_ShowHighValueConfirm(queue, highValueItems)
+    local topItems = {}
+    table.sort(highValueItems, function(a, b) return a.totalPrice > b.totalPrice end)
+    for i = 1, math.min(3, #highValueItems) do
+        topItems[#topItems + 1] = format("%s (%s)", highValueItems[i].itemLink or "?", self:FormatMoney(highValueItems[i].totalPrice))
+    end
+
+    StaticPopupDialogs["ASP_AUTOSELL_HIGHVALUE_CONFIRM"] = {
+        text = "AutoSellPlus: Auto-sell includes high-value items:\n" .. table.concat(topItems, "\n") .. "\n\nContinue?",
+        button1 = "Sell",
+        button2 = "Cancel",
+        OnAccept = function()
+            ns:StartSelling(queue)
+        end,
+        OnCancel = function()
+            ns:Print("Auto-sell cancelled.")
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+    StaticPopup_Show("ASP_AUTOSELL_HIGHVALUE_CONFIRM")
+end
+
+-- ============================================================
 -- Auto-Sell Modes
 -- ============================================================
 
@@ -587,13 +670,13 @@ local function HandleAutoSell()
                 autoSellTimer = nil
                 local queue = ns:BuildSellQueue()
                 if #queue > 0 then
-                    ns:StartSelling(queue)
+                    ns:ConfirmAndSell(queue)
                 end
             end)
         else
             local queue = ns:BuildSellQueue()
             if #queue > 0 then
-                ns:StartSelling(queue)
+                ns:ConfirmAndSell(queue)
             end
         end
     elseif mode == "oneclick" then
@@ -857,7 +940,7 @@ local function HandleSlashCommand(msg)
     if cmd == "sell" then
         local queue = ns:BuildSellQueue()
         if #queue > 0 then
-            ns:StartSelling(queue)
+            ns:ConfirmAndSell(queue)
         else
             ns:Print("Nothing to sell.")
         end
@@ -1202,6 +1285,8 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         ns:HidePopup()
         ns:StopSelling()
         CancelAutoSell()
+        StaticPopup_Hide("ASP_AUTOSELL_EPIC_CONFIRM")
+        StaticPopup_Hide("ASP_AUTOSELL_HIGHVALUE_CONFIRM")
 
     elseif event == "EQUIPMENT_SETS_CHANGED" then
         ns:RebuildEquipmentSetCache()
