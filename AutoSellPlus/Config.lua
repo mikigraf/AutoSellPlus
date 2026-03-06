@@ -100,6 +100,7 @@ ns.charDefaults = {
     overrides = {},
     charNeverSellList = {},
     charAlwaysSellList = {},
+    charFirstRunComplete = false,
 }
 
 -- Legacy flat defaults for migration detection
@@ -273,6 +274,7 @@ frame:SetScript("OnEvent", function(self, event, loadedAddon)
         AutoSellPlusCharDB = DeepCopy(ns.charDefaults)
     else
         ValidateDB(AutoSellPlusCharDB, ns.charDefaults)
+        AutoSellPlusCharDB.charFirstRunComplete = true
     end
 
     SetupDBProxy()

@@ -1064,8 +1064,8 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         -- Conflict detection
         ns:SafeCall(DetectConflicts)
 
-        -- First-run wizard
-        if ns.db and not ns.db.firstRunComplete then
+        -- First-run wizard (per-character)
+        if not AutoSellPlusCharDB.charFirstRunComplete then
             C_Timer.After(2, function()
                 ns:ShowWizard()
             end)
