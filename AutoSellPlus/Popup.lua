@@ -180,22 +180,26 @@ local function CreateContextMenu()
                 ns.db.neverSellList[itemID] = true
                 ns.db.alwaysSellList[itemID] = nil
                 ns:Print(format("Added %s to never-sell list (global)", C_Item.GetItemNameByID(itemID) or itemID))
+                ns:FlashBagItem(itemID, 0, 1, 0)
             elseif self.action == "never_char" then
                 if AutoSellPlusCharDB then
                     AutoSellPlusCharDB.charNeverSellList[itemID] = true
                     AutoSellPlusCharDB.charAlwaysSellList[itemID] = nil
                 end
                 ns:Print(format("Added %s to never-sell list (this char)", C_Item.GetItemNameByID(itemID) or itemID))
+                ns:FlashBagItem(itemID, 0, 1, 0)
             elseif self.action == "always_global" then
                 ns.db.alwaysSellList[itemID] = true
                 ns.db.neverSellList[itemID] = nil
                 ns:Print(format("Added %s to always-sell list (global)", C_Item.GetItemNameByID(itemID) or itemID))
+                ns:FlashBagItem(itemID, 0, 1, 0)
             elseif self.action == "always_char" then
                 if AutoSellPlusCharDB then
                     AutoSellPlusCharDB.charAlwaysSellList[itemID] = true
                     AutoSellPlusCharDB.charNeverSellList[itemID] = nil
                 end
                 ns:Print(format("Added %s to always-sell list (this char)", C_Item.GetItemNameByID(itemID) or itemID))
+                ns:FlashBagItem(itemID, 0, 1, 0)
             elseif self.action == "remove" then
                 ns.db.neverSellList[itemID] = nil
                 ns.db.alwaysSellList[itemID] = nil
@@ -204,6 +208,7 @@ local function CreateContextMenu()
                     AutoSellPlusCharDB.charAlwaysSellList[itemID] = nil
                 end
                 ns:Print(format("Removed %s from all lists", C_Item.GetItemNameByID(itemID) or itemID))
+                ns:FlashBagItem(itemID, 1, 0, 0)
             end
 
             menu:Hide()

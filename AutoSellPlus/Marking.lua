@@ -128,11 +128,13 @@ function ns:ToggleMark(itemID)
         local itemName = C_Item.GetItemNameByID(itemID)
         self:Print(format("Unmarked %s", itemName or "item " .. itemID))
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
+        self:FlashBagItem(itemID, 1, 0, 0)
     else
         markedItems[itemID] = true
         local itemName = C_Item.GetItemNameByID(itemID)
         self:Print(format("Marked %s as junk", itemName or "item " .. itemID))
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+        self:FlashBagItem(itemID, 0, 1, 0)
     end
 
     RefreshOverlays()
@@ -307,6 +309,36 @@ local function OnLootReceived(_, _, itemLink)
         if ilvl > 0 and ilvl < ns.db.autoMarkBelowIlvl and ns:IsEquippable(itemID) then
             ns.db.markedItems[itemID] = true
             ns:DebugPrint("Auto-marked low ilvl loot: " .. itemLink)
+        end
+    end
+end
+
+-- Visual flash on bag item when marking/unmarking
+function ns:FlashBagItem(itemID, colorR, colorG, colorB)
+    if not itemID then return end
+    for bag = 0, 4 do
+        local numSlots = C_Container.GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+            if itemInfo and itemInfo.itemID == itemID then
+                local frame = GetBagItemFrame(bag, slot)
+                if frame and frame:IsShown() then
+                    local flash = frame:CreateTexture(nil, "OVERLAY")
+                    flash:SetAllPoints(frame)
+                    flash:SetColorTexture(colorR or 0, colorG or 1, colorB or 0, 0.5)
+
+                    local ag = flash:GetParent():CreateAnimationGroup()
+                    local alpha = ag:CreateAnimation("Alpha")
+                    alpha:SetFromAlpha(0.5)
+                    alpha:SetToAlpha(0)
+                    alpha:SetDuration(0.5)
+                    ag:SetScript("OnFinished", function()
+                        flash:Hide()
+                        flash:SetParent(nil)
+                    end)
+                    ag:Play()
+                end
+            end
         end
     end
 end
