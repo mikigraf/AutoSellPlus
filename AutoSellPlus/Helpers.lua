@@ -1,139 +1,11 @@
 local addonName, ns = ...
 
-ns.equipmentSetItems = {}
-
-function ns:RebuildEquipmentSetCache()
-    if not self.features.equipSets then return end
-    wipe(self.equipmentSetItems)
-
-    local setIDs = C_EquipmentSet.GetEquipmentSetIDs()
-    if not setIDs then return end
-
-    for _, setID in ipairs(setIDs) do
-        local itemLocations = C_EquipmentSet.GetItemLocations(setID)
-        if itemLocations then
-            for _, location in pairs(itemLocations) do
-                if location and location ~= 0 and location ~= 1 then
-                    local onPlayer, inBank, inBags, inVaultTab, slot, bag, tab, vaultSlot =
-                        EquipmentManager_UnpackLocation(location)
-
-                    local itemID
-                    if inBags and bag and slot then
-                        local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
-                        if itemInfo then
-                            itemID = itemInfo.itemID
-                        end
-                    elseif onPlayer and slot and not inBags then
-                        itemID = GetInventoryItemID("player", slot)
-                    end
-
-                    if itemID then
-                        self.equipmentSetItems[itemID] = true
-                    end
-                end
-            end
-        end
-    end
-end
-
-function ns:IsInEquipmentSet(itemID)
-    return self.equipmentSetItems[itemID] or false
-end
-
-function ns:IsUncollectedTransmog(itemID)
-    if not self.features.transmog then return false end
-    if not C_TransmogCollection or not C_TransmogCollection.PlayerHasTransmog then
-        return false
-    end
-    return not C_TransmogCollection.PlayerHasTransmog(itemID)
-end
-
--- Enhanced transmog source-level checking
-function ns:IsUncollectedTransmogSource(itemID)
-    if not C_TransmogCollection then return false end
-
-    -- Basic check first
-    if C_TransmogCollection.PlayerHasTransmog and C_TransmogCollection.PlayerHasTransmog(itemID) then
-        return false
-    end
-
-    -- Source-level check if available
-    if C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance then
-        local allSources = C_TransmogCollection.GetAllAppearanceSources and
-            C_TransmogCollection.GetAllAppearanceSources(itemID)
-        if allSources then
-            for _, sourceID in ipairs(allSources) do
-                if not C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance(sourceID) then
-                    return true
-                end
-            end
-            return false
-        end
-    end
-
-    -- Fallback to basic check
-    return not C_TransmogCollection.PlayerHasTransmog(itemID)
-end
-
--- Third-party transmog addon integration
-function ns:IsTransmogProtectedByAddon(itemID, bag, slot)
-    -- AllTheThings integration
-    if AllTheThings and AllTheThings.SearchForField then
-        local results = AllTheThings.SearchForField("itemID", itemID)
-        if results and #results > 0 then
-            for _, result in ipairs(results) do
-                if result.collected == false then
-                    return true
-                end
-            end
-        end
-    end
-
-    -- CanIMogIt integration
-    if CanIMogIt and CanIMogIt.GetTooltipText then
-        local itemLink = C_Container.GetContainerItemInfo(bag, slot)
-        if itemLink then
-            local text = CanIMogIt:GetTooltipText(itemLink.hyperlink or itemLink)
-            if text and text:find("Cannot") == nil and text:find("Collected") == nil then
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
-function ns:IsRefundable(bag, slot)
-    local info = C_Container.GetContainerItemPurchaseInfo(bag, slot, false)
-    if info and info.refundSeconds and info.refundSeconds > 0 then
-        return true
-    end
-    return false
-end
-
-function ns:IsEquippable(itemID)
-    local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
-    if not classID then return false end
-    return classID == Enum.ItemClass.Weapon or classID == Enum.ItemClass.Armor
-end
-
--- BoE detection
-function ns:IsBindOnEquip(bag, slot)
-    local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
-    if not itemInfo or not itemInfo.hyperlink then return false end
-
-    local _, _, _, _, _, _, _, _, _, _, _, _, _, bindType = C_Item.GetItemInfo(itemInfo.hyperlink)
-    -- bindType 2 = BoE
-    if bindType ~= 2 then return false end
-
-    -- Check if already bound
-    local itemLoc = ItemLocation:CreateFromBagAndSlot(bag, slot)
-    if itemLoc and itemLoc:IsValid() and C_Item.IsBound(itemLoc) then
-        return false
-    end
-
-    return true
-end
+-- Shared flat 1px border backdrop (ElvUI style)
+ns.FLAT_BACKDROP = {
+    bgFile = "Interface\\Buttons\\WHITE8X8",
+    edgeFile = "Interface\\Buttons\\WHITE8X8",
+    edgeSize = 1,
+}
 
 function ns:GetEffectiveItemLevel(itemLink)
     if not itemLink then return 0 end
@@ -188,20 +60,6 @@ function ns:SafeCall(func, ...)
 end
 
 ns.debugMode = false
-
--- Feature availability flags (set by RunSelfTest in Core.lua)
-ns.features = {
-    selling = true,
-    scanning = true,
-    itemInfo = true,
-    transmog = true,
-    equipSets = true,
-    destroying = true,
-}
-
-function ns:IsFeatureAvailable(name)
-    return self.features[name] ~= false
-end
 
 function ns:DebugPrint(msg)
     if self.debugMode then
@@ -450,4 +308,44 @@ function ns:GetTotalBagVendorValue()
         end
     end
     return total
+end
+
+-- Iterate all bag items. Callback receives (bag, slot, itemInfo). Return true to stop.
+function ns:IterateBagItems(callback)
+    for bag = 0, 4 do
+        local numSlots = C_Container.GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+            if itemInfo then
+                if callback(bag, slot, itemInfo) then
+                    return
+                end
+            end
+        end
+    end
+end
+
+-- Format a timestamp as "Xs ago", "Xm ago", "Xh ago", "Xd ago"
+function ns:FormatTimeAgo(timestamp)
+    local elapsed = GetServerTime() - timestamp
+    if elapsed < 60 then
+        return elapsed .. "s ago"
+    elseif elapsed < 3600 then
+        return math.floor(elapsed / 60) .. "m ago"
+    elseif elapsed < 86400 then
+        return math.floor(elapsed / 3600) .. "h ago"
+    else
+        return math.floor(elapsed / 86400) .. "d ago"
+    end
+end
+
+-- Format copper as short gold string ("5g", "20s", "42c")
+function ns:FormatGoldShort(copper)
+    if copper >= 10000 then
+        return math.floor(copper / 10000) .. "g"
+    elseif copper >= 100 then
+        return math.floor(copper / 100) .. "s"
+    else
+        return copper .. "c"
+    end
 end

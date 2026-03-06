@@ -5,12 +5,7 @@ local ROW_HEIGHT = 28
 local POPUP_WIDTH = 580
 local POPUP_HEIGHT = 620
 
--- Flat 1px border backdrop (ElvUI style)
-local FLAT_BACKDROP = {
-    bgFile = "Interface\\Buttons\\WHITE8X8",
-    edgeFile = "Interface\\Buttons\\WHITE8X8",
-    edgeSize = 1,
-}
+local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
 local popup = nil
 local itemRows = {}
@@ -214,7 +209,8 @@ local function CreateContextMenu()
             menu:Hide()
             -- Refresh popup
             displayList = ns:BuildDisplayList()
-            ns:ApplyFilters()
+            ns:ApplyFilters(displayList, userUnchecked)
+            ns:RefreshPopupList()
         end)
     end
 
@@ -246,231 +242,6 @@ local function ShowContextMenu(itemID, anchor)
     menu:ClearAllPoints()
     menu:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 2, 0)
     menu:Show()
-end
-
--- ============================================================
--- Data Functions
--- ============================================================
-
-function ns:BuildDisplayList()
-    local list = {}
-    for bag = 0, 4 do
-        local numSlots = C_Container.GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
-            if itemInfo then
-                local itemID = itemInfo.itemID
-                local itemLink = itemInfo.hyperlink
-                local quality = itemInfo.quality
-                local isLocked = itemInfo.isLocked
-                local hasNoValue = itemInfo.hasNoValue
-                local stackCount = itemInfo.stackCount or 1
-
-                if itemID and itemLink then
-                    local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemLink)
-                    local isAlwaysSell = self:IsAlwaysSell(itemID)
-                    local isMarked = self:IsMarked(itemID)
-
-                    if not self:IsNeverSell(itemID)
-                        and not isLocked
-                        and not self:IsRefundable(bag, slot)
-                        and (sellPrice and sellPrice > 0 or isAlwaysSell)
-                        and not hasNoValue
-                        and not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemID))
-                        and not (self.db.protectUncollectedTransmog and self:IsEquippable(itemID) and self:IsUncollectedTransmog(itemID))
-                        and not (self.db.protectTransmogSource and self:IsEquippable(itemID) and self:IsUncollectedTransmogSource(itemID))
-                    then
-                        -- BoE protection
-                        local isBoe = self:IsBindOnEquip(bag, slot)
-                        if self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
-                            -- Skip protected BoE
-                        else
-                            local ilvl = self:GetEffectiveItemLevel(itemLink)
-                            local isEquippable = self:IsEquippable(itemID)
-                            local equippedIlvl = isEquippable and self:GetEquippedIlvlForItem(itemID) or 0
-                            local classID = self:GetItemClassID(itemID)
-                            local expansionID = self:GetItemExpansion(itemLink)
-
-                            -- AH value lookup
-                            local ahValue = 0
-                            if TSM_API and TSM_API.GetCustomPriceValue then
-                                local ok, val = pcall(TSM_API.GetCustomPriceValue, "DBMarket", "i:" .. itemID)
-                                if ok and val then ahValue = val end
-                            elseif Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.GetAuctionPriceByItemLink then
-                                local ok, val = pcall(Auctionator.API.v1.GetAuctionPriceByItemLink, "AutoSellPlus", itemLink)
-                                if ok and val then ahValue = val end
-                            end
-
-                            list[#list + 1] = {
-                                bag = bag,
-                                slot = slot,
-                                itemID = itemID,
-                                itemLink = itemLink,
-                                quality = quality,
-                                ilvl = ilvl,
-                                equippedIlvl = equippedIlvl,
-                                sellPrice = sellPrice or 0,
-                                stackCount = stackCount,
-                                totalPrice = (sellPrice or 0) * stackCount,
-                                isEquippable = isEquippable,
-                                isAlwaysSell = isAlwaysSell,
-                                isMarked = isMarked,
-                                isBoe = isBoe,
-                                classID = classID,
-                                expansionID = expansionID,
-                                ahValue = ahValue,
-                                checked = false,
-                                visible = false,
-                            }
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return list
-end
-
-function ns:ApplyFilters()
-    local db = self.db
-    for _, item in ipairs(displayList) do repeat
-        local visible = false
-        local autoChecked = false
-
-        item.isUpgrade = item.isEquippable and item.equippedIlvl > 0 and item.ilvl > item.equippedIlvl
-
-        -- Expansion filter
-        if db.filterExpansion > 0 and item.expansionID ~= db.filterExpansion then
-            item.visible = false
-            item.checked = false
-            break
-        end
-
-        -- Exclude current expansion filter
-        if db.excludeCurrentExpansion and item.expansionID == ns.CURRENT_EXPANSION then
-            item.visible = false
-            item.checked = false
-            break
-        end
-
-        -- Equipment slot filter
-        local filterSlots = db.filterSlots
-        if filterSlots and next(filterSlots) then
-            if item.isEquippable then
-                local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(item.itemID)
-                local slots = ns.EQUIP_LOC_TO_SLOTS and ns.EQUIP_LOC_TO_SLOTS[itemEquipLoc]
-                local slotMatch = false
-                if slots then
-                    for _, slotID in ipairs(slots) do
-                        if filterSlots[slotID] then
-                            slotMatch = true
-                            break
-                        end
-                    end
-                end
-                if not slotMatch then
-                    item.visible = false
-                    item.checked = false
-                    break
-                end
-            else
-                item.visible = false
-                item.checked = false
-                break
-            end
-        end
-
-        -- Always-sell and marked items
-        if item.isAlwaysSell or item.isMarked then
-            visible = true
-            autoChecked = true
-        elseif item.quality == Enum.ItemQuality.Poor then
-            -- Grays
-            if db.sellGrays then
-                visible = true
-                autoChecked = true
-            end
-        elseif item.quality == Enum.ItemQuality.Common then
-            -- Whites
-            if db.sellWhites then
-                if db.onlyEquippable and not item.isEquippable then
-                    visible = false
-                else
-                    visible = true
-                    if item.ilvl > 0 and db.whiteMaxIlvl > 0 and item.ilvl <= db.whiteMaxIlvl then
-                        autoChecked = not item.isUpgrade
-                    end
-                end
-            end
-        elseif item.quality == Enum.ItemQuality.Uncommon then
-            -- Greens
-            if db.sellGreens then
-                if db.onlyEquippable and not item.isEquippable then
-                    visible = false
-                else
-                    visible = true
-                    if item.ilvl > 0 and db.greenMaxIlvl > 0 and item.ilvl <= db.greenMaxIlvl then
-                        autoChecked = not item.isUpgrade
-                    end
-                end
-            end
-        elseif item.quality == Enum.ItemQuality.Rare then
-            -- Blues
-            if db.sellBlues then
-                if db.onlyEquippable and not item.isEquippable then
-                    visible = false
-                else
-                    visible = true
-                    if item.ilvl > 0 and db.blueMaxIlvl > 0 and item.ilvl <= db.blueMaxIlvl then
-                        autoChecked = not item.isUpgrade
-                    end
-                end
-            end
-        elseif item.quality == Enum.ItemQuality.Epic then
-            -- Epics
-            if db.sellEpics then
-                if db.onlyEquippable and not item.isEquippable then
-                    visible = false
-                else
-                    visible = true
-                    if item.ilvl > 0 and db.epicMaxIlvl > 0 and item.ilvl <= db.epicMaxIlvl then
-                        autoChecked = not item.isUpgrade
-                    end
-                end
-            end
-        end
-
-        -- Category filters (non-equippable items)
-        if not visible then
-            if item.classID == 0 and db.sellConsumables then
-                visible = true
-                autoChecked = true
-            elseif item.classID == 7 and db.sellTradeGoods then
-                visible = true
-                autoChecked = true
-            elseif item.classID == 12 and db.sellQuestItems then
-                visible = true
-                autoChecked = true
-            elseif item.classID == 15 and db.sellMiscItems then
-                visible = true
-                autoChecked = true
-            end
-        end
-
-        item.visible = visible
-
-        local key = item.bag .. ":" .. item.slot
-        if userUnchecked[key] then
-            item.checked = false
-        elseif visible then
-            item.checked = autoChecked
-        else
-            item.checked = false
-        end
-
-    until true end
-
-    self:RefreshPopupList()
 end
 
 -- ============================================================
@@ -644,11 +415,11 @@ local function SetRowData(row, item)
     if hasAHAddon and item.ahValue and item.ahValue > 0 then
         row.ahText:SetText(ns:FormatMoney(item.ahValue))
         if item.ahValue > item.totalPrice * 10 then
-            row.ahText:SetTextColor(0.1, 1.0, 0.1) -- Green: AH much higher, don't vendor
+            row.ahText:SetTextColor(0.1, 1.0, 0.1)
         elseif item.ahValue > item.totalPrice * 2 then
-            row.ahText:SetTextColor(1, 0.82, 0) -- Yellow
+            row.ahText:SetTextColor(1, 0.82, 0)
         else
-            row.ahText:SetTextColor(0.5, 0.5, 0.5) -- Gray: AH similar to vendor
+            row.ahText:SetTextColor(0.5, 0.5, 0.5)
         end
     else
         row.ahText:SetText("")
@@ -666,50 +437,6 @@ end
 -- List and Total Functions
 -- ============================================================
 
-local function SortItems(a, b)
-    local col = ns.sortColumn
-    local dir = ns.sortDirection
-
-    local va, vb
-    if col == "quality" then
-        if a.quality ~= b.quality then
-            va, vb = a.quality, b.quality
-        elseif a.ilvl ~= b.ilvl then
-            va, vb = a.ilvl, b.ilvl
-        else
-            va, vb = (a.itemLink or ""), (b.itemLink or "")
-        end
-    elseif col == "ilvl" then
-        if a.ilvl ~= b.ilvl then
-            va, vb = a.ilvl, b.ilvl
-        else
-            va, vb = a.quality, b.quality
-        end
-    elseif col == "price" then
-        if a.totalPrice ~= b.totalPrice then
-            va, vb = a.totalPrice, b.totalPrice
-        else
-            va, vb = a.quality, b.quality
-        end
-    elseif col == "ah" then
-        local ahA = a.ahValue or 0
-        local ahB = b.ahValue or 0
-        if ahA ~= ahB then
-            va, vb = ahA, ahB
-        else
-            va, vb = a.totalPrice, b.totalPrice
-        end
-    else
-        va, vb = a.quality, b.quality
-    end
-
-    if dir == "desc" then
-        return va > vb
-    else
-        return va < vb
-    end
-end
-
 function ns:RefreshPopupList()
     if not popup then return end
 
@@ -720,7 +447,7 @@ function ns:RefreshPopupList()
         end
     end
 
-    table.sort(visibleItems, SortItems)
+    ns:SortDisplayItems(visibleItems)
 
     local scrollChild = popup.scrollChild
 
@@ -783,7 +510,8 @@ local function CreateQualityFilterRow(f, filterTop, label, checkKey, sliderKey, 
     checkLabel:SetText(label)
     check:SetScript("OnClick", function(self)
         ns.db[checkKey] = self:GetChecked()
-        ns:ApplyFilters()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
     end)
 
     if sliderKey and editKey then
@@ -818,7 +546,8 @@ local function CreateQualityFilterRow(f, filterTop, label, checkKey, sliderKey, 
             value = math.floor(value + 0.5)
             ns.db[sliderKey] = value
             editBox:SetText(tostring(value))
-            ns:ApplyFilters()
+            ns:ApplyFilters(displayList, userUnchecked)
+            ns:RefreshPopupList()
         end)
 
         return check, slider, editBox
@@ -828,10 +557,10 @@ local function CreateQualityFilterRow(f, filterTop, label, checkKey, sliderKey, 
 end
 
 -- ============================================================
--- Main Popup Frame
+-- Popup Frame — Section Builders
 -- ============================================================
 
-local function CreatePopupFrame()
+local function CreateMainFrame()
     local f = CreateFrame("Frame", "AutoSellPlusPopup", UIParent, "BackdropTemplate")
     f:SetSize(POPUP_WIDTH, POPUP_HEIGHT)
     f:SetPoint("CENTER")
@@ -849,7 +578,6 @@ local function CreatePopupFrame()
     end)
     f:SetClampedToScreen(true)
 
-    -- Flat dark backdrop with black 1px border
     f:SetBackdrop(FLAT_BACKDROP)
     f:SetBackdropColor(0.06, 0.06, 0.06, 0.96)
     f:SetBackdropBorderColor(0, 0, 0, 1)
@@ -920,9 +648,10 @@ local function CreatePopupFrame()
     end)
     f.fadeIn = fadeIn
 
-    -- ============================================================
-    -- Filter Section
-    -- ============================================================
+    return f
+end
+
+local function CreateFilterSection(f)
     local filterTop = -36
     local filterLeft = 14
     local rowY = 0
@@ -936,31 +665,26 @@ local function CreatePopupFrame()
     filterBg:EnableMouse(false)
     f.filterBg = filterBg
 
-    -- Row 1: Sell Grays
+    -- Quality filter rows
     f.grayCheck = CreateQualityFilterRow(f, filterTop, "Sell Grays", "sellGrays", nil, nil, rowY)
     rowY = rowY - 22
 
-    -- Row 2: Sell Whites + slider
     f.whiteCheck, f.whiteSlider, f.whiteEditBox = CreateQualityFilterRow(f, filterTop, "Sell Whites", "sellWhites", "whiteMaxIlvl", "whiteMaxIlvl", rowY)
     rowY = rowY - 22
 
-    -- Row 3: Sell Greens + slider
     f.greenCheck, f.greenSlider, f.greenEditBox = CreateQualityFilterRow(f, filterTop, "Sell Greens", "sellGreens", "greenMaxIlvl", "greenMaxIlvl", rowY)
     rowY = rowY - 22
 
-    -- Row 4: Sell Blues + slider
     f.blueCheck, f.blueSlider, f.blueEditBox = CreateQualityFilterRow(f, filterTop, "Sell Blues", "sellBlues", "blueMaxIlvl", "blueMaxIlvl", rowY)
     rowY = rowY - 22
 
-    -- Row 5: Sell Epics + slider
     f.epicCheck, f.epicSlider, f.epicEditBox = CreateQualityFilterRow(f, filterTop, "Sell Epics", "sellEpics", "epicMaxIlvl", "epicMaxIlvl", rowY)
     rowY = rowY - 22
 
-    -- Row 6: Only Equippable
     f.equipCheck = CreateQualityFilterRow(f, filterTop, "Only Equippable", "onlyEquippable", nil, nil, rowY)
     rowY = rowY - 22
 
-    -- Row 7: Category filters
+    -- Category filters
     local catLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     catLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
     catLabel:SetText("Categories:")
@@ -984,14 +708,15 @@ local function CreatePopupFrame()
         local catKey = cat.key
         catCheck:SetScript("OnClick", function(self)
             ns.db[catKey] = self:GetChecked()
-            ns:ApplyFilters()
+            ns:ApplyFilters(displayList, userUnchecked)
+            ns:RefreshPopupList()
         end)
         f.categoryChecks[cat.key] = catCheck
         catX = catX + 70
     end
     rowY = rowY - 22
 
-    -- Row 8: Expansion filter
+    -- Expansion filter
     local expLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     expLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
     expLabel:SetText("Expansion:")
@@ -1005,7 +730,8 @@ local function CreatePopupFrame()
         if current > 12 then current = 0 end
         ns.db.filterExpansion = current
         expBtn.label:SetText(ns.EXPANSION_NAMES[current] or "All")
-        ns:ApplyFilters()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
     end)
     f.expBtn = expBtn
 
@@ -1018,12 +744,13 @@ local function CreatePopupFrame()
     exclCurLabel:SetTextColor(0.70, 0.70, 0.70)
     exclCurCheck:SetScript("OnClick", function(self)
         ns.db.excludeCurrentExpansion = self:GetChecked()
-        ns:ApplyFilters()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
     end)
     f.exclCurCheck = exclCurCheck
     rowY = rowY - 22
 
-    -- Row 9: Equipment slot filter
+    -- Equipment slot filter
     local slotLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     slotLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
     slotLabel:SetText("Slots:")
@@ -1051,7 +778,8 @@ local function CreatePopupFrame()
                 self:SetBackdropColor(0.0, 0.30, 0.50, 1)
                 self:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
             end
-            ns:ApplyFilters()
+            ns:ApplyFilters(displayList, userUnchecked)
+            ns:RefreshPopupList()
         end)
         slotBtn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -1068,36 +796,33 @@ local function CreatePopupFrame()
     local filterHeight = math.abs(rowY) + 6
     filterBg:SetHeight(filterHeight)
 
-    -- ============================================================
-    -- Divider + Avg ilvl
-    -- ============================================================
+    return filterTop + rowY
+end
 
-    local dividerY = filterTop + rowY - 4
+local function CreateItemListSection(f, dividerY)
+    local filterLeft = 14
+
+    -- Divider + Avg ilvl
     local divider = f:CreateTexture(nil, "ARTWORK")
     divider:SetHeight(1)
-    divider:SetPoint("TOPLEFT", filterLeft, dividerY)
+    divider:SetPoint("TOPLEFT", filterLeft, dividerY - 4)
     divider:SetPoint("RIGHT", f, "RIGHT", -filterLeft, 0)
     divider:SetColorTexture(0.20, 0.20, 0.20, 0.8)
 
     local avgIlvlText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    avgIlvlText:SetPoint("TOPLEFT", filterLeft, dividerY - 7)
+    avgIlvlText:SetPoint("TOPLEFT", filterLeft, dividerY - 11)
     avgIlvlText:SetTextColor(0.45, 0.70, 0.90)
     f.avgIlvlText = avgIlvlText
 
-    -- ============================================================
-    -- Column Headers + Scroll Area
-    -- ============================================================
+    -- Column Headers
+    local listTop = dividerY - 26
 
-    local listTop = dividerY - 22
-
-    -- Header background
     local headerBg = f:CreateTexture(nil, "ARTWORK")
     headerBg:SetPoint("TOPLEFT", filterLeft, listTop)
     headerBg:SetPoint("RIGHT", f, "RIGHT", -filterLeft, 0)
     headerBg:SetHeight(18)
     headerBg:SetColorTexture(0.08, 0.08, 0.08, 1)
 
-    -- Clickable column headers for sorting
     local function CreateHeaderButton(text, col, anchorPoint, anchorTo, anchorRelPoint, xOff, width)
         local hdr = CreateFrame("Button", nil, f)
         hdr:SetSize(width, 18)
@@ -1114,9 +839,7 @@ local function CreatePopupFrame()
                 ns.sortColumn = col
                 ns.sortDirection = "asc"
             end
-            -- Update arrow indicators
             local arrow = ns.sortDirection == "asc" and " v" or " ^"
-            -- Reset all
             for _, h in ipairs(f.headerButtons) do
                 h.hdrText:SetTextColor(0.70, 0.70, 0.55)
                 h.hdrText:SetText(h.baseText)
@@ -1136,9 +859,7 @@ local function CreatePopupFrame()
     local hdrIlvl = CreateHeaderButton("ilvl", "ilvl", "LEFT", headerBg, "LEFT", 260, 80)
     f.headerButtons[#f.headerButtons + 1] = hdrIlvl
 
-    -- Detect AH addon for column
     hasAHAddon = (TSM_API ~= nil) or (Auctionator ~= nil)
-
     if hasAHAddon then
         local hdrAH = CreateHeaderButton("AH", "ah", "LEFT", headerBg, "LEFT", 342, 60)
         f.headerButtons[#f.headerButtons + 1] = hdrAH
@@ -1157,10 +878,10 @@ local function CreatePopupFrame()
     scrollChild:SetSize(POPUP_WIDTH - 56, 1)
     scrollFrame:SetScrollChild(scrollChild)
     f.scrollChild = scrollChild
+end
 
-    -- ============================================================
-    -- Bottom Bar
-    -- ============================================================
+local function CreateBottomBar(f)
+    local filterLeft = 14
 
     -- Sell progress bar (above bottom divider)
     local progressBar = CreateFrame("Frame", nil, f, "BackdropTemplate")
@@ -1253,7 +974,8 @@ local function CreatePopupFrame()
                     ClearCursor()
                     -- Refresh popup
                     displayList = ns:BuildDisplayList()
-                    ns:ApplyFilters()
+                    ns:ApplyFilters(displayList, userUnchecked)
+                    ns:RefreshPopupList()
                     return
                 end
             end
@@ -1319,7 +1041,6 @@ local function CreatePopupFrame()
         if self:IsEnabled() then
             self:SetBackdropColor(0.45, 0.20, 0.0, 1)
             self:SetBackdropBorderColor(0.60, 0.30, 0.0, 1)
-            -- Tooltip with quality breakdown
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
             GameTooltip:AddLine("Sell All Junk")
             local counts = {}
@@ -1351,7 +1072,6 @@ local function CreatePopupFrame()
         GameTooltip:Hide()
     end)
     sellAllBtn:SetScript("OnClick", function()
-        -- Select all gray + marked items, then sell
         for _, item in ipairs(displayList) do
             if item.visible then
                 if item.quality == Enum.ItemQuality.Poor or item.isMarked then
@@ -1395,10 +1115,19 @@ local function CreatePopupFrame()
         end
         ns:RefreshPopupList()
     end)
+end
 
-    -- Escape closes popup
+-- ============================================================
+-- Assembled Popup Frame
+-- ============================================================
+
+local function CreatePopupFrame()
+    local f = CreateMainFrame()
+    local filterEndY = CreateFilterSection(f)
+    CreateItemListSection(f, filterEndY)
+    CreateBottomBar(f)
+
     tinsert(UISpecialFrames, "AutoSellPlusPopup")
-
     f:Hide()
     return f
 end
@@ -1412,12 +1141,10 @@ function ns:ShowPopup()
 
     if not popup then
         popup = CreatePopupFrame()
-        -- Restore saved position
         if self.db.popupPoint then
             popup:ClearAllPoints()
             popup:SetPoint(self.db.popupPoint, UIParent, self.db.popupPoint, self.db.popupX or 0, self.db.popupY or 0)
         end
-        -- Restore saved scale
         if self.db.popupScale then
             popup:SetScale(self.db.popupScale)
         end
@@ -1451,24 +1178,20 @@ function ns:ShowPopup()
         popup.epicEditBox:SetText(tostring(self.db.epicMaxIlvl))
     end
 
-    -- Category filter sync
     if popup.categoryChecks then
         for key, check in pairs(popup.categoryChecks) do
             check:SetChecked(self.db[key])
         end
     end
 
-    -- Expansion filter sync
     if popup.expBtn then
         popup.expBtn.label:SetText(ns.EXPANSION_NAMES[self.db.filterExpansion] or "All")
     end
 
-    -- Exclude current expansion sync
     if popup.exclCurCheck then
         popup.exclCurCheck:SetChecked(self.db.excludeCurrentExpansion)
     end
 
-    -- Slot filter sync
     if popup.slotButtons then
         local filterSlots = self.db.filterSlots or {}
         for slotID, btn in pairs(popup.slotButtons) do
@@ -1482,15 +1205,12 @@ function ns:ShowPopup()
         end
     end
 
-    -- Reset manual unchecks for new merchant visit
     wipe(userUnchecked)
 
-    -- Refresh equipped ilvl cache
     local ilvls, avgIlvl, minIlvl = self:GetEquippedIlvls()
     self._equippedIlvls = ilvls
     popup.avgIlvlText:SetText("Avg Equipped ilvl: " .. avgIlvl)
 
-    -- Set smart ilvl defaults: min(avg, lowestEquipped) - 10
     local smartDefault = math.max(0, math.min(avgIlvl, minIlvl) - 10)
     if smartDefault > 0 then
         if self.db.greenMaxIlvl == 0 then
@@ -1505,16 +1225,14 @@ function ns:ShowPopup()
         end
     end
 
-    -- Scan bags and apply filters
     displayList = self:BuildDisplayList()
-    self:ApplyFilters()
+    self:ApplyFilters(displayList, userUnchecked)
+    self:RefreshPopupList()
 
     -- Eviction / reclaim space mode
     if self.db.evictionEnabled and ns:CountFreeSlots() == 0 then
-        -- Pre-sort by price ascending for eviction
         ns.sortColumn = "price"
         ns.sortDirection = "asc"
-        -- Select cheapest items
         for _, item in ipairs(displayList) do
             if item.visible then
                 item.checked = true
@@ -1526,7 +1244,6 @@ function ns:ShowPopup()
         popup.titleText:SetText("|cFF00CCFFAutoSellPlus|r |cFFFF6600[Reclaim Space]|r")
     end
 
-    -- Show with fade-in
     popup:SetAlpha(0)
     popup:Show()
     popup.fadeIn:Play()
@@ -1577,7 +1294,6 @@ local function FlashSellButton(success)
     btn:SetBackdropColor(r, g, b, 1)
     btn:SetBackdropBorderColor(r + 0.2, g + 0.2, b + 0.2, 1)
 
-    -- Create a one-shot bounce animation
     local flashGroup = btn:CreateAnimationGroup()
     local fadeOut = flashGroup:CreateAnimation("Alpha")
     fadeOut:SetFromAlpha(1)
@@ -1624,9 +1340,7 @@ function ns:SellFromPopup()
 
     if #queue == 0 then return end
 
-    -- Flash sell button based on verification
     local beforeCount = #queue
-    -- Note: verification happens inside StartSelling, flash based on queue validity
     FlashSellButton(beforeCount > 0)
 
     -- Epic confirmation

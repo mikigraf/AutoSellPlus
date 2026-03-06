@@ -124,6 +124,7 @@ read_globals = {
     "TSM_API",
     "Auctionator",
     "Bagnon",
+    "Baganator",
     "AdiBags",
     "ArkInventory",
     "LeaPlusDB",

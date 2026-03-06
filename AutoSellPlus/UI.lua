@@ -1,10 +1,6 @@
 local addonName, ns = ...
 
-local FLAT_BACKDROP = {
-    bgFile = "Interface\\Buttons\\WHITE8X8",
-    edgeFile = "Interface\\Buttons\\WHITE8X8",
-    edgeSize = 1,
-}
+local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
 -- ============================================================
 -- Import / Export Frame (reusable)

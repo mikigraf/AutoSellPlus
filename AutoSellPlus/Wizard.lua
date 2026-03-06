@@ -4,11 +4,7 @@ local wizard = nil
 local currentPage = 1
 local TOTAL_PAGES = 3
 
-local FLAT_BACKDROP = {
-    bgFile = "Interface\\Buttons\\WHITE8X8",
-    edgeFile = "Interface\\Buttons\\WHITE8X8",
-    edgeSize = 1,
-}
+local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
 local function CreateWizardCheck(parent, label, tooltip, x, y, defaultVal)
     local check = CreateFrame("CheckButton", nil, parent, "BackdropTemplate")

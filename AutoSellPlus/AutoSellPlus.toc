@@ -11,10 +11,16 @@
 
 Config.lua
 Helpers.lua
-History.lua
+Protection.lua
+BagAdapters.lua
+Overlays.lua
 Marking.lua
+History.lua
+HistoryUI.lua
 MinimapButton.lua
 Wizard.lua
 UI.lua
+PopupFilters.lua
 Popup.lua
+Selling.lua
 Core.lua

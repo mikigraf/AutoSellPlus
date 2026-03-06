@@ -17,16 +17,6 @@ local function UpdatePosition()
     button:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
 
-local function FormatGoldShort(copper)
-    if copper >= 10000 then
-        return math.floor(copper / 10000) .. "g"
-    elseif copper >= 100 then
-        return math.floor(copper / 100) .. "s"
-    else
-        return copper .. "c"
-    end
-end
-
 local function OnEnter(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("|cFF00CCFFAutoSellPlus|r v" .. (ns.version or "?"), 1, 1, 1)
@@ -59,9 +49,9 @@ local function OnEnter(self)
                 GameTooltip:AddLine("Character Stats:", 0.5, 0.8, 1)
                 hasStats = true
             end
-            local rightText = FormatGoldShort(stats.totalCopper or 0) .. " (" .. (stats.totalItems or 0) .. " items)"
+            local rightText = ns:FormatGoldShort(stats.totalCopper or 0) .. " (" .. (stats.totalItems or 0) .. " items)"
             if stats.bagJunkValue and stats.bagJunkValue > 0 then
-                rightText = rightText .. " | Junk: " .. FormatGoldShort(stats.bagJunkValue)
+                rightText = rightText .. " | Junk: " .. ns:FormatGoldShort(stats.bagJunkValue)
             end
             GameTooltip:AddDoubleLine(
                 charName,
