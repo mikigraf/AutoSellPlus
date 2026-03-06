@@ -13,18 +13,6 @@
   <sub>A World of Warcraft addon</sub>
 </p>
 
-<br>
-
-<p align="center">
-  Tired of Scrap/Aardvark breaking every patch? Or hopping vendors mid-farm because your bags<br>
-  exploded from old raid greens? AutoSellPlus marks while you loot, auto-keeps space open,<br>
-  and sells safe—no more accidental BoE/transmog losses.
-</p>
-
-<h3 align="center">Midnight ready &bull; Works post-patch &bull; Farmer approved</h3>
-
-<br>
-
 <p align="center">
   <a href="#-why-this-over-scrapaardvarklegacy-vendor">Why AutoSellPlus</a> &middot;
   <a href="#-quick-start">Quick Start</a> &middot;
@@ -64,33 +52,6 @@
 <h3 align="center">Midnight ready &bull; Works post-patch &bull; Farmer approved</h3>
 
 <br>
-
----
-
-<br>
-
-## &nbsp; Why This Over Scrap/Aardvark/Legacy Vendor?
-
-| Issue | AutoSellPlus | Others |
-| :--- | :--- | :--- |
-| **Patch breaks** | Self-tests on login, API fallbacks | Dies every xpack |
-| **Full bags mid-run** | Auto-evict junk to keep slots free | Vendor babysitting |
-| **Alt hassle** | Sync rules account-wide | Per-char redo |
-| **Oops sells** | Loot-mark + ATT exclude | Weak safeties |
-| **Spam popups** | One-click bulk | Transaction hell |
-
-> *"Set once on main. Every alt farms clean."* – Real farmer QoL.
-
-<br>
-
-## &nbsp; Quick Start
-
-1. Install via [CurseForge](https://www.curseforge.com/wow/addons/autosellplus) or [Wago](https://addons.wago.io) &rarr; `/reload`
-2. `/asp config` &rarr; Pick **"Raid Farmer"** template
-3. **ALT+Click** loot/bags to mark junk (glows red)
-4. Visit a vendor &rarr; One button **Sell All** (preview first)
-
-Minimap button for stats/toggle. Rules stick across chars/sessions.
 
 <br>
 
@@ -147,6 +108,36 @@ Minimap button for stats/toggle. Rules stick across chars/sessions.
 > `/autosell` works as an alias for `/asp`
 
 <br>
+
+---
+
+<br>
+
+## &nbsp; Why This Over Scrap/Aardvark/Legacy Vendor?
+
+| Issue | AutoSellPlus | Others |
+| :--- | :--- | :--- |
+| **Patch breaks** | Self-tests on login, API fallbacks | Dies every xpack |
+| **Full bags mid-run** | Auto-evict junk to keep slots free | Vendor babysitting |
+| **Alt hassle** | Sync rules account-wide | Per-char redo |
+| **Oops sells** | Loot-mark + ATT exclude | Weak safeties |
+| **Spam popups** | One-click bulk | Transaction hell |
+
+> *"Set once on main. Every alt farms clean."* – Real farmer QoL.
+
+<br>
+
+## &nbsp; Quick Start
+
+1. Install via [CurseForge](https://www.curseforge.com/wow/addons/autosellplus) or [Wago](https://addons.wago.io) &rarr; `/reload`
+2. `/asp config` &rarr; Pick **"Raid Farmer"** template
+3. **ALT+Click** loot/bags to mark junk (glows red)
+4. Visit a vendor &rarr; One button **Sell All** (preview first)
+
+Minimap button for stats/toggle. Rules stick across chars/sessions.
+
+<br>
+
 
 ## &nbsp; Integrations
 
