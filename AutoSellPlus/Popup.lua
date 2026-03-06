@@ -1162,6 +1162,31 @@ local function CreatePopupFrame()
     -- Bottom Bar
     -- ============================================================
 
+    -- Sell progress bar (above bottom divider)
+    local progressBar = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    progressBar:SetHeight(14)
+    progressBar:SetPoint("BOTTOMLEFT", 1, 45)
+    progressBar:SetPoint("BOTTOMRIGHT", -1, 45)
+    progressBar:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+    })
+    progressBar:SetBackdropColor(0.10, 0.10, 0.10, 0.8)
+
+    local progressFill = progressBar:CreateTexture(nil, "ARTWORK")
+    progressFill:SetPoint("TOPLEFT")
+    progressFill:SetPoint("BOTTOMLEFT")
+    progressFill:SetWidth(0)
+    progressFill:SetColorTexture(0.0, 0.45, 0.80, 0.8)
+    progressBar.fill = progressFill
+
+    local progressText = progressBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    progressText:SetPoint("CENTER")
+    progressText:SetTextColor(1, 1, 1)
+    progressBar.text = progressText
+
+    progressBar:Hide()
+    f.progressBar = progressBar
+
     -- Bottom divider
     local bottomDiv = f:CreateTexture(nil, "ARTWORK")
     bottomDiv:SetHeight(1)
@@ -1441,6 +1466,32 @@ function ns:HidePopup()
     if contextMenu then
         contextMenu:Hide()
     end
+end
+
+ns.sellProgress = { current = 0, total = 0 }
+
+function ns:UpdateSellProgress()
+    if not popup or not popup.progressBar then return end
+    local bar = popup.progressBar
+    local p = self.sellProgress
+    if p.total <= 0 then
+        bar:Hide()
+        return
+    end
+    local pct = p.current / p.total
+    local barWidth = bar:GetWidth()
+    if barWidth <= 0 then barWidth = POPUP_WIDTH - 2 end
+    bar.fill:SetWidth(math.max(1, barWidth * pct))
+    bar.text:SetText(format("%d / %d", p.current, p.total))
+    bar:Show()
+end
+
+function ns:HideSellProgress()
+    if popup and popup.progressBar then
+        popup.progressBar:Hide()
+    end
+    self.sellProgress.current = 0
+    self.sellProgress.total = 0
 end
 
 -- Flash sell button green (verified) or red (items removed)

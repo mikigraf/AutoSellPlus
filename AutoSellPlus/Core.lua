@@ -264,6 +264,11 @@ function ns:StartSelling(explicitQueue)
     totalCopper = 0
     wipe(ns.lastSoldBatch)
 
+    -- Initialize progress
+    ns.sellProgress.current = 0
+    ns.sellProgress.total = #sellQueue
+    ns:SafeCall(function() ns:UpdateSellProgress() end)
+
     self:ProcessNextBatch()
 end
 
@@ -303,6 +308,10 @@ function ns:ProcessNextBatch()
             if self.db.showItemized then
                 self:Print(format("Sold %s x%d for %s", item.itemLink, item.stackCount, self:FormatMoney(item.totalPrice)))
             end
+
+            -- Update progress bar
+            ns.sellProgress.current = ns.sellProgress.current + 1
+            ns:SafeCall(function() ns:UpdateSellProgress() end)
         end
 
         processed = processed + 1
@@ -320,6 +329,9 @@ end
 function ns:FinishSelling()
     isSelling = false
     sellTimer = nil
+
+    -- Hide progress bar
+    ns:SafeCall(function() ns:HideSellProgress() end)
 
     -- Unmute
     if mutedSounds then
@@ -371,6 +383,9 @@ function ns:StopSelling()
     end
 
     isSelling = false
+
+    -- Hide progress bar
+    ns:SafeCall(function() ns:HideSellProgress() end)
 
     -- Unmute
     if mutedSounds then
