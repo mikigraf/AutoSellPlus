@@ -36,6 +36,10 @@
   <img src="assets/demo.gif" alt="AutoSellPlus in action" width="640">
 </p>
 
+<p align="center">
+  <img src="assets/screenshot.png" alt="AutoSellPlus popup" width="640">
+</p>
+
 <br>
 
 <p align="center">
