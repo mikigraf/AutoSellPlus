@@ -231,6 +231,8 @@ local function ValidateDB(db, defaults)
     end
 end
 
+ns.ValidateDB = ValidateDB
+
 local function MigrateDB(db)
     local version = db.dbVersion or 0
 

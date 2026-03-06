@@ -115,6 +115,52 @@ local function CreatePage1(parent)
         page.modeButtons[#page.modeButtons + 1] = btn
     end
 
+    -- Saved profile picker
+    page.selectedProfile = nil
+    if AutoSellPlusDB and AutoSellPlusDB.profiles and next(AutoSellPlusDB.profiles) then
+        local profileLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        profileLabel:SetPoint("TOPLEFT", 40, -265)
+        profileLabel:SetText("Load saved profile:")
+
+        local profileNames = {}
+        for pName in pairs(AutoSellPlusDB.profiles) do
+            profileNames[#profileNames + 1] = pName
+        end
+        table.sort(profileNames)
+
+        local profileIdx = 0
+        local profileText = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        profileText:SetPoint("TOPLEFT", 210, -265)
+        profileText:SetText("|cFFAAAAAA(none)|r")
+
+        local cycleBtn = CreateFrame("Button", nil, page, "BackdropTemplate")
+        cycleBtn:SetSize(70, 20)
+        cycleBtn:SetPoint("LEFT", profileText, "RIGHT", 8, 0)
+        cycleBtn:SetBackdrop(FLAT_BACKDROP)
+        cycleBtn:SetBackdropColor(0.18, 0.18, 0.18, 1)
+        cycleBtn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+        local cycleLbl = cycleBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        cycleLbl:SetPoint("CENTER")
+        cycleLbl:SetText("Cycle")
+        cycleBtn:SetScript("OnClick", function()
+            profileIdx = profileIdx + 1
+            if profileIdx > #profileNames then profileIdx = 0 end
+            if profileIdx == 0 then
+                page.selectedProfile = nil
+                profileText:SetText("|cFFAAAAAA(none)|r")
+            else
+                page.selectedProfile = profileNames[profileIdx]
+                profileText:SetText("|cFF00FF00" .. profileNames[profileIdx] .. "|r")
+            end
+        end)
+        cycleBtn:SetScript("OnEnter", function(self)
+            self:SetBackdropColor(0.28, 0.28, 0.28, 1)
+        end)
+        cycleBtn:SetScript("OnLeave", function(self)
+            self:SetBackdropColor(0.18, 0.18, 0.18, 1)
+        end)
+    end
+
     -- Template quick-apply buttons
     if ns.profileTemplates then
         local tplLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -352,6 +398,11 @@ local function CreateWizardFrame()
     doneLbl:SetPoint("CENTER")
     doneLbl:SetText("Done!")
     doneBtn:SetScript("OnClick", function()
+        -- Load selected profile if any
+        local page1 = f.pages[1]
+        if page1 and page1.selectedProfile then
+            ns:LoadProfile(page1.selectedProfile)
+        end
         ns.db.firstRunComplete = true
         AutoSellPlusCharDB.charFirstRunComplete = true
         f:Hide()

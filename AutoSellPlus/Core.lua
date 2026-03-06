@@ -1146,6 +1146,15 @@ eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         ns:RebuildEquipmentSetCache()
+
+        -- Auto-load saved profile
+        if AutoSellPlusCharDB.activeProfile ~= ""
+            and AutoSellPlusDB.profiles[AutoSellPlusCharDB.activeProfile] then
+            AutoSellPlusDB.global = ns.DeepCopy(AutoSellPlusDB.profiles[AutoSellPlusCharDB.activeProfile])
+            ns.ValidateDB(AutoSellPlusDB.global, ns.globalDefaults)
+            ns:DebugPrint("Auto-loaded profile: " .. AutoSellPlusCharDB.activeProfile)
+        end
+
         ns:Print(format("v%s loaded. Type /asp for commands.", ns.version))
 
         -- Self-test
