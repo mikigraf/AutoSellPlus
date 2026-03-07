@@ -109,7 +109,7 @@ Located bottom-left of the popup. Drag any item from bags onto this button to se
 
 ### Control Buttons
 - **Sell Selected** - sell only checked items
-- **Sell All** - sell all currently visible/filtered items
+- **Sell All** - check all gray/marked items and show a confirmation dialog with total count and gold value before selling
 - **Select All** - check all visible items
 - **Clear Selection** - uncheck all items
 - **Close (X)** - dismiss popup
@@ -216,6 +216,7 @@ Safety confirmation popups appear before selling in certain conditions. Each dia
 
 | Dialog | Trigger | Context |
 |--------|---------|---------|
+| ASP_SELL_ALL_CONFIRM | "Sell All Junk" button clicked | Popup sell-all |
 | ASP_EPIC_CONFIRM | Queue contains epic items | Popup sell |
 | ASP_HIGH_VALUE_CONFIRM | Items exceed `highValueThreshold` | Popup sell |
 | ASP_AUTOSELL_EPIC_CONFIRM | Queue contains epic items | Auto-sell |
@@ -249,8 +250,9 @@ When any sell confirmation dialog appears, a scrollable item list panel appears 
 The complete sell flow works as follows:
 
 1. **Build Sell Queue** - iterate all bag slots, apply protection rules and filters to determine sellable items
-2. **Verify Queue** - re-check that items are still present in bags before proceeding
-3. **Show Confirmations** - if epic or high-value items are in the queue, display confirmation dialogs with the item list panel
+2. **Priority Sort** - if `prioritySellQueue` is enabled (default), sort queue by total value descending so the most valuable items occupy the 12 buyback slots
+3. **Verify Queue** - re-check that items are still present in bags before proceeding
+4. **Show Confirmations** - if epic or high-value items are in the queue, display confirmation dialogs with the item list panel
 4. **Mute Sounds** - silence vendor sell sounds during bulk selling (if `muteVendorSounds` enabled)
 5. **Process Batches** - sell 10 items per tick with 0.2 second delay between batches (prevents server throttling)
 6. **Record History** - add each sold item to the sale history table
@@ -294,6 +296,7 @@ Scrollable list with reverse-chronological sorting:
 - Time elapsed ("Xs ago", "Xm ago", "Xh ago", "Xd ago")
 - Summary bar showing total sales count and combined gold
 - Tooltip on hover showing full item details (when item link is available)
+- Shift+left-click a row to insert the item link into chat
 - Clear button with confirmation dialog to wipe all history
 - Access via `/asp log ui` or Shift+Right-click minimap button
 
@@ -463,6 +466,7 @@ Save, load, and manage named setting configurations.
 - `/asp profile delete <name>` - delete profile
 - `/asp profile list` - list all profiles
 - Per-character auto-load: the last loaded profile is restored on login (with chat notification)
+- Instance auto-profiles: automatically load a profile when entering a specific instance type (raid, dungeon, pvp, arena, scenario, open world)
 - Delete profile from the settings UI shows a confirmation dialog
 
 ### Templates
@@ -539,13 +543,13 @@ Full configuration interface registered under **WoW Settings > AddOns > AutoSell
 
 ### Sections
 1. **General** - enabled, summary, itemized output, dry-run
-2. **Automation** - auto-sell mode, delay, repair, sound muting
-3. **Protection** - all item safety toggles
+2. **Automation** - auto-sell mode, delay, repair, sound muting, priority sell queue
+3. **Protection** - all item safety toggles (transmog, BoE, soulbound-only, quest items, expansion materials)
 4. **Marking** - auto-mark settings, overlay mode, bag gold display
 5. **Display** - undo toast, minimap button
 6. **Bag Maintenance** - free slot alerts, eviction
 7. **Auto-Destroy** - destruction settings
-8. **Profiles & Templates** - manage saved profiles, apply templates
+8. **Profiles & Templates** - manage saved profiles, apply templates, instance auto-profiles
 9. **Lists** - manage never-sell, always-sell, and stack-limit lists
 10. **Quick Actions** - buttons for common operations (reset, clear lists)
 

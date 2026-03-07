@@ -13,10 +13,11 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 - **Quality filters** -- gray through epic, each with independent ilvl thresholds
 - **Category filters** -- consumables, trade goods, quest items, miscellaneous
 - **Expansion and slot filters** -- narrow results by expansion or equipment slot
-- **Confirmations** -- epic and high-value items show a scrollable item list of exactly what will be sold
-- **Buyback safety** -- items beyond the 12-item buyback limit are flagged visually
+- **Confirmations** -- epic, high-value, and Sell All Junk show a confirmation with item count and gold total
+- **Buyback safety** -- highest-value items are sold first so buyback slots hold the most valuable items
 - **Dry run** -- preview what would be sold without actually selling
 - **Auto-repair** -- repairs gear at vendors, guild funds first
+- **Key binding** -- bind a key to open the sell popup at any vendor via WoW's Key Bindings UI
 
 ---
 
@@ -26,6 +27,9 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 - **Transmog** -- source-level appearance checking; uncollected items are never sold
 - **Equipment sets** -- items in any saved gear set are protected
 - **BoE** -- unbound Bind on Equip items are protected
+- **Soulbound-only mode** -- optionally skip all unbound BoE items, useful for dungeon farmers keeping BoE for AH
+- **Quest items** -- items in the Quest Items category are protected by default
+- **Current expansion materials** -- optionally protect Trade Goods from the current expansion
 - **Refundable** -- items in the vendor refund window are skipped
 - **Addon hooks** -- AllTheThings and CanIMogIt integration for enhanced transmog detection
 
@@ -53,7 +57,7 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 ## Tracking
 
 - **Session tracker** -- gold/hour calculation in the minimap button tooltip
-- **Sale history** -- scrollable panel showing the last 200 sales
+- **Sale history** -- scrollable panel showing the last 200 sales; shift-click to link items in chat
 - **Per-character stats** -- lifetime sales totals visible across alts
 - **Undo** -- 5-minute buyback window with visual toast notification
 
@@ -64,6 +68,7 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 - **Built-in templates** -- Raid Farmer, Transmog Hunter, Leveling Alt, Gold Farmer
 - **Named profiles** -- save and load settings that persist across sessions
 - **Auto-load** -- last loaded profile restores automatically on login
+- **Instance auto-profiles** -- auto-switch profiles when entering raids, dungeons, battlegrounds, or open world
 - **Import / Export** -- share never-sell and always-sell lists as strings
 
 ---
