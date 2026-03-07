@@ -753,6 +753,8 @@ local function RegisterSettingsPanel()
 
     AddBool(protectionCat, "excludeCurrentExpansion", "Exclude Current Expansion",
         "Hide all items from the current expansion in the sell popup.")
+    AddBool(protectionCat, "protectCurrentExpMaterials", "Protect Current Expansion Materials",
+        "Never sell Trade Goods from the current expansion (Midnight).")
 
     -- ══════════════════════════════════════════
     -- Marking

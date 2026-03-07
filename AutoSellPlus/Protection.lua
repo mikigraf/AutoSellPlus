@@ -283,6 +283,15 @@ function ns:ShouldSellItem(bag, slot)
         if self:IsBindOnEquip(bag, slot) then return false end
     end
 
+    -- Current expansion materials protection
+    if db.protectCurrentExpMaterials then
+        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
+        if classID == 7 then
+            local expansionID = ns:GetItemExpansion(itemLink)
+            if expansionID == ns.CURRENT_EXPANSION then return false end
+        end
+    end
+
     -- Quality-based selling (data-driven)
     local shouldSell, link, price, count = CheckQualityFilter(db, quality, itemLink, itemID, sellPrice, stackCount)
     if shouldSell then return true, link, price, count end

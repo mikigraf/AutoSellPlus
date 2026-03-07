@@ -38,6 +38,11 @@ function ns:BuildDisplayList()
                             -- Skip protected BoE
                         elseif self.db.onlySoulbound and isBoe and not isAlwaysSell then
                             -- Skip unbound BoE in soulbound-only mode
+                        elseif self.db.protectCurrentExpMaterials
+                            and self:GetItemClassID(itemID) == 7
+                            and self:GetItemExpansion(itemLink) == ns.CURRENT_EXPANSION
+                            and not isAlwaysSell then
+                            -- Skip current expansion trade goods
                         else
                             local ilvl = self:GetEffectiveItemLevel(itemLink)
                             local isEquippable = self:IsEquippable(itemID)

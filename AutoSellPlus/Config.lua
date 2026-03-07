@@ -40,6 +40,7 @@ ns.globalDefaults = {
     -- Expansion filter
     filterExpansion = 0,
     excludeCurrentExpansion = false,
+    protectCurrentExpMaterials = false,
     -- Slot filter
     filterSlots = {},
     -- Protection
