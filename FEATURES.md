@@ -63,7 +63,7 @@ The popup is the primary UI for reviewing items before selling. It appears when 
 - Flat 1px border aesthetic (ElvUI-style)
 
 ### Filter Controls (Top Section)
-Quality checkboxes with per-quality item level threshold sliders and input fields. Additional toggles for "Only Equippable", category filters, expansion filter dropdown, and equipment slot filter buttons.
+Quality checkboxes with per-quality item level threshold sliders and input fields. Additional toggles for "Only Equippable", "Allow Transmog" (disables transmog protection so uncollected appearances can be sold), category filters, expansion filter dropdown, and equipment slot filter buttons.
 
 ### Item List (Middle Section)
 Sortable columns:
@@ -165,7 +165,7 @@ Items are evaluated against protection rules in strict priority order. The first
 4. **Sell Price Check** - items with no vendor price are skipped
 5. **Locked Items** - locked items are skipped
 6. **Equipment Set Protection** (`protectEquipmentSets`, default: on) - items in any active equipment set are skipped
-7. **Uncollected Transmog** (`protectUncollectedTransmog`, default: on) - equippable items with uncollected appearances are skipped
+7. **Uncollected Transmog** (`protectUncollectedTransmog`, default: on) - items with visual transmog appearances that are uncollected are skipped (trinkets, rings, and necklaces are excluded from this check since they have no visual appearance)
 8. **Transmog Source Protection** (`protectTransmogSource`, default: on) - enhanced source-level transmog checking (distinguishes same-appearance items from different sources)
 9. **Refundable Items** - items within the vendor buyback/refund window are skipped
 10. **Bind-on-Equip Protection** (`protectBoE`, default: on) - unbound BoE items are skipped (overridable via `allowBoESell`)
