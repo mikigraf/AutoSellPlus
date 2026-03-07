@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="ASP_TOGGLE_POPUP" header="AUTOSELLPLUS" runOnUp="false">
+        AutoSellPlus_KeybindSell()
+    </Binding>
+</Bindings>

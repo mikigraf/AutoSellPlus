@@ -2,6 +2,18 @@ local addonName, ns = ...
 
 local freeSlotAlertCooldown = 0
 
+-- Keybind support
+BINDING_HEADER_AUTOSELLPLUS = "AutoSellPlus"
+BINDING_NAME_ASP_TOGGLE_POPUP = "Toggle Sell Popup"
+
+ns.isMerchantOpen = false
+
+function AutoSellPlus_KeybindSell()
+    if ns.isMerchantOpen then
+        ns:ShowPopup()
+    end
+end
+
 -- ============================================================
 -- Auto-Repair
 -- ============================================================
@@ -512,6 +524,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         if ns._FireEvent then ns._FireEvent("LOADED") end
 
     elseif event == "MERCHANT_SHOW" then
+        ns.isMerchantOpen = true
         if ns.db.enabled then
             -- Auto-repair first
             ns:SafeCall(DoAutoRepair)
@@ -526,6 +539,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         end
 
     elseif event == "MERCHANT_CLOSED" then
+        ns.isMerchantOpen = false
         ns:HidePopup()
         ns:HideConfirmList()
         ns:StopSelling()

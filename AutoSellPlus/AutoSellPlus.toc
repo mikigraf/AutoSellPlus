@@ -9,6 +9,7 @@
 ## OptionalDeps: WoWUnit
 ## IconTexture: Interface\Icons\INV_Misc_Coin_01
 
+Bindings.xml
 Config.lua
 Helpers.lua
 Protection.lua

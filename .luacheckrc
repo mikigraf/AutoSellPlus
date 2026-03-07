@@ -155,4 +155,7 @@ globals = {
     "AutoSellPlus_LastEvent",
     "AutoSellPlus_LastSellCount",
     "AutoSellPlus_Events",
+    "BINDING_HEADER_AUTOSELLPLUS",
+    "BINDING_NAME_ASP_TOGGLE_POPUP",
+    "AutoSellPlus_KeybindSell",
 }
