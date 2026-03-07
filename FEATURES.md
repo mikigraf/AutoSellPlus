@@ -282,7 +282,8 @@ Scrollable list with reverse-chronological sorting:
 - Total sale price (gold-colored text)
 - Time elapsed ("Xs ago", "Xm ago", "Xh ago", "Xd ago")
 - Summary bar showing total sales count and combined gold
-- Clear button to wipe all history
+- Tooltip on hover showing full item details (when item link is available)
+- Clear button with confirmation dialog to wipe all history
 - Access via `/asp log ui` or Shift+Right-click minimap button
 
 ### Chat Commands
@@ -354,7 +355,7 @@ Automatically repairs all gear when visiting a repair-capable merchant.
 1. Checks if merchant can repair (`CanMerchantRepair()`)
 2. If guild repair is enabled and player is in a guild, attempts guild bank repair first
 3. Falls back to personal gold if guild repair unavailable or fails
-4. Prints repair cost to chat
+4. Prints repair cost to chat (or shows needed vs available gold if insufficient)
 
 ### Settings
 - `autoRepair` (default: off)
@@ -450,7 +451,8 @@ Save, load, and manage named setting configurations.
 - `/asp profile load <name>` - load saved profile
 - `/asp profile delete <name>` - delete profile
 - `/asp profile list` - list all profiles
-- Per-character auto-load: the last loaded profile is restored on login
+- Per-character auto-load: the last loaded profile is restored on login (with chat notification)
+- Delete profile from the settings UI shows a confirmation dialog
 
 ### Templates
 Pre-built setting bundles for common playstyles:
@@ -463,7 +465,7 @@ Pre-built setting bundles for common playstyles:
 | **Gold Farmer** | Maximum income. Sells grays through blues. Includes consumables and trade goods. No transmog protection. Non-equippable items allowed. |
 
 - `/asp template list` - list available templates
-- `/asp template "Raid Farmer"` - apply template
+- `/asp template "Raid Farmer"` - apply template (resets all settings to template defaults)
 
 ---
 
