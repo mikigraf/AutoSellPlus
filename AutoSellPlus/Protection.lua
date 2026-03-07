@@ -129,6 +129,20 @@ function ns:IsEquippable(itemID)
     return classID == Enum.ItemClass.Weapon or classID == Enum.ItemClass.Armor
 end
 
+-- Items in these equip slots have no visual transmog appearance
+local NON_TRANSMOG_EQUIP_LOCS = {
+    INVTYPE_NECK = true,
+    INVTYPE_FINGER = true,
+    INVTYPE_TRINKET = true,
+}
+
+function ns:HasTransmogAppearance(itemID)
+    if not self:IsEquippable(itemID) then return false end
+    local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(itemID)
+    if not itemEquipLoc or itemEquipLoc == "" then return false end
+    return not NON_TRANSMOG_EQUIP_LOCS[itemEquipLoc]
+end
+
 -- BoE detection
 function ns:IsBindOnEquip(bag, slot)
     local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -246,13 +260,13 @@ function ns:ShouldSellItem(bag, slot)
     -- Equipment set protection
     if db.protectEquipmentSets and self:IsInEquipmentSet(itemID) then return false end
 
-    -- Uncollected transmog protection (equippable only)
-    if db.protectUncollectedTransmog and self:IsEquippable(itemID) then
+    -- Uncollected transmog protection (only items with visual appearances)
+    if db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) then
         if self:IsUncollectedTransmog(itemID) then return false end
     end
 
     -- Source-level transmog protection
-    if db.protectTransmogSource and self:IsEquippable(itemID) then
+    if db.protectTransmogSource and self:HasTransmogAppearance(itemID) then
         if self:IsUncollectedTransmogSource(itemID) then return false end
     end
 
