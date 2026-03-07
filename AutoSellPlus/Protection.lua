@@ -273,6 +273,12 @@ function ns:ShouldSellItem(bag, slot)
     -- Refundable protection
     if self:IsRefundable(bag, slot) then return false end
 
+    -- Quest item protection
+    if db.protectQuestItems then
+        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
+        if classID == 12 then return false end
+    end
+
     -- BoE protection
     if db.protectBoE and not db.allowBoESell then
         if self:IsBindOnEquip(bag, slot) then return false end

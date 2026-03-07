@@ -31,6 +31,7 @@ function ns:BuildDisplayList()
                         and not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemID))
                         and not (self.db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmog(itemID))
                         and not (self.db.protectTransmogSource and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmogSource(itemID))
+                        and not (self.db.protectQuestItems and self:GetItemClassID(itemID) == 12 and not isAlwaysSell)
                     then
                         -- BoE protection
                         local isBoe = self:IsBindOnEquip(bag, slot)

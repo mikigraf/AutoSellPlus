@@ -50,6 +50,7 @@ ns.globalDefaults = {
     protectBoE = true,
     allowBoESell = false,
     onlySoulbound = false,
+    protectQuestItems = true,
     -- Display
     showSummary = true,
     showItemized = false,

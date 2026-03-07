@@ -814,6 +814,8 @@ local function RegisterSettingsPanel()
         "Hide all items from the current expansion in the sell popup.")
     AddBool(protectionCat, "protectCurrentExpMaterials", "Protect Current Expansion Materials",
         "Never sell Trade Goods from the current expansion (Midnight).")
+    AddBool(protectionCat, "protectQuestItems", "Protect Quest Items",
+        "Never sell items in the Quest Items category. Prevents accidental sale of quest objectives and quest-starting items.")
 
     -- ══════════════════════════════════════════
     -- Marking
