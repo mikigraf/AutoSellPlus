@@ -533,6 +533,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         StaticPopup_Hide("ASP_AUTOSELL_EPIC_CONFIRM")
         StaticPopup_Hide("ASP_AUTOSELL_HIGHVALUE_CONFIRM")
         StaticPopup_Hide("ASP_EVICT_CONFIRM")
+        StaticPopup_Hide("ASP_SELL_ALL_CONFIRM")
 
     elseif event == "EQUIPMENT_SETS_CHANGED" then
         ns:RebuildEquipmentSetCache()

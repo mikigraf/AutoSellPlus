@@ -1100,7 +1100,43 @@ local function CreateBottomBar(f)
             end
         end
         ns:RefreshPopupList()
-        ns:SellFromPopup()
+
+        -- Calculate totals for confirmation
+        local totalCopper = 0
+        local totalCount = 0
+        for _, item in ipairs(displayList) do
+            if item.visible and item.checked then
+                totalCopper = totalCopper + item.totalPrice
+                totalCount = totalCount + 1
+            end
+        end
+
+        if totalCount == 0 then return end
+
+        StaticPopupDialogs["ASP_SELL_ALL_CONFIRM"] = {
+            text = format("AutoSellPlus: Sell %d item%s for %s?",
+                totalCount, totalCount == 1 and "" or "s", ns:FormatMoney(totalCopper)),
+            button1 = "Sell",
+            button2 = "Cancel",
+            OnAccept = function()
+                ns:SellFromPopup()
+            end,
+            OnCancel = function()
+                for _, item in ipairs(displayList) do
+                    if item.visible then
+                        item.checked = false
+                        local key = item.bag .. ":" .. item.slot
+                        userUnchecked[key] = true
+                    end
+                end
+                ns:RefreshPopupList()
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("ASP_SELL_ALL_CONFIRM")
     end)
     f.sellAllBtn = sellAllBtn
 
