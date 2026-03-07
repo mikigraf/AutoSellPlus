@@ -527,6 +527,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
     elseif event == "MERCHANT_CLOSED" then
         ns:HidePopup()
+        ns:HideConfirmList()
         ns:StopSelling()
         ns:CancelAutoSell()
         StaticPopup_Hide("ASP_AUTOSELL_EPIC_CONFIRM")

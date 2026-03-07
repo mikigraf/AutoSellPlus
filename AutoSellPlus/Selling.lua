@@ -442,12 +442,18 @@ function ns:ConfirmAndSell(queue)
             OnCancel = function()
                 ns:Print("Auto-sell cancelled.")
             end,
+            OnHide = function()
+                ns:HideConfirmList()
+            end,
             timeout = 0,
             whileDead = true,
             hideOnEscape = true,
             preferredIndex = 3,
         }
-        StaticPopup_Show("ASP_AUTOSELL_EPIC_CONFIRM")
+        local dialog = StaticPopup_Show("ASP_AUTOSELL_EPIC_CONFIRM")
+        if dialog then
+            ns:ShowConfirmList(queue, dialog)
+        end
         return
     end
 
@@ -478,12 +484,18 @@ function ns:_ShowHighValueConfirm(queue, highValueItems)
         OnCancel = function()
             ns:Print("Auto-sell cancelled.")
         end,
+        OnHide = function()
+            ns:HideConfirmList()
+        end,
         timeout = 0,
         whileDead = true,
         hideOnEscape = true,
         preferredIndex = 3,
     }
-    StaticPopup_Show("ASP_AUTOSELL_HIGHVALUE_CONFIRM")
+    local dialog = StaticPopup_Show("ASP_AUTOSELL_HIGHVALUE_CONFIRM")
+    if dialog then
+        ns:ShowConfirmList(queue, dialog)
+    end
 end
 
 -- ============================================================
@@ -565,12 +577,18 @@ function ns:EvictAtVendor()
         OnAccept = function()
             ns:StartSelling(evictList)
         end,
+        OnHide = function()
+            ns:HideConfirmList()
+        end,
         timeout = 0,
         whileDead = true,
         hideOnEscape = true,
         preferredIndex = 3,
     }
-    StaticPopup_Show("ASP_EVICT_CONFIRM")
+    local dialog = StaticPopup_Show("ASP_EVICT_CONFIRM")
+    if dialog then
+        ns:ShowConfirmList(evictList, dialog)
+    end
 end
 
 -- ============================================================

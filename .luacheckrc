@@ -118,6 +118,9 @@ read_globals = {
     "OpenAllBags",
     "CloseAllBags",
 
+    -- Testing
+    "WoWUnit",
+
     -- Third-party addon globals (read-only detection)
     "AllTheThings",
     "CanIMogIt",
