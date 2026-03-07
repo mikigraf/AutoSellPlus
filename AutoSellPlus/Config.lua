@@ -105,6 +105,7 @@ ns.charDefaults = {
     charNeverSellList = {},
     charAlwaysSellList = {},
     charFirstRunComplete = false,
+    instanceProfiles = {},
 }
 
 -- Profile templates for common playstyles

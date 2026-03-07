@@ -481,6 +481,7 @@ eventFrame:RegisterEvent("MERCHANT_CLOSED")
 eventFrame:RegisterEvent("EQUIPMENT_SETS_CHANGED")
 eventFrame:RegisterEvent("UI_ERROR_MESSAGE")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
@@ -560,5 +561,16 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "BAG_UPDATE_DELAYED" then
         ns:SafeCall(CheckBagSpace)
         ns:SafeCall(function() ns:UpdateCharJunkValue() end)
+
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        local _, instanceType = GetInstanceInfo()
+        local profileName = AutoSellPlusCharDB.instanceProfiles
+            and AutoSellPlusCharDB.instanceProfiles[instanceType]
+        if profileName and profileName ~= "" then
+            if AutoSellPlusDB.profiles[profileName] then
+                ns:LoadProfile(profileName)
+                ns:Print(format("Auto-loaded instance profile: |cFF00FF00%s|r (instance type: %s)", profileName, instanceType))
+            end
+        end
     end
 end)

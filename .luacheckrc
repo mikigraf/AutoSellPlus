@@ -106,6 +106,9 @@ read_globals = {
     -- WoW API: Inventory
     "GetInventorySlotInfo",
 
+    -- WoW API: Instance
+    "GetInstanceInfo",
+
     -- WoW API: Misc
     "strsplit",
     "strtrim",
