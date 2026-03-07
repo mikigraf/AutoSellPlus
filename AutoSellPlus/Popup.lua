@@ -138,7 +138,7 @@ local function CreateContextMenu()
 
     local menu = CreateFrame("Frame", "AutoSellPlusContextMenu", UIParent, "BackdropTemplate")
     menu:SetSize(200, 130)
-    menu:SetFrameStrata("TOOLTIP")
+    menu:SetFrameStrata("FULLSCREEN_DIALOG")
     menu:SetBackdrop(FLAT_BACKDROP)
     menu:SetBackdropColor(0.08, 0.08, 0.08, 0.98)
     menu:SetBackdropBorderColor(0, 0, 0, 1)
@@ -300,7 +300,7 @@ local function CreateItemRow(parent, index)
     -- Item name
     local name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     name:SetPoint("LEFT", icon, "RIGHT", 8, 0)
-    name:SetWidth(170)
+    name:SetWidth(200)
     name:SetJustifyH("LEFT")
     name:SetWordWrap(false)
     row.name = name
@@ -605,7 +605,7 @@ local function CreateMainFrame()
 
     -- Close button (flat styled)
     local closeBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
-    closeBtn:SetSize(18, 18)
+    closeBtn:SetSize(22, 22)
     closeBtn:SetPoint("TOPRIGHT", -6, -6)
     closeBtn:SetBackdrop(FLAT_BACKDROP)
     closeBtn:SetBackdropColor(0.12, 0.12, 0.12, 1)
@@ -853,15 +853,15 @@ local function CreateItemListSection(f, dividerY)
     end
 
     f.headerButtons = {}
-    local hdrItem = CreateHeaderButton("Item", "quality", "LEFT", headerBg, "LEFT", 50, 170)
+    local hdrItem = CreateHeaderButton("Item", "quality", "LEFT", headerBg, "LEFT", 50, 200)
     f.headerButtons[#f.headerButtons + 1] = hdrItem
 
-    local hdrIlvl = CreateHeaderButton("ilvl", "ilvl", "LEFT", headerBg, "LEFT", 260, 80)
+    local hdrIlvl = CreateHeaderButton("ilvl", "ilvl", "LEFT", headerBg, "LEFT", 290, 80)
     f.headerButtons[#f.headerButtons + 1] = hdrIlvl
 
     hasAHAddon = (TSM_API ~= nil) or (Auctionator ~= nil)
     if hasAHAddon then
-        local hdrAH = CreateHeaderButton("AH", "ah", "LEFT", headerBg, "LEFT", 342, 60)
+        local hdrAH = CreateHeaderButton("AH", "ah", "LEFT", headerBg, "LEFT", 372, 60)
         f.headerButtons[#f.headerButtons + 1] = hdrAH
     end
 
