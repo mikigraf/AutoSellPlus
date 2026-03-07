@@ -92,6 +92,9 @@ read_globals = {
     -- WoW API: Tooltip
     "TooltipDataProcessor",
 
+    -- WoW API: Chat
+    "ChatEdit_InsertLink",
+
     -- WoW API: Static Popup
     "StaticPopup_Show",
     "StaticPopup_Hide",
