@@ -9,30 +9,19 @@
 <h1 align="center">AutoSellPlus</h1>
 
 <p align="center">
-  <b>Mark junk at loot. Farm without full bags. Sell in one click across alts.</b><br>
-  <sub>A World of Warcraft addon</sub>
+  <b>Smart junk selling with transmog protection, bag eviction, and cross-alt profiles.</b><br>
+  <sub>A World of Warcraft addon for Retail (Midnight)</sub>
 </p>
 
 <br>
 
 <p align="center">
-  Tired of Scrap/Aardvark breaking every patch? Or hopping vendors mid-farm because your bags<br>
-  exploded from old raid greens? AutoSellPlus marks while you loot, auto-keeps space open,<br>
-  and sells safe—no more accidental BoE/transmog losses.
-</p>
-
-<h3 align="center">Midnight ready &bull; Works post-patch &bull; Farmer approved</h3>
-
-<br>
-
-<p align="center">
-  <a href="#-why-this-over-scrapaardvarklegacy-vendor">Why AutoSellPlus</a> &middot;
-  <a href="#-quick-start">Quick Start</a> &middot;
-  <a href="#-key-features">Features</a> &middot;
-  <a href="#-slash-commands">Commands</a> &middot;
-  <a href="#-integrations">Integrations</a> &middot;
-  <a href="#-development">Development</a> &middot;
-  <a href="#-releasing">Releasing</a>
+  <a href="#quick-start">Quick Start</a> &middot;
+  <a href="#features">Features</a> &middot;
+  <a href="#slash-commands">Commands</a> &middot;
+  <a href="#integrations">Integrations</a> &middot;
+  <a href="#development">Development</a> &middot;
+  <a href="#releasing">Releasing</a>
 </p>
 
 <p align="center">
@@ -55,13 +44,7 @@
 
 <br>
 
-<p align="center">
-  Tired of Scrap/Aardvark breaking every patch? Or hopping vendors mid-farm because your bags<br>
-  exploded from old raid greens? AutoSellPlus marks while you loot, auto-keeps space open,<br>
-  and sells safe—no more accidental BoE/transmog losses.
-</p>
-
-<h3 align="center">Midnight ready &bull; Works post-patch &bull; Farmer approved</h3>
+AutoSellPlus sells your junk at vendors with configurable quality and ilvl filters, transmog protection, and per-character profiles. Mark items as junk while looting, preview what will be sold before confirming, and protect gear you want to keep -- including uncollected appearances, BoEs, and equipment sets. Lightweight, modular, and self-testing on login so it works through patches without manual intervention.
 
 <br>
 
@@ -69,64 +52,83 @@
 
 <br>
 
-## &nbsp; Why This Over Scrap/Aardvark/Legacy Vendor?
+## Quick Start
 
-| Issue | AutoSellPlus | Others |
-| :--- | :--- | :--- |
-| **Patch breaks** | Self-tests on login, API fallbacks | Dies every xpack |
-| **Full bags mid-run** | Auto-evict junk to keep slots free | Vendor babysitting |
-| **Alt hassle** | Sync rules account-wide | Per-char redo |
-| **Oops sells** | Loot-mark + ATT exclude | Weak safeties |
-| **Spam popups** | One-click bulk | Transaction hell |
+1. Install via [CurseForge](https://www.curseforge.com/wow/addons/autosellplus), then `/reload`
+2. The setup wizard runs automatically on first login -- pick a template and configure protections
+3. **ALT+Click** items in bags to mark them as junk (visual overlay appears)
+4. Visit a vendor -- the popup shows everything that will be sold, with checkboxes to include or exclude items
 
-> *"Set once on main. Every alt farms clean."* – Real farmer QoL.
+Or skip the popup entirely: set auto-sell mode in `/asp config` and everything happens on merchant open.
 
-<br>
-
-## &nbsp; Quick Start
-
-1. Install via [CurseForge](https://www.curseforge.com/wow/addons/autosellplus) or [Wago](https://addons.wago.io) &rarr; `/reload`
-2. `/asp config` &rarr; Pick **"Raid Farmer"** template
-3. **ALT+Click** loot/bags to mark junk (glows red)
-4. Visit a vendor &rarr; One button **Sell All** (preview first)
-
-Minimap button for stats/toggle. Rules stick across chars/sessions.
+> [!TIP]
+> Rules are account-wide by default. Set them once on your main, every alt uses the same config. Per-character overrides are available if needed.
 
 <br>
 
-## &nbsp; Key Features
+## Features
 
-### Mark Junk Fast
+### Selling
 
-- **ALT+Click** bags/loot &rarr; Instant mark (visual glow/border)
-- **Drag** to target button under bags
-- Auto-mark grays/low-ilvl on pickup
-- Bulk `/asp mark` mode (no ALT needed)
+- **Popup preview** with sortable columns (name, ilvl, vendor price, AH value), checkboxes, and one-click Sell All
+- **Three sell modes:** interactive popup (default), one-click, or fully automatic with configurable delay
+- **Quality filters** for gray through epic, each with independent ilvl thresholds (e.g. sell greens below ilvl 200)
+- **Category filters** for consumables, trade goods, quest items, and miscellaneous
+- **Expansion and slot filters** to narrow down exactly what shows up
+- **Confirmation dialogs** for epic items and high-value sales, with a scrollable item list panel showing exactly what will be sold
+- **Buyback safety** -- items beyond the 12-item buyback limit are flagged with a red divider and tinted rows
+- **Dry run mode** to preview what would be sold without selling anything
+- **Auto-repair** at vendors, guild funds first
 
-### Smart Sell Rules
+### Protection
 
-- ilvl/quality/expansion filters (e.g. sell TBC greens <180)
-- Protect transmog (ATT/CanIMogIt hooks)
-- BoE/sets/refundables safe
-- Epic/high-gold confirm dialogs
+- **Never-sell and always-sell lists** (global and per-character)
+- **Transmog protection** prevents selling uncollected appearances, with source-level checking
+- **Equipment set protection** for items in any saved gear set
+- **BoE protection** for unbound Bind on Equip items
+- **Refundable protection** skips items still in the purchase refund window
+- **AllTheThings and CanIMogIt integration** for enhanced transmog detection
 
-### Vendor Flow
+### Marking
 
-- Popup preview &rarr; checkboxes/sort &rarr; **Sell Selected**
-- One-click auto-sell on open
-- Auto-repair (guild first)
-- Mute vendor mount spam
+- **ALT+Click** items in bags to mark/unmark as junk (configurable visual overlay: border, tint, or both)
+- **Drag-to-mark** button appears above bags
+- **Auto-mark** gray items and equippable items below an ilvl threshold on loot
+- **Bulk mark mode** (`/asp mark`) for marking multiple items without holding ALT
+- Works with Bagnon, AdiBags, ArkInventory, and Baganator bag frames
 
-### Farmer Tools
+### Bag Management
 
-- **Bag space guard:** Auto-sell cheapest junk at threshold
-- **Alt totals:** Minimap tooltip shows "Bag junk: 2k gold ready"
-- **Undo buyback** (5 min window)
-- **Session GPH tracker**
+- **Bag space guard** automatically suggests selling the cheapest junk when free slots drop below a threshold
+- **Stack limits** -- set maximum quantities per item, excess is automatically included in sell queues
+- **Free slot alerts** in chat or on-screen when bag space is low
+- **Bag gold display** showing total vendor value of bag contents above the backpack button
+
+### Tracking
+
+- **Session tracker** with gold/hour calculation, accessible from the minimap button tooltip
+- **Sale history** with a scrollable UI panel (last 200 sales)
+- **Per-character stats** showing lifetime sales, visible in the minimap tooltip across alts
+- **Undo system** with 5-minute buyback window and visual toast notification
+
+### Profiles
+
+- **Four built-in templates:** Raid Farmer, Transmog Hunter, Leveling Alt, Gold Farmer
+- **Save/load named profiles** that persist across sessions
+- **Per-character auto-load** -- the last loaded profile restores on login
+- **Import/export** never-sell and always-sell lists as shareable strings
+- **First-run setup wizard** walks through configuration on each new character
+
+### Destroy
+
+- **Auto-destroy** junk items that have no vendor value, with configurable quality and value limits
+- Confirmation dialog with safety cap of 5 items per use
 
 <br>
 
-## &nbsp; Slash Commands
+## Slash Commands
+
+All commands are available via `/asp` or `/autosell`.
 
 | Command | Description |
 | :--- | :--- |
@@ -135,27 +137,40 @@ Minimap button for stats/toggle. Rules stick across chars/sessions.
 | `/asp sell` | Sell at vendor now |
 | `/asp preview` | Dry run (nothing sold) |
 | `/asp undo` | Buyback last sale |
-| `/asp template` | Load preset (raidfarmer/transmoghunter/etc) |
+| `/asp template [name]` | Apply a preset template |
 | `/asp toggle` | Enable / disable |
 | `/asp mark` | Toggle bulk-mark mode |
-| `/asp add <id>` | Never sell this item |
+| `/asp add <id>` | Add item to never-sell list |
 | `/asp remove <id>` | Remove from never-sell list |
 | `/asp list` | Show never-sell and always-sell lists |
+| `/asp keep <id> <count>` | Set stack limit for item |
 | `/asp profile save <name>` | Save current settings as profile |
-
-> [!TIP]
-> `/autosell` works as an alias for `/asp`
+| `/asp profile load <name>` | Load saved profile |
+| `/asp session` | Show session stats |
+| `/asp log ui` | Open sale history panel |
+| `/asp destroy` | Destroy qualifying junk |
+| `/asp wizard` | Re-run setup wizard |
+| `/asp overlay` | Cycle overlay mode |
 
 <br>
 
-## &nbsp; Integrations
+## Integrations
 
 | Addon | Integration |
 | :--- | :--- |
-| **TSM / Auctionator** | AH price warnings in tooltips |
-| **Bagnon / AdiBags / ArkInventory / Baganator** | Mark overlays in bag frames |
-| **AllTheThings / CanIMogIt** | Transmog protection hooks |
-| **Leatrix Plus** | No conflicts |
+| **TSM / Auctionator** | AH price column in popup, value warnings |
+| **Bagnon / AdiBags / ArkInventory / Baganator** | Junk mark overlays in bag frames |
+| **AllTheThings / CanIMogIt** | Enhanced transmog protection |
+| **Leatrix Plus** | Conflict detection and warning |
+| **WoWUnit** | In-game unit test suite (development) |
+
+<br>
+
+## Resilience
+
+AutoSellPlus runs a self-test on login that checks for required WoW APIs. If an API is missing (typically after a major patch), the affected feature is disabled individually while everything else keeps working. No full addon breakage from a single API change.
+
+Checked APIs: selling, bag scanning, item info, transmog collection, equipment sets, item destruction.
 
 <br>
 
@@ -163,7 +178,7 @@ Minimap button for stats/toggle. Rules stick across chars/sessions.
 
 <br>
 
-## &nbsp; Development
+## Development
 
 > [!NOTE]
 > See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting changes.
@@ -186,9 +201,11 @@ AutoSellPlus/
 │   ├── Wizard.lua           # First-run setup wizard
 │   ├── UI.lua               # Settings panel (Options > AddOns)
 │   ├── PopupFilters.lua     # Display list building, filter logic, sorting
+│   ├── ConfirmList.lua      # Confirmation dialog item list panel
 │   ├── Popup.lua            # Merchant popup frame, item rows, sell actions
 │   ├── Selling.lua          # Sell queue, batch processing, undo, auto-sell
-│   └── Core.lua             # Event handling, slash commands, auto-repair
+│   ├── Core.lua             # Event handling, slash commands, auto-repair
+│   └── Tests.lua            # WoWUnit test suite (requires WoWUnit addon)
 ├── assets/                  # Images for README (excluded from package)
 ├── .pkgmeta                 # BigWigsMods packager config
 ├── .luacheckrc              # Luacheck linting rules
@@ -212,6 +229,12 @@ World of Warcraft/_retail_/Interface/AddOns/AutoSellPlus/
 
 Reload the UI in-game with `/reload`.
 
+### Unit Tests
+
+The addon includes a [WoWUnit](https://github.com/Jaliborc/WoWUnit) test suite in `Tests.lua`. Install WoWUnit as a separate addon and the tests run automatically in-game. The test suite covers formatting, configuration, database migration, protection priorities, filter logic, sorting, session tracking, sale history, and more.
+
+WoWUnit is listed as an optional dependency. Tests are guarded by `if WoWUnit then` and have zero overhead when WoWUnit is not installed.
+
 ### Linting
 
 Run [luacheck](https://github.com/mpeterv/luacheck) locally before pushing:
@@ -220,11 +243,11 @@ Run [luacheck](https://github.com/mpeterv/luacheck) locally before pushing:
 luacheck AutoSellPlus/
 ```
 
-The CI pipeline runs luacheck automatically on every push.
+CI runs luacheck automatically on every push. Zero warnings required.
 
 <br>
 
-## &nbsp; Releasing
+## Releasing
 
 Releases are fully automated via GitHub Actions using [BigWigsMods/packager](https://github.com/BigWigsMods/packager).
 
@@ -238,7 +261,7 @@ Releases are fully automated via GitHub Actions using [BigWigsMods/packager](htt
 2. The pipeline will automatically:
    - Run luacheck
    - Package the addon (respecting `.pkgmeta` ignores)
-   - Upload to [CurseForge](https://www.curseforge.com/wow/addons) and [Wago](https://addons.wago.io)
+   - Upload to [CurseForge](https://www.curseforge.com/wow/addons)
    - Create a GitHub release with the zip attached
 
 ### Required Secrets
@@ -248,7 +271,6 @@ Set these in **GitHub > Settings > Secrets and variables > Actions**:
 | Secret | Source |
 | :--- | :--- |
 | `CF_API_KEY` | [CurseForge API tokens](https://authors.curseforge.com) |
-| `WAGO_API_TOKEN` | [Wago developer settings](https://addons.wago.io) |
 
 > [!IMPORTANT]
 > `GITHUB_TOKEN` is provided automatically. Make sure **Settings > Actions > General > Workflow permissions** is set to **Read and write**.
