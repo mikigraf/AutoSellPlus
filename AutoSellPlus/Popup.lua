@@ -1353,12 +1353,18 @@ function ns:SellFromPopup()
                 self:HidePopup()
                 self:StartSelling(queue)
             end,
+            OnHide = function()
+                ns:HideConfirmList()
+            end,
             timeout = 0,
             whileDead = true,
             hideOnEscape = true,
             preferredIndex = 3,
         }
-        StaticPopup_Show("ASP_EPIC_CONFIRM")
+        local dialog = StaticPopup_Show("ASP_EPIC_CONFIRM")
+        if dialog then
+            self:ShowConfirmList(queue, dialog)
+        end
         return
     end
 
@@ -1378,12 +1384,18 @@ function ns:SellFromPopup()
                 self:HidePopup()
                 self:StartSelling(queue)
             end,
+            OnHide = function()
+                ns:HideConfirmList()
+            end,
             timeout = 0,
             whileDead = true,
             hideOnEscape = true,
             preferredIndex = 3,
         }
-        StaticPopup_Show("ASP_HIGH_VALUE_CONFIRM")
+        local dialog = StaticPopup_Show("ASP_HIGH_VALUE_CONFIRM")
+        if dialog then
+            self:ShowConfirmList(queue, dialog)
+        end
         return
     end
 
