@@ -195,8 +195,20 @@ local function CreateProfilesCanvas()
                 RefreshProfiles()
             end)
             row.deleteBtn:SetScript("OnClick", function()
-                ns:DeleteProfile(name)
-                RefreshProfiles()
+                StaticPopupDialogs["ASP_DELETE_PROFILE"] = {
+                    text = format("AutoSellPlus: Delete profile '%s'?", name),
+                    button1 = "Delete",
+                    button2 = "Cancel",
+                    OnAccept = function()
+                        ns:DeleteProfile(name)
+                        RefreshProfiles()
+                    end,
+                    timeout = 0,
+                    whileDead = true,
+                    hideOnEscape = true,
+                    preferredIndex = 3,
+                }
+                StaticPopup_Show("ASP_DELETE_PROFILE")
             end)
             row:Show()
         end

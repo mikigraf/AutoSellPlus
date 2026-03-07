@@ -305,7 +305,7 @@ local function CreateWizardFrame()
 
     -- Close button
     local closeBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
-    closeBtn:SetSize(18, 18)
+    closeBtn:SetSize(22, 22)
     closeBtn:SetPoint("TOPRIGHT", -4, -4)
     closeBtn:SetBackdrop(FLAT_BACKDROP)
     closeBtn:SetBackdropColor(0.12, 0.12, 0.12, 1)

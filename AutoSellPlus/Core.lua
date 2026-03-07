@@ -31,7 +31,7 @@ local function DoAutoRepair()
         RepairAllItems(false)
         ns:Print(format("Auto-repaired for %s", ns:FormatMoney(repairCost)))
     else
-        ns:Print("Not enough gold to auto-repair.")
+        ns:Print(format("Not enough gold to auto-repair. Need %s, have %s.", ns:FormatMoney(repairCost), ns:FormatMoney(GetMoney())))
     end
 end
 
@@ -126,33 +126,33 @@ local function HandleSlashCommand(msg)
 
     if not cmd or cmd == "help" then
         ns:Print("v" .. ns.version .. " - Commands:")
-        print("  /asp toggle - Enable/disable addon")
-        print("  /asp dryrun - Toggle dry run mode")
-        print("  /asp config - Open settings panel")
-        print("  /asp sell - Sell immediately (at merchant)")
-        print("  /asp preview - One-shot dry run")
-        print("  /asp mark - Toggle bulk mark mode")
-        print("  /asp debug - Toggle debug output")
-        print("  /asp session - View session stats")
-        print("  /asp session reset - Reset session")
-        print("  /asp log - Show last 10 sales")
-        print("  /asp log ui - Open sale history panel")
-        print("  /asp log clear - Clear sale history")
-        print("  /asp add <itemID> - Add to never-sell list")
-        print("  /asp remove <itemID> - Remove from never-sell list")
-        print("  /asp list - Show never-sell and always-sell lists")
-        print("  /asp export - Export lists")
-        print("  /asp import - Import lists")
-        print("  /asp overlay - Cycle overlay visual mode")
-        print("  /asp keep <itemID> <count> - Set stack limit")
-        print("  /asp keep list - Show stack limits")
-        print("  /asp keep clear [itemID] - Clear stack limit(s)")
-        print("  /asp destroy - Destroy junk items")
-        print("  /asp profile save|load|list|delete <name>")
-        print("  /asp template [name|list] - Apply a preset template")
-        print("  /asp wizard - Re-run setup wizard")
-        print("  /asp reset - Reset all settings (with confirm)")
-        print("  /asp reset lists - Clear all lists")
+        print("|cFFAAAAAA  /asp toggle|r - Enable/disable addon")
+        print("|cFFAAAAAA  /asp dryrun|r - Toggle dry run mode")
+        print("|cFFAAAAAA  /asp config|r - Open settings panel")
+        print("|cFFAAAAAA  /asp sell|r - Sell immediately (at merchant)")
+        print("|cFFAAAAAA  /asp preview|r - One-shot dry run")
+        print("|cFFAAAAAA  /asp mark|r - Toggle bulk mark mode")
+        print("|cFFAAAAAA  /asp debug|r - Toggle debug output")
+        print("|cFFAAAAAA  /asp session|r - View session stats")
+        print("|cFFAAAAAA  /asp session reset|r - Reset session")
+        print("|cFFAAAAAA  /asp log|r - Show last 10 sales")
+        print("|cFFAAAAAA  /asp log ui|r - Open sale history panel")
+        print("|cFFAAAAAA  /asp log clear|r - Clear sale history")
+        print("|cFFAAAAAA  /asp add <itemID>|r - Add to never-sell list")
+        print("|cFFAAAAAA  /asp remove <itemID>|r - Remove from never-sell list")
+        print("|cFFAAAAAA  /asp list|r - Show never-sell and always-sell lists")
+        print("|cFFAAAAAA  /asp export|r - Export lists")
+        print("|cFFAAAAAA  /asp import|r - Import lists")
+        print("|cFFAAAAAA  /asp overlay|r - Cycle overlay visual mode")
+        print("|cFFAAAAAA  /asp keep <itemID> <count>|r - Set stack limit")
+        print("|cFFAAAAAA  /asp keep list|r - Show stack limits")
+        print("|cFFAAAAAA  /asp keep clear [itemID]|r - Clear stack limit(s)")
+        print("|cFFAAAAAA  /asp destroy|r - Destroy junk items")
+        print("|cFFAAAAAA  /asp profile save|load|list|delete <name>|r")
+        print("|cFFAAAAAA  /asp template [name|list]|r - Apply a preset template")
+        print("|cFFAAAAAA  /asp wizard|r - Re-run setup wizard")
+        print("|cFFAAAAAA  /asp reset|r - Reset all settings (with confirm)")
+        print("|cFFAAAAAA  /asp reset lists|r - Clear all lists")
         return
     end
 
@@ -184,7 +184,7 @@ local function HandleSlashCommand(msg)
         if #queue > 0 then
             ns:ConfirmAndSell(queue)
         else
-            ns:Print("Nothing to sell.")
+            ns:Print("Nothing to sell. Adjust quality/ilvl filters or mark items with ALT+Click.")
         end
         return
     end
@@ -196,7 +196,7 @@ local function HandleSlashCommand(msg)
         if #queue > 0 then
             ns:StartSelling(queue)
         else
-            ns:Print("Nothing would be sold.")
+            ns:Print("Dry run: nothing matched current filters.")
         end
         ns.db.dryRun = origDryRun
         return
@@ -479,7 +479,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             and AutoSellPlusDB.profiles[AutoSellPlusCharDB.activeProfile] then
             AutoSellPlusDB.global = ns.DeepCopy(AutoSellPlusDB.profiles[AutoSellPlusCharDB.activeProfile])
             ns.ValidateDB(AutoSellPlusDB.global, ns.globalDefaults)
-            ns:DebugPrint("Auto-loaded profile: " .. AutoSellPlusCharDB.activeProfile)
+            ns:Print(format("Auto-loaded profile: |cFF00FF00%s|r", AutoSellPlusCharDB.activeProfile))
         end
 
         ns:Print(format("v%s loaded. Type /asp for commands.", ns.version))

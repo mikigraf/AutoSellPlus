@@ -192,7 +192,7 @@ function ns:ApplyTemplate(name)
     for key, value in pairs(template.settings) do
         AutoSellPlusDB.global[key] = ns.DeepCopy(value)
     end
-    self:Print(format("Applied template: |cFF00FF00%s|r - %s", matchedName, template.description))
+    self:Print(format("Applied template: |cFF00FF00%s|r — all settings reset to template defaults.", matchedName))
     return true
 end
 

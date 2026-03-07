@@ -137,7 +137,6 @@ function ns:CreateMinimapButton()
     -- Border ring
     local border = button:CreateTexture(nil, "OVERLAY")
     border:SetSize(32, 32)
-    border:SetPoint("CENTER")
     border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
     border:SetPoint("TOPLEFT")
 

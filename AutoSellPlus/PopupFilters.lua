@@ -29,8 +29,8 @@ function ns:BuildDisplayList()
                         and (sellPrice and sellPrice > 0 or isAlwaysSell)
                         and not hasNoValue
                         and not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemID))
-                        and not (self.db.protectUncollectedTransmog and self:IsEquippable(itemID) and self:IsUncollectedTransmog(itemID))
-                        and not (self.db.protectTransmogSource and self:IsEquippable(itemID) and self:IsUncollectedTransmogSource(itemID))
+                        and not (self.db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmog(itemID))
+                        and not (self.db.protectTransmogSource and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmogSource(itemID))
                     then
                         -- BoE protection
                         local isBoe = self:IsBindOnEquip(bag, slot)

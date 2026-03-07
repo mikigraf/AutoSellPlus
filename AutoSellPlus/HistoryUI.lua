@@ -61,6 +61,18 @@ local function CreateHistoryRow(parent, index)
     timeText:SetTextColor(0.6, 0.6, 0.6)
     row.timeText = timeText
 
+    row:EnableMouse(true)
+    row:SetScript("OnEnter", function(self)
+        if self.entryLink then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetHyperlink(self.entryLink)
+            GameTooltip:Show()
+        end
+    end)
+    row:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
     row:Hide()
     return row
 end
@@ -110,6 +122,7 @@ local function RefreshHistoryPanel()
         end
 
         -- Item link or name
+        row.entryLink = entry.link
         row.itemText:SetText(entry.link or "?")
 
         -- Quantity
@@ -174,7 +187,7 @@ local function CreateHistoryPanel()
 
     -- Close button
     local closeBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
-    closeBtn:SetSize(18, 18)
+    closeBtn:SetSize(22, 22)
     closeBtn:SetPoint("TOPRIGHT", -4, -4)
     closeBtn:SetBackdrop(FLAT_BACKDROP)
     closeBtn:SetBackdropColor(0.12, 0.12, 0.12, 1)
@@ -241,8 +254,20 @@ local function CreateHistoryPanel()
     clearLbl:SetPoint("CENTER")
     clearLbl:SetText("Clear")
     clearBtn:SetScript("OnClick", function()
-        ns:ClearSaleHistory()
-        RefreshHistoryPanel()
+        StaticPopupDialogs["ASP_CLEAR_HISTORY"] = {
+            text = "AutoSellPlus: Clear all sale history?",
+            button1 = "Clear",
+            button2 = "Cancel",
+            OnAccept = function()
+                ns:ClearSaleHistory()
+                RefreshHistoryPanel()
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("ASP_CLEAR_HISTORY")
     end)
     clearBtn:SetScript("OnEnter", function(btn)
         btn:SetBackdropColor(0.55, 0.15, 0.15, 1)
