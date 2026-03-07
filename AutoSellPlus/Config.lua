@@ -63,6 +63,8 @@ ns.globalDefaults = {
     -- Marking
     autoMarkGrayLoot = false,
     autoMarkBelowIlvl = 0,
+    -- Selling
+    prioritySellQueue = true,
     -- Safety
     showUndoToast = true,
     highValueThreshold = 50000,

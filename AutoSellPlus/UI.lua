@@ -775,6 +775,8 @@ local function RegisterSettingsPanel()
         "Try guild bank funds first when auto-repairing.")
     AddBool(automationCat, "muteVendorSounds", "Mute Vendor Sounds",
         "Silence vendor sell sounds during bulk selling.")
+    AddBool(automationCat, "prioritySellQueue", "Priority Sell Queue",
+        "Sell highest-value items first to maximize buyback safety window.")
 
     -- ══════════════════════════════════════════
     -- Protection
