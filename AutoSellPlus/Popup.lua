@@ -702,6 +702,22 @@ local function CreateFilterSection(f)
     f.transmogCheck = transmogCheck
     rowY = rowY - 22
 
+    -- Soulbound only checkbox
+    local soulboundCheck = CreateStyledCheck(f, 14)
+    soulboundCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY + 2)
+    local soulboundLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    soulboundLabel:SetPoint("LEFT", soulboundCheck, "RIGHT", 4, 0)
+    soulboundLabel:SetText("Soulbound Only")
+    soulboundLabel:SetTextColor(0.70, 0.70, 0.70)
+    soulboundCheck:SetScript("OnClick", function(self)
+        ns.db.onlySoulbound = self:GetChecked()
+        displayList = ns:BuildDisplayList()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+    f.soulboundCheck = soulboundCheck
+    rowY = rowY - 22
+
     -- Category filters
     local catLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     catLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
@@ -1219,6 +1235,7 @@ function ns:ShowPopup()
     if popup.epicCheck then popup.epicCheck:SetChecked(self.db.sellEpics) end
     popup.equipCheck:SetChecked(self.db.onlyEquippable)
     popup.transmogCheck:SetChecked(not self.db.protectUncollectedTransmog)
+    popup.soulboundCheck:SetChecked(self.db.onlySoulbound)
 
     if popup.whiteSlider then
         popup.whiteSlider:SetValue(self.db.whiteMaxIlvl)

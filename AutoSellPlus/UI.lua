@@ -735,6 +735,8 @@ local function RegisterSettingsPanel()
         "Never sell unbound bind-on-equip items.")
     AddBool(protectionCat, "allowBoESell", "Allow BoE Selling (Override)",
         "Allow selling BoE items even when protection is enabled. Use with caution.")
+    AddBool(protectionCat, "onlySoulbound", "Soulbound Only Mode",
+        "Only sell soulbound (BoP or already-bound) items. Unbound BoE items are always skipped.")
     AddBool(protectionCat, "onlyEquippable", "Only Equippable Items",
         "Limit quality-based filters (white/green/blue/epic) to armor and weapons only.")
     AddBool(protectionCat, "buybackWarning", "Buyback Warning",

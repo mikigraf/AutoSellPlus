@@ -278,6 +278,11 @@ function ns:ShouldSellItem(bag, slot)
         if self:IsBindOnEquip(bag, slot) then return false end
     end
 
+    -- Soulbound-only mode: skip unbound BoE items
+    if db.onlySoulbound then
+        if self:IsBindOnEquip(bag, slot) then return false end
+    end
+
     -- Quality-based selling (data-driven)
     local shouldSell, link, price, count = CheckQualityFilter(db, quality, itemLink, itemID, sellPrice, stackCount)
     if shouldSell then return true, link, price, count end

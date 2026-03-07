@@ -48,6 +48,7 @@ ns.globalDefaults = {
     protectTransmogSource = true,
     protectBoE = true,
     allowBoESell = false,
+    onlySoulbound = false,
     -- Display
     showSummary = true,
     showItemized = false,

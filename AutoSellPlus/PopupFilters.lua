@@ -36,6 +36,8 @@ function ns:BuildDisplayList()
                         local isBoe = self:IsBindOnEquip(bag, slot)
                         if self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
                             -- Skip protected BoE
+                        elseif self.db.onlySoulbound and isBoe and not isAlwaysSell then
+                            -- Skip unbound BoE in soulbound-only mode
                         else
                             local ilvl = self:GetEffectiveItemLevel(itemLink)
                             local isEquippable = self:IsEquippable(itemID)
