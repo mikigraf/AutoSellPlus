@@ -34,6 +34,14 @@ AutoSellPlus is a World of Warcraft addon that shows a popup when visiting a mer
 26. [Slash Commands](#slash-commands)
 27. [All Settings Reference](#all-settings-reference)
 28. [Data Structures](#data-structures)
+29. [Shift-Click Item Links in History](#shift-click-item-links-in-history)
+30. [Sell-All Confirmation Dialog](#sell-all-confirmation-dialog)
+31. [Soulbound-Only Filter](#soulbound-only-filter)
+32. [Current Expansion Materials Protection](#current-expansion-materials-protection)
+33. [Key Bindings](#key-bindings)
+34. [Instance Auto-Profile Switching](#instance-auto-profile-switching)
+35. [Priority Sell Queue](#priority-sell-queue)
+36. [Quest Item Protection](#quest-item-protection)
 
 ---
 
@@ -63,7 +71,7 @@ The popup is the primary UI for reviewing items before selling. It appears when 
 - Flat 1px border aesthetic (ElvUI-style)
 
 ### Filter Controls (Top Section)
-Quality checkboxes with per-quality item level threshold sliders and input fields. Additional toggles for "Only Equippable", "Allow Transmog" (disables transmog protection so uncollected appearances can be sold), category filters, expansion filter dropdown, and equipment slot filter buttons.
+Quality checkboxes with per-quality item level threshold sliders and input fields. Additional toggles for "Only Equippable", "Allow Transmog" (disables transmog protection so uncollected appearances can be sold), "Soulbound Only" (skip all unbound BoE items), category filters, expansion filter dropdown, and equipment slot filter buttons.
 
 ### Item List (Middle Section)
 Sortable columns:
@@ -168,9 +176,12 @@ Items are evaluated against protection rules in strict priority order. The first
 7. **Uncollected Transmog** (`protectUncollectedTransmog`, default: on) - items with visual transmog appearances that are uncollected are skipped (trinkets, rings, and necklaces are excluded from this check since they have no visual appearance)
 8. **Transmog Source Protection** (`protectTransmogSource`, default: on) - enhanced source-level transmog checking (distinguishes same-appearance items from different sources)
 9. **Refundable Items** - items within the vendor buyback/refund window are skipped
-10. **Bind-on-Equip Protection** (`protectBoE`, default: on) - unbound BoE items are skipped (overridable via `allowBoESell`)
-11. **Quality Filters** - items matching enabled quality tiers (and within ilvl thresholds) are included
-12. **Category Filters** - items matching enabled category toggles are included
+10. **Quest Item Protection** (`protectQuestItems`, default: on) - items in the Quest Items category (classID 12) are skipped
+11. **Bind-on-Equip Protection** (`protectBoE`, default: on) - unbound BoE items are skipped (overridable via `allowBoESell`)
+12. **Soulbound-Only Mode** (`onlySoulbound`, default: off) - when enabled, unbound BoE items are always skipped
+13. **Current Expansion Materials** (`protectCurrentExpMaterials`, default: off) - Trade Goods from the current expansion are skipped
+14. **Quality Filters** - items matching enabled quality tiers (and within ilvl thresholds) are included
+15. **Category Filters** - items matching enabled category toggles are included
 
 ---
 
@@ -676,6 +687,9 @@ All commands use `/asp` or `/autosell` as prefix.
 | `protectTransmogSource` | bool | true | Source-level transmog checking |
 | `protectBoE` | bool | true | Never sell unbound BoE items |
 | `allowBoESell` | bool | false | Override BoE protection |
+| `onlySoulbound` | bool | false | Only sell soulbound items, skip all unbound BoE |
+| `protectQuestItems` | bool | true | Never sell Quest Items category |
+| `protectCurrentExpMaterials` | bool | false | Never sell current expansion Trade Goods |
 
 ### Safety & Confirmation
 | Setting | Type | Default | Description |
@@ -694,6 +708,7 @@ All commands use `/asp` or `/autosell` as prefix.
 | `autoRepair` | bool | false | Auto-repair at merchants |
 | `autoRepairGuild` | bool | true | Prefer guild funds for repair |
 | `muteVendorSounds` | bool | false | Silence sell sounds during bulk sell |
+| `prioritySellQueue` | bool | true | Sell highest-value items first for buyback safety |
 
 ### Marking
 | Setting | Type | Default | Description |
@@ -781,6 +796,7 @@ charStats["Charactername - Realmname"] = {
 
 ### File Load Order (AutoSellPlus.toc)
 
+0. **Bindings.xml** - Key binding definitions for WoW's Key Bindings UI
 1. **Config.lua** - Default settings, `AutoSellPlusDB` saved variable initialization, database validation
 2. **Helpers.lua** - Utility functions (ilvl calculation, transmog checks, equipment sets, money formatting, vendor mount detection, list serialization)
 3. **Protection.lua** - Item protection logic (never-sell, always-sell, equipment sets, transmog, BoE, refundable)
@@ -826,6 +842,81 @@ Missing WoW APIs are detected at login and features are disabled individually:
 - `C_TransmogCollection` missing -> transmog checks disabled
 - `C_EquipmentSet` missing -> equipment set checks disabled
 - `C_Container.PickupContainerItem` missing -> destroy disabled
+
+---
+
+## Shift-Click Item Links in History
+
+Shift+left-clicking a row in the sale history panel inserts the item link into the active chat edit box. This follows the standard WoW UX pattern for item link insertion.
+
+---
+
+## Sell-All Confirmation Dialog
+
+When clicking "Sell All Junk" in the popup, a confirmation dialog appears showing the total item count and gold value before selling proceeds. This prevents accidental bulk sales. The dialog is automatically dismissed when the merchant window closes.
+
+---
+
+## Soulbound-Only Filter
+
+When enabled (`onlySoulbound`, default: off), only soulbound items (BoP or already-bound) are eligible for selling. All unbound BoE items are skipped regardless of other filter settings. Useful for dungeon farmers who want to keep BoE drops for the auction house.
+
+Available as a checkbox in the popup filter section and a toggle in Protection settings.
+
+---
+
+## Current Expansion Materials Protection
+
+When enabled (`protectCurrentExpMaterials`, default: off), Trade Goods (classID 7) from the current expansion (Midnight, ID 12) are never sold. Prevents accidental sale of valuable crafting materials.
+
+Available as a toggle in Protection settings.
+
+---
+
+## Key Bindings
+
+AutoSellPlus registers a bindable key in WoW's native Key Bindings UI under the "AutoSellPlus" header.
+
+| Binding | Action |
+|---------|--------|
+| Toggle Sell Popup | Opens the sell popup when a merchant window is open |
+
+Access via Game Menu > Key Bindings > AutoSellPlus.
+
+---
+
+## Instance Auto-Profile Switching
+
+Automatically load a saved profile when entering an instance type. Per-character setting mapping instance types to profile names.
+
+### Instance Types
+| Type | Description |
+|------|-------------|
+| `none` | Open world |
+| `party` | 5-man dungeons |
+| `raid` | Raids |
+| `pvp` | Battlegrounds |
+| `arena` | Arena |
+| `scenario` | Scenarios |
+
+### Configuration
+Configure in Settings > Profiles & Templates > Instance Auto-Profiles. Enter a saved profile name for each instance type.
+
+---
+
+## Priority Sell Queue
+
+When enabled (`prioritySellQueue`, default: on), items are sold in descending order of total value. This ensures the 12 buyback slots contain the most valuable items, maximizing the safety window if the user needs to undo a sale.
+
+Previously, items were sold in bag order, which could waste buyback slots on cheap items.
+
+---
+
+## Quest Item Protection
+
+When enabled (`protectQuestItems`, default: on), items in the Quest Items category (classID 12) are never sold. This prevents accidental sale of quest objectives and quest-starting items during dailies or leveling.
+
+Respects the always-sell list override for intentional sales.
 
 ---
 
