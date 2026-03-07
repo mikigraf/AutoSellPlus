@@ -684,6 +684,24 @@ local function CreateFilterSection(f)
     f.equipCheck = CreateQualityFilterRow(f, filterTop, "Only Equippable", "onlyEquippable", nil, nil, rowY)
     rowY = rowY - 22
 
+    -- Allow transmog checkbox (inverted: checked = protection OFF)
+    local transmogCheck = CreateStyledCheck(f, 14)
+    transmogCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY + 2)
+    local transmogLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    transmogLabel:SetPoint("LEFT", transmogCheck, "RIGHT", 4, 0)
+    transmogLabel:SetText("Allow Transmog")
+    transmogLabel:SetTextColor(0.70, 0.70, 0.70)
+    transmogCheck:SetScript("OnClick", function(self)
+        local allow = self:GetChecked()
+        ns.db.protectUncollectedTransmog = not allow
+        ns.db.protectTransmogSource = not allow
+        displayList = ns:BuildDisplayList()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+    f.transmogCheck = transmogCheck
+    rowY = rowY - 22
+
     -- Category filters
     local catLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     catLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
@@ -1164,6 +1182,7 @@ function ns:ShowPopup()
     popup.blueCheck:SetChecked(self.db.sellBlues)
     if popup.epicCheck then popup.epicCheck:SetChecked(self.db.sellEpics) end
     popup.equipCheck:SetChecked(self.db.onlyEquippable)
+    popup.transmogCheck:SetChecked(not self.db.protectUncollectedTransmog)
 
     if popup.whiteSlider then
         popup.whiteSlider:SetValue(self.db.whiteMaxIlvl)
