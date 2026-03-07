@@ -800,8 +800,9 @@ charStats["Charactername - Realmname"] = {
 
 ### File Load Order (AutoSellPlus.toc)
 
-0. **Bindings.xml** - Key binding definitions for WoW's Key Bindings UI
 1. **Config.lua** - Default settings, `AutoSellPlusDB` saved variable initialization, database validation
+
+*Note: `Bindings.xml` (key binding definitions) is auto-detected by the WoW client and is not listed in the .toc file.*
 2. **Helpers.lua** - Utility functions (ilvl calculation, transmog checks, equipment sets, money formatting, vendor mount detection, list serialization)
 3. **Protection.lua** - Item protection logic (never-sell, always-sell, equipment sets, transmog, BoE, refundable)
 4. **BagAdapters.lua** - Bag addon detection and frame resolution (Blizzard, Baganator, Bagnon, AdiBags, ArkInventory)
