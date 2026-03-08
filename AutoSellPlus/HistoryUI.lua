@@ -72,6 +72,11 @@ local function CreateHistoryRow(parent, index)
     row:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
+    row:SetScript("OnMouseUp", function(self, button)
+        if button == "LeftButton" and IsShiftKeyDown() and self.entryLink then
+            ChatEdit_InsertLink(self.entryLink)
+        end
+    end)
 
     row:Hide()
     return row

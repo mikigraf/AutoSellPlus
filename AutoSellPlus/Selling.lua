@@ -103,6 +103,11 @@ function ns:StartSelling(explicitQueue)
 
     sellQueue = explicitQueue or self:BuildSellQueue()
 
+    -- Priority sell queue: sort highest-value first for buyback safety
+    if self.db.prioritySellQueue then
+        table.sort(sellQueue, function(a, b) return a.totalPrice > b.totalPrice end)
+    end
+
     -- Pre-sell verification
     local removed
     sellQueue, removed = VerifyQueue(sellQueue)
