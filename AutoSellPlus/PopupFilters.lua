@@ -31,14 +31,12 @@ function ns:BuildDisplayList()
                         and not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemID))
                         and not (self.db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmog(itemID))
                         and not (self.db.protectTransmogSource and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmogSource(itemID))
-                        and not (self.db.protectQuestItems and self:GetItemClassID(itemID) == 12 and not isAlwaysSell)
                     then
-                        -- BoE protection
                         local isBoe = self:IsBindOnEquip(bag, slot)
-                        if self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
-                            -- Skip protected BoE
-                        elseif self.db.onlySoulbound and isBoe and not isAlwaysSell then
-                            -- Skip unbound BoE in soulbound-only mode
+                        if self.db.onlySoulbound and isBoe and not isAlwaysSell then
+                            -- Skip: soulbound-only mode filters unbound BoE
+                        elseif self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
+                            -- Skip: BoE protection
                         elseif self.db.protectCurrentExpMaterials
                             and self:GetItemClassID(itemID) == 7
                             and self:GetItemExpansion(itemLink) == ns.CURRENT_EXPANSION
@@ -214,7 +212,7 @@ function ns:ApplyFilters(displayList, userUnchecked)
                 autoChecked = true
             elseif item.classID == 12 and db.sellQuestItems then
                 visible = true
-                autoChecked = true
+                autoChecked = not db.protectQuestItems
             elseif item.classID == 15 and db.sellMiscItems then
                 visible = true
                 autoChecked = true
