@@ -92,6 +92,9 @@ read_globals = {
     -- WoW API: Tooltip
     "TooltipDataProcessor",
 
+    -- WoW API: Chat
+    "ChatEdit_InsertLink",
+
     -- WoW API: Static Popup
     "StaticPopup_Show",
     "StaticPopup_Hide",
@@ -102,6 +105,9 @@ read_globals = {
 
     -- WoW API: Inventory
     "GetInventorySlotInfo",
+
+    -- WoW API: Instance
+    "GetInstanceInfo",
 
     -- WoW API: Misc
     "strsplit",
@@ -152,4 +158,7 @@ globals = {
     "AutoSellPlus_LastEvent",
     "AutoSellPlus_LastSellCount",
     "AutoSellPlus_Events",
+    "BINDING_HEADER_AUTOSELLPLUS",
+    "BINDING_NAME_ASP_TOGGLE_POPUP",
+    "AutoSellPlus_KeybindSell",
 }

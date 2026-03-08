@@ -288,7 +288,64 @@ local function CreateProfilesCanvas()
         end
     end)
 
-    f:SetScript("OnShow", RefreshProfiles)
+    -- Instance auto-profile section
+    local instY = saveY - 48
+    CreateSectionHeader(f, "Instance Auto-Profiles", 16, instY)
+
+    local instDesc = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    instDesc:SetPoint("TOPLEFT", 20, instY - 20)
+    instDesc:SetText("|cFFAAAAAAAAuto-load a profile when entering an instance type.|r")
+
+    local instanceTypes = {
+        { key = "none",     label = "Open World" },
+        { key = "party",    label = "Dungeon (5-man)" },
+        { key = "raid",     label = "Raid" },
+        { key = "pvp",      label = "Battleground" },
+        { key = "arena",    label = "Arena" },
+        { key = "scenario", label = "Scenario" },
+    }
+
+    local instRowY = instY - 38
+    f.instInputs = {}
+    for _, inst in ipairs(instanceTypes) do
+        local instLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        instLabel:SetPoint("TOPLEFT", 20, instRowY)
+        instLabel:SetText(inst.label .. ":")
+        instLabel:SetTextColor(0.70, 0.70, 0.70)
+
+        local instInput = CreateCanvasInput(f, 140)
+        instInput:SetPoint("TOPLEFT", 150, instRowY + 2)
+        local instKey = inst.key
+        instInput:SetScript("OnEnterPressed", function(self)
+            local val = self:GetText()
+            if not AutoSellPlusCharDB.instanceProfiles then
+                AutoSellPlusCharDB.instanceProfiles = {}
+            end
+            if val == "" then
+                AutoSellPlusCharDB.instanceProfiles[instKey] = nil
+            else
+                AutoSellPlusCharDB.instanceProfiles[instKey] = val
+            end
+            self:ClearFocus()
+        end)
+        f.instInputs[instKey] = instInput
+        instRowY = instRowY - 24
+    end
+
+    local origRefresh = RefreshProfiles
+    local function RefreshAll()
+        origRefresh()
+        -- Populate instance profile inputs
+        local ip = AutoSellPlusCharDB and AutoSellPlusCharDB.instanceProfiles or {}
+        for _, inst in ipairs(instanceTypes) do
+            local input = f.instInputs[inst.key]
+            if input then
+                input:SetText(ip[inst.key] or "")
+            end
+        end
+    end
+
+    f:SetScript("OnShow", RefreshAll)
     return f
 end
 
@@ -718,6 +775,8 @@ local function RegisterSettingsPanel()
         "Try guild bank funds first when auto-repairing.")
     AddBool(automationCat, "muteVendorSounds", "Mute Vendor Sounds",
         "Silence vendor sell sounds during bulk selling.")
+    AddBool(automationCat, "prioritySellQueue", "Priority Sell Queue",
+        "Sell highest-value items first to maximize buyback safety window.")
 
     -- ══════════════════════════════════════════
     -- Protection
@@ -735,6 +794,8 @@ local function RegisterSettingsPanel()
         "Never sell unbound bind-on-equip items.")
     AddBool(protectionCat, "allowBoESell", "Allow BoE Selling (Override)",
         "Allow selling BoE items even when protection is enabled. Use with caution.")
+    AddBool(protectionCat, "onlySoulbound", "Soulbound Only Mode",
+        "Only sell soulbound (BoP or already-bound) items. Unbound BoE items are always skipped.")
     AddBool(protectionCat, "onlyEquippable", "Only Equippable Items",
         "Limit quality-based filters (white/green/blue/epic) to armor and weapons only.")
     AddBool(protectionCat, "buybackWarning", "Buyback Warning",
@@ -751,6 +812,10 @@ local function RegisterSettingsPanel()
 
     AddBool(protectionCat, "excludeCurrentExpansion", "Exclude Current Expansion",
         "Hide all items from the current expansion in the sell popup.")
+    AddBool(protectionCat, "protectCurrentExpMaterials", "Protect Current Expansion Materials",
+        "Never sell Trade Goods from the current expansion (Midnight).")
+    AddBool(protectionCat, "protectQuestItems", "Protect Quest Items",
+        "Never sell items in the Quest Items category. Prevents accidental sale of quest objectives and quest-starting items.")
 
     -- ══════════════════════════════════════════
     -- Marking

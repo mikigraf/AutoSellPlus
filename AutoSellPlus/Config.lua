@@ -40,6 +40,7 @@ ns.globalDefaults = {
     -- Expansion filter
     filterExpansion = 0,
     excludeCurrentExpansion = false,
+    protectCurrentExpMaterials = false,
     -- Slot filter
     filterSlots = {},
     -- Protection
@@ -48,6 +49,8 @@ ns.globalDefaults = {
     protectTransmogSource = true,
     protectBoE = true,
     allowBoESell = false,
+    onlySoulbound = false,
+    protectQuestItems = true,
     -- Display
     showSummary = true,
     showItemized = false,
@@ -61,6 +64,8 @@ ns.globalDefaults = {
     -- Marking
     autoMarkGrayLoot = false,
     autoMarkBelowIlvl = 0,
+    -- Selling
+    prioritySellQueue = true,
     -- Safety
     showUndoToast = true,
     highValueThreshold = 50000,
@@ -103,6 +108,7 @@ ns.charDefaults = {
     charNeverSellList = {},
     charAlwaysSellList = {},
     charFirstRunComplete = false,
+    instanceProfiles = {},
 }
 
 -- Profile templates for common playstyles

@@ -143,6 +143,15 @@ function ns:HasTransmogAppearance(itemID)
     return not NON_TRANSMOG_EQUIP_LOCS[itemEquipLoc]
 end
 
+-- Soulbound detection
+function ns:IsSoulbound(bag, slot)
+    local itemLoc = ItemLocation:CreateFromBagAndSlot(bag, slot)
+    if itemLoc and itemLoc:IsValid() then
+        return C_Item.IsBound(itemLoc)
+    end
+    return false
+end
+
 -- BoE detection
 function ns:IsBindOnEquip(bag, slot)
     local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -273,9 +282,29 @@ function ns:ShouldSellItem(bag, slot)
     -- Refundable protection
     if self:IsRefundable(bag, slot) then return false end
 
+    -- Quest item protection
+    if db.protectQuestItems then
+        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
+        if classID == 12 then return false end
+    end
+
     -- BoE protection
     if db.protectBoE and not db.allowBoESell then
         if self:IsBindOnEquip(bag, slot) then return false end
+    end
+
+    -- Soulbound-only mode: skip items not bound to player
+    if db.onlySoulbound then
+        if not self:IsSoulbound(bag, slot) then return false end
+    end
+
+    -- Current expansion materials protection
+    if db.protectCurrentExpMaterials then
+        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
+        if classID == 7 then
+            local expansionID = ns:GetItemExpansion(itemLink)
+            if expansionID == ns.CURRENT_EXPANSION then return false end
+        end
     end
 
     -- Quality-based selling (data-driven)
