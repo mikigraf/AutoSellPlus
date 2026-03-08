@@ -33,8 +33,8 @@ function ns:BuildDisplayList()
                         and not (self.db.protectTransmogSource and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmogSource(itemID))
                     then
                         local isBoe = self:IsBindOnEquip(bag, slot)
-                        if self.db.onlySoulbound and isBoe and not isAlwaysSell then
-                            -- Skip: soulbound-only mode filters unbound BoE
+                        if self.db.onlySoulbound and not self:IsSoulbound(bag, slot) and not isAlwaysSell then
+                            -- Skip: soulbound-only mode, item is not bound to player
                         elseif self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
                             -- Skip: BoE protection
                         elseif self.db.protectCurrentExpMaterials

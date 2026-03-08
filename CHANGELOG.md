@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Fixed
-- **Soulbound-only filter not working in popup** — The "Soulbound Only" checkbox had no effect because its check was shadowed by BoE protection. Reordered so soulbound-only takes precedence.
+- **Soulbound-only filter not working** — The filter only checked for BoE items instead of checking whether items are actually bound to the player. Unbound grays and other non-BoE items were not filtered. Now uses `C_Item.IsBound` to correctly filter all non-soulbound items in both popup and auto-sell paths.
 - **Quest category checkbox not working in popup** — Quest items were completely excluded from the display list when quest protection was on, making the "Quest" category checkbox useless. Quest items now appear when the category is enabled but are unchecked by default when protection is active.
 
 ### Added
