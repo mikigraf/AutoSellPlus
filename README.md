@@ -39,7 +39,13 @@
 </p>
 
 <p align="center">
-  <img src="assets/screenshot.png" alt="AutoSellPlus popup" width="640">
+  <img src="assets/1.png" alt="Items tab — filters and item list" width="420">
+  &nbsp;&nbsp;
+  <img src="assets/2.png" alt="Settings tab — General, Automation, Protection" width="420">
+</p>
+
+<p align="center">
+  <img src="assets/3.png" alt="Settings tab — Marking, Display, Bag Maintenance, Auto-Destroy" width="420">
 </p>
 
 <br>
