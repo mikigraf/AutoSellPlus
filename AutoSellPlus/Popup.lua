@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- Layout constants
 local ROW_HEIGHT = 28
 local POPUP_WIDTH = 580
-local POPUP_HEIGHT = 620
+local POPUP_HEIGHT = 650
 
 local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
@@ -318,7 +318,7 @@ local function CreateItemRow(parent, index)
     ilvlText:SetPoint("LEFT", badge, "RIGHT", 2, 0)
     ilvlText:SetWidth(80)
     ilvlText:SetJustifyH("CENTER")
-    ilvlText:SetTextColor(0.55, 0.55, 0.55)
+    ilvlText:SetTextColor(0.70, 0.70, 0.70)
     row.ilvlText = ilvlText
 
     -- AH value column (shown when TSM/Auctionator detected)
@@ -404,11 +404,11 @@ local function SetRowData(row, item)
         if item.isUpgrade then
             row.ilvlText:SetTextColor(0.1, 1.0, 0.1)
         else
-            row.ilvlText:SetTextColor(0.55, 0.55, 0.55)
+            row.ilvlText:SetTextColor(0.70, 0.70, 0.70)
         end
     else
         row.ilvlText:SetText("")
-        row.ilvlText:SetTextColor(0.55, 0.55, 0.55)
+        row.ilvlText:SetTextColor(0.70, 0.70, 0.70)
     end
 
     -- AH value
@@ -518,7 +518,7 @@ local function CreateQualityFilterRow(f, filterTop, label, checkKey, sliderKey, 
         local sliderLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         sliderLabel:SetPoint("LEFT", checkLabel, "RIGHT", 12, 0)
         sliderLabel:SetText("ilvl <=")
-        sliderLabel:SetTextColor(0.50, 0.50, 0.50)
+        sliderLabel:SetTextColor(0.65, 0.65, 0.65)
 
         local slider = CreateStyledSlider(f, 0, 700, 5)
         slider:SetPoint("LEFT", sliderLabel, "RIGHT", 8, 0)
@@ -683,12 +683,13 @@ local function CreateFilterSection(f)
 
     f.equipCheck = CreateQualityFilterRow(f, filterTop, "Only Equippable", "onlyEquippable", nil, nil, rowY)
     rowY = rowY - 22
+    rowY = rowY - 4
 
     -- Allow transmog checkbox (inverted: checked = protection OFF)
-    local transmogCheck = CreateStyledCheck(f, 14)
-    transmogCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY + 2)
-    local transmogLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    transmogLabel:SetPoint("LEFT", transmogCheck, "RIGHT", 4, 0)
+    local transmogCheck = CreateStyledCheck(f, 18)
+    transmogCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local transmogLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    transmogLabel:SetPoint("LEFT", transmogCheck, "RIGHT", 6, 0)
     transmogLabel:SetText("Allow Transmog")
     transmogLabel:SetTextColor(0.70, 0.70, 0.70)
     transmogCheck:SetScript("OnClick", function(self)
@@ -703,10 +704,10 @@ local function CreateFilterSection(f)
     rowY = rowY - 22
 
     -- Soulbound only checkbox
-    local soulboundCheck = CreateStyledCheck(f, 14)
-    soulboundCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY + 2)
-    local soulboundLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    soulboundLabel:SetPoint("LEFT", soulboundCheck, "RIGHT", 4, 0)
+    local soulboundCheck = CreateStyledCheck(f, 18)
+    soulboundCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local soulboundLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    soulboundLabel:SetPoint("LEFT", soulboundCheck, "RIGHT", 6, 0)
     soulboundLabel:SetText("Soulbound Only")
     soulboundLabel:SetTextColor(0.70, 0.70, 0.70)
     soulboundCheck:SetScript("OnClick", function(self)
@@ -717,12 +718,13 @@ local function CreateFilterSection(f)
     end)
     f.soulboundCheck = soulboundCheck
     rowY = rowY - 22
+    rowY = rowY - 4
 
     -- Category filters
     local catLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     catLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
     catLabel:SetText("Categories:")
-    catLabel:SetTextColor(0.50, 0.50, 0.50)
+    catLabel:SetTextColor(0.60, 0.60, 0.60)
 
     local catX = 80
     local catNames = {
@@ -749,12 +751,13 @@ local function CreateFilterSection(f)
         catX = catX + 70
     end
     rowY = rowY - 22
+    rowY = rowY - 4
 
     -- Expansion filter
     local expLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     expLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
     expLabel:SetText("Expansion:")
-    expLabel:SetTextColor(0.50, 0.50, 0.50)
+    expLabel:SetTextColor(0.60, 0.60, 0.60)
 
     local expBtn = CreateFlatButton(f, "All", 80, 18)
     expBtn:SetPoint("LEFT", expLabel, "RIGHT", 8, 0)
@@ -788,7 +791,7 @@ local function CreateFilterSection(f)
     local slotLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     slotLabel:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
     slotLabel:SetText("Slots:")
-    slotLabel:SetTextColor(0.50, 0.50, 0.50)
+    slotLabel:SetTextColor(0.60, 0.60, 0.60)
 
     local slotBtnX = 50
     local slotIDs = {1, 3, 5, 6, 7, 8, 9, 10, 15, 16, 17}
@@ -824,7 +827,7 @@ local function CreateFilterSection(f)
         f.slotButtons[slotID] = slotBtn
         slotBtnX = slotBtnX + 28
     end
-    rowY = rowY - 4
+    rowY = rowY - 22
 
     -- Set filter background height
     local filterHeight = math.abs(rowY) + 6
