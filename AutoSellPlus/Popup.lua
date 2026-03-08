@@ -652,7 +652,7 @@ local function CreateMainFrame()
 end
 
 local function CreateFilterSection(f)
-    local filterTop = -36
+    local filterTop = -56
     local filterLeft = 14
     local rowY = 0
 
@@ -1188,14 +1188,417 @@ local function CreateBottomBar(f)
 end
 
 -- ============================================================
+-- Sync Filter Controls from DB
+-- ============================================================
+
+local function SyncFiltersFromDB(f)
+    f.grayCheck:SetChecked(ns.db.sellGrays)
+    if f.whiteCheck then f.whiteCheck:SetChecked(ns.db.sellWhites) end
+    f.greenCheck:SetChecked(ns.db.sellGreens)
+    f.blueCheck:SetChecked(ns.db.sellBlues)
+    if f.epicCheck then f.epicCheck:SetChecked(ns.db.sellEpics) end
+    f.equipCheck:SetChecked(ns.db.onlyEquippable)
+    f.transmogCheck:SetChecked(not ns.db.protectUncollectedTransmog)
+    f.soulboundCheck:SetChecked(ns.db.onlySoulbound)
+
+    if f.whiteSlider then
+        f.whiteSlider:SetValue(ns.db.whiteMaxIlvl)
+        f.whiteEditBox:SetText(tostring(ns.db.whiteMaxIlvl))
+    end
+    f.greenSlider:SetValue(ns.db.greenMaxIlvl)
+    f.greenEditBox:SetText(tostring(ns.db.greenMaxIlvl))
+    f.blueSlider:SetValue(ns.db.blueMaxIlvl)
+    f.blueEditBox:SetText(tostring(ns.db.blueMaxIlvl))
+    if f.epicSlider then
+        f.epicSlider:SetValue(ns.db.epicMaxIlvl)
+        f.epicEditBox:SetText(tostring(ns.db.epicMaxIlvl))
+    end
+
+    if f.categoryChecks then
+        for key, check in pairs(f.categoryChecks) do
+            check:SetChecked(ns.db[key])
+        end
+    end
+
+    if f.expBtn then
+        f.expBtn.label:SetText(ns.EXPANSION_NAMES[ns.db.filterExpansion] or "All")
+    end
+
+    if f.exclCurCheck then
+        f.exclCurCheck:SetChecked(ns.db.excludeCurrentExpansion)
+    end
+
+    if f.slotButtons then
+        local filterSlots = ns.db.filterSlots or {}
+        for slotID, btn in pairs(f.slotButtons) do
+            if filterSlots[slotID] then
+                btn:SetBackdropColor(0.0, 0.30, 0.50, 1)
+                btn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+            else
+                btn:SetBackdropColor(0.18, 0.18, 0.18, 1)
+                btn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+            end
+        end
+    end
+end
+
+-- ============================================================
+-- Settings Tab Helpers
+-- ============================================================
+
+local function CreateSettingsSection(parent, title, controls, y)
+    local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    header:SetPoint("TOPLEFT", 14, y)
+    header:SetText("|cFF00CCFF" .. title .. "|r")
+    y = y - 20
+
+    for _, ctrl in ipairs(controls) do
+        if ctrl.type == "check" then
+            local check = CreateStyledCheck(parent, 14)
+            check:SetPoint("TOPLEFT", 14, y)
+            local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            label:SetPoint("LEFT", check, "RIGHT", 4, 0)
+            label:SetText(ctrl.label)
+            label:SetTextColor(0.80, 0.80, 0.80)
+            local key = ctrl.key
+            check:SetScript("OnClick", function(self)
+                ns.db[key] = self:GetChecked()
+            end)
+            ctrl.widget = check
+            y = y - 22
+
+        elseif ctrl.type == "slider" then
+            local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            label:SetPoint("TOPLEFT", 14, y)
+            label:SetText(ctrl.label)
+            label:SetTextColor(0.80, 0.80, 0.80)
+
+            local slider = CreateStyledSlider(parent, ctrl.min, ctrl.max, ctrl.step)
+            slider:SetPoint("TOPLEFT", 200, y + 2)
+
+            local editBox = CreateStyledEditBox(parent, 40)
+            editBox:SetPoint("LEFT", slider, "RIGHT", 6, 0)
+
+            if ctrl.gold then
+                local goldLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+                goldLabel:SetPoint("LEFT", editBox, "RIGHT", 2, 0)
+                goldLabel:SetText("g")
+                goldLabel:SetTextColor(1, 0.82, 0)
+            end
+
+            local key = ctrl.key
+            local isGold = ctrl.gold
+
+            local function CommitSliderValue(self)
+                local val = tonumber(self:GetText()) or 0
+                val = math.max(ctrl.min, math.min(ctrl.max, val))
+                if isGold then
+                    ns.db[key] = val * 10000
+                else
+                    ns.db[key] = val
+                end
+                slider:SetValue(val)
+                self:SetText(tostring(val))
+                self:ClearFocus()
+            end
+
+            editBox:SetScript("OnEnterPressed", CommitSliderValue)
+            editBox:SetScript("OnTabPressed", CommitSliderValue)
+            editBox:SetScript("OnEscapePressed", function(self)
+                local val = isGold and math.floor(ns.db[key] / 10000) or ns.db[key]
+                self:SetText(tostring(val))
+                self:ClearFocus()
+            end)
+
+            slider:SetScript("OnValueChanged", function(self, value)
+                value = math.floor(value + 0.5)
+                if isGold then
+                    ns.db[key] = value * 10000
+                else
+                    ns.db[key] = value
+                end
+                editBox:SetText(tostring(value))
+            end)
+
+            ctrl.widget = slider
+            ctrl.editWidget = editBox
+            y = y - 22
+
+        elseif ctrl.type == "cycle" then
+            local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            label:SetPoint("TOPLEFT", 14, y)
+            label:SetText(ctrl.label)
+            label:SetTextColor(0.80, 0.80, 0.80)
+
+            local btn = CreateFlatButton(parent, "", 120, 18)
+            btn:SetPoint("TOPLEFT", 200, y)
+
+            local key = ctrl.key
+            local options = ctrl.options
+
+            local function UpdateCycleLabel()
+                local current = ns.db[key]
+                for _, opt in ipairs(options) do
+                    if opt[1] == current then
+                        btn.label:SetText(opt[2])
+                        return
+                    end
+                end
+                btn.label:SetText(tostring(current))
+            end
+
+            btn:SetScript("OnClick", function()
+                local current = ns.db[key]
+                local nextIdx = 1
+                for i, opt in ipairs(options) do
+                    if opt[1] == current then
+                        nextIdx = (i % #options) + 1
+                        break
+                    end
+                end
+                ns.db[key] = options[nextIdx][1]
+                UpdateCycleLabel()
+            end)
+
+            ctrl.widget = btn
+            ctrl.updateLabel = UpdateCycleLabel
+            y = y - 22
+        end
+    end
+
+    return y - 6
+end
+
+local function SyncSettingsControls(overlay)
+    for _, section in ipairs(overlay.sections) do
+        for _, ctrl in ipairs(section.controls) do
+            if ctrl.type == "check" and ctrl.widget then
+                ctrl.widget:SetChecked(ns.db[ctrl.key])
+            elseif ctrl.type == "slider" and ctrl.widget then
+                local val = ctrl.gold and math.floor(ns.db[ctrl.key] / 10000) or ns.db[ctrl.key]
+                ctrl.widget:SetValue(val)
+                if ctrl.editWidget then
+                    ctrl.editWidget:SetText(tostring(val))
+                end
+            elseif ctrl.type == "cycle" and ctrl.updateLabel then
+                ctrl.updateLabel()
+            end
+        end
+    end
+end
+
+local function CreateSettingsOverlay(f)
+    local overlay = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    overlay:SetPoint("TOPLEFT", 1, -54)
+    overlay:SetPoint("BOTTOMRIGHT", -1, 1)
+    overlay:EnableMouse(true)
+    overlay:SetBackdrop(FLAT_BACKDROP)
+    overlay:SetBackdropColor(0.06, 0.06, 0.06, 0.96)
+    overlay:SetBackdropBorderColor(0, 0, 0, 0)
+    overlay:SetFrameLevel(f:GetFrameLevel() + 10)
+    overlay:Hide()
+
+    local scrollFrame = CreateFrame("ScrollFrame", nil, overlay, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 0, 0)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -24, 0)
+
+    local scrollChild = CreateFrame("Frame", nil, scrollFrame)
+    scrollChild:SetWidth(POPUP_WIDTH - 50)
+    scrollFrame:SetScrollChild(scrollChild)
+
+    local sections = {
+        {
+            title = "General",
+            controls = {
+                { type = "check", key = "enabled", label = "Enable AutoSellPlus" },
+                { type = "check", key = "showSummary", label = "Show Summary" },
+                { type = "check", key = "showItemized", label = "Show Itemized Sales" },
+                { type = "check", key = "dryRun", label = "Dry Run Mode" },
+            },
+        },
+        {
+            title = "Automation",
+            controls = {
+                { type = "cycle", key = "autoSellMode", label = "Auto-Sell Mode",
+                  options = { {"popup", "Review Popup"}, {"oneclick", "One-Click"}, {"autosell", "Automatic"} } },
+                { type = "slider", key = "autoSellDelay", label = "Auto-Sell Delay (sec)", min = 0, max = 10, step = 1 },
+                { type = "check", key = "autoRepair", label = "Auto-Repair" },
+                { type = "check", key = "autoRepairGuild", label = "Use Guild Funds" },
+                { type = "check", key = "muteVendorSounds", label = "Mute Vendor Sounds" },
+                { type = "check", key = "prioritySellQueue", label = "Priority Sell Queue" },
+            },
+        },
+        {
+            title = "Protection",
+            controls = {
+                { type = "check", key = "protectEquipmentSets", label = "Protect Equipment Sets" },
+                { type = "check", key = "protectUncollectedTransmog", label = "Protect Uncollected Transmog" },
+                { type = "check", key = "protectTransmogSource", label = "Protect Transmog Sources" },
+                { type = "check", key = "protectBoE", label = "Protect BoE Items" },
+                { type = "check", key = "allowBoESell", label = "Allow BoE Selling (Override)" },
+                { type = "check", key = "onlySoulbound", label = "Soulbound Only Mode" },
+                { type = "check", key = "onlyEquippable", label = "Only Equippable Items" },
+                { type = "check", key = "buybackWarning", label = "Buyback Warning" },
+                { type = "check", key = "epicConfirm", label = "Confirm Epic Sales" },
+                { type = "check", key = "highValueConfirm", label = "Confirm High-Value Sales" },
+                { type = "slider", key = "highValueThreshold", label = "High-Value Threshold",
+                  min = 0, max = 100, step = 1, gold = true },
+                { type = "check", key = "excludeCurrentExpansion", label = "Exclude Current Expansion" },
+                { type = "check", key = "protectCurrentExpMaterials", label = "Protect Current Exp. Materials" },
+                { type = "check", key = "protectQuestItems", label = "Protect Quest Items" },
+            },
+        },
+        {
+            title = "Marking",
+            controls = {
+                { type = "check", key = "autoMarkGrayLoot", label = "Auto-Mark Gray Loot" },
+                { type = "slider", key = "autoMarkBelowIlvl", label = "Auto-Mark Below ilvl",
+                  min = 0, max = 700, step = 5 },
+                { type = "cycle", key = "overlayMode", label = "Overlay Visual Mode",
+                  options = { {"border", "Border"}, {"tint", "Tint"}, {"full", "Border + Tint"} } },
+                { type = "check", key = "showBagGoldDisplay", label = "Show Bag Gold Display" },
+            },
+        },
+        {
+            title = "Display",
+            controls = {
+                { type = "check", key = "showUndoToast", label = "Show Undo Toast" },
+                { type = "check", key = "showMinimapButton", label = "Show Minimap Button" },
+            },
+        },
+        {
+            title = "Bag Maintenance",
+            controls = {
+                { type = "slider", key = "freeSlotThreshold", label = "Free Slot Threshold",
+                  min = 0, max = 50, step = 1 },
+                { type = "cycle", key = "freeSlotAlertMode", label = "Alert Mode",
+                  options = { {"chat", "Chat"}, {"screen", "Screen"} } },
+                { type = "check", key = "evictionEnabled", label = "Value-Based Eviction" },
+            },
+        },
+        {
+            title = "Auto-Destroy",
+            controls = {
+                { type = "check", key = "autoDestroyEnabled", label = "Enable Auto-Destroy" },
+                { type = "check", key = "autoDestroyConfirm", label = "Require Confirmation" },
+                { type = "cycle", key = "autoDestroyMaxQuality", label = "Max Destroy Quality",
+                  options = { {0, "Poor"}, {1, "Common"}, {2, "Uncommon"}, {3, "Rare"}, {4, "Epic"} } },
+                { type = "slider", key = "autoDestroyMaxValue", label = "Max Destroy Value",
+                  min = 0, max = 100, step = 1, gold = true },
+            },
+        },
+    }
+
+    local y = -10
+    for _, section in ipairs(sections) do
+        y = CreateSettingsSection(scrollChild, section.title, section.controls, y)
+    end
+
+    scrollChild:SetHeight(math.abs(y) + 10)
+    overlay.sections = sections
+
+    return overlay
+end
+
+-- ============================================================
 -- Assembled Popup Frame
 -- ============================================================
 
 local function CreatePopupFrame()
     local f = CreateMainFrame()
+
+    -- Tab buttons
+    local itemsTab = CreateFrame("Button", nil, f, "BackdropTemplate")
+    itemsTab:SetSize(80, 22)
+    itemsTab:SetPoint("TOPLEFT", 14, -32)
+    itemsTab:SetBackdrop(FLAT_BACKDROP)
+    local itemsTabLabel = itemsTab:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    itemsTabLabel:SetPoint("CENTER")
+    itemsTabLabel:SetText("Items")
+    itemsTab.label = itemsTabLabel
+    f.itemsTab = itemsTab
+
+    local settingsTab = CreateFrame("Button", nil, f, "BackdropTemplate")
+    settingsTab:SetSize(80, 22)
+    settingsTab:SetPoint("LEFT", itemsTab, "RIGHT", 4, 0)
+    settingsTab:SetBackdrop(FLAT_BACKDROP)
+    local settingsTabLabel = settingsTab:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    settingsTabLabel:SetPoint("CENTER")
+    settingsTabLabel:SetText("Settings")
+    settingsTab.label = settingsTabLabel
+    f.settingsTab = settingsTab
+
+    -- Filter section, item list, bottom bar
     local filterEndY = CreateFilterSection(f)
     CreateItemListSection(f, filterEndY)
     CreateBottomBar(f)
+
+    -- Settings overlay
+    local settingsOverlay = CreateSettingsOverlay(f)
+    f.settingsOverlay = settingsOverlay
+
+    -- Tab switching
+    local function SetActiveTab(tab)
+        f.activeTab = tab
+        if tab == "items" then
+            settingsOverlay:Hide()
+            itemsTab:SetBackdropColor(0.0, 0.30, 0.50, 1)
+            itemsTab:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+            itemsTabLabel:SetTextColor(1, 1, 1)
+            settingsTab:SetBackdropColor(0.12, 0.12, 0.12, 1)
+            settingsTab:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
+            settingsTabLabel:SetTextColor(0.60, 0.60, 0.60)
+        else
+            settingsOverlay:Show()
+            SyncSettingsControls(settingsOverlay)
+            settingsTab:SetBackdropColor(0.0, 0.30, 0.50, 1)
+            settingsTab:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+            settingsTabLabel:SetTextColor(1, 1, 1)
+            itemsTab:SetBackdropColor(0.12, 0.12, 0.12, 1)
+            itemsTab:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
+            itemsTabLabel:SetTextColor(0.60, 0.60, 0.60)
+        end
+    end
+
+    itemsTab:SetScript("OnClick", function()
+        if f.activeTab ~= "items" then
+            SetActiveTab("items")
+            SyncFiltersFromDB(f)
+            displayList = ns:BuildDisplayList()
+            ns:ApplyFilters(displayList, userUnchecked)
+            ns:RefreshPopupList()
+        end
+    end)
+    settingsTab:SetScript("OnClick", function()
+        if f.activeTab ~= "settings" then
+            SetActiveTab("settings")
+        end
+    end)
+
+    -- Hover effects for inactive tabs
+    itemsTab:SetScript("OnEnter", function(self)
+        if f.activeTab ~= "items" then
+            self:SetBackdropColor(0.18, 0.18, 0.18, 1)
+        end
+    end)
+    itemsTab:SetScript("OnLeave", function(self)
+        if f.activeTab ~= "items" then
+            self:SetBackdropColor(0.12, 0.12, 0.12, 1)
+        end
+    end)
+    settingsTab:SetScript("OnEnter", function(self)
+        if f.activeTab ~= "settings" then
+            self:SetBackdropColor(0.18, 0.18, 0.18, 1)
+        end
+    end)
+    settingsTab:SetScript("OnLeave", function(self)
+        if f.activeTab ~= "settings" then
+            self:SetBackdropColor(0.12, 0.12, 0.12, 1)
+        end
+    end)
+
+    f.SetActiveTab = SetActiveTab
+    SetActiveTab("items")
 
     tinsert(UISpecialFrames, "AutoSellPlusPopup")
     f:Hide()
@@ -1227,55 +1630,9 @@ function ns:ShowPopup()
         popup.titleText:SetText("|cFF00CCFFAutoSellPlus|r")
     end
 
-    -- Sync filter controls with saved settings
-    popup.grayCheck:SetChecked(self.db.sellGrays)
-    if popup.whiteCheck then popup.whiteCheck:SetChecked(self.db.sellWhites) end
-    popup.greenCheck:SetChecked(self.db.sellGreens)
-    popup.blueCheck:SetChecked(self.db.sellBlues)
-    if popup.epicCheck then popup.epicCheck:SetChecked(self.db.sellEpics) end
-    popup.equipCheck:SetChecked(self.db.onlyEquippable)
-    popup.transmogCheck:SetChecked(not self.db.protectUncollectedTransmog)
-    popup.soulboundCheck:SetChecked(self.db.onlySoulbound)
-
-    if popup.whiteSlider then
-        popup.whiteSlider:SetValue(self.db.whiteMaxIlvl)
-        popup.whiteEditBox:SetText(tostring(self.db.whiteMaxIlvl))
-    end
-    popup.greenSlider:SetValue(self.db.greenMaxIlvl)
-    popup.greenEditBox:SetText(tostring(self.db.greenMaxIlvl))
-    popup.blueSlider:SetValue(self.db.blueMaxIlvl)
-    popup.blueEditBox:SetText(tostring(self.db.blueMaxIlvl))
-    if popup.epicSlider then
-        popup.epicSlider:SetValue(self.db.epicMaxIlvl)
-        popup.epicEditBox:SetText(tostring(self.db.epicMaxIlvl))
-    end
-
-    if popup.categoryChecks then
-        for key, check in pairs(popup.categoryChecks) do
-            check:SetChecked(self.db[key])
-        end
-    end
-
-    if popup.expBtn then
-        popup.expBtn.label:SetText(ns.EXPANSION_NAMES[self.db.filterExpansion] or "All")
-    end
-
-    if popup.exclCurCheck then
-        popup.exclCurCheck:SetChecked(self.db.excludeCurrentExpansion)
-    end
-
-    if popup.slotButtons then
-        local filterSlots = self.db.filterSlots or {}
-        for slotID, btn in pairs(popup.slotButtons) do
-            if filterSlots[slotID] then
-                btn:SetBackdropColor(0.0, 0.30, 0.50, 1)
-                btn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
-            else
-                btn:SetBackdropColor(0.18, 0.18, 0.18, 1)
-                btn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
-            end
-        end
-    end
+    -- Reset to Items tab and sync filter controls
+    popup.SetActiveTab("items")
+    SyncFiltersFromDB(popup)
 
     wipe(userUnchecked)
 
