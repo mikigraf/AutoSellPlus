@@ -57,7 +57,10 @@ local function OnModifiedClick(bag, slot)
 end
 
 -- Auto-mark looted items
-local function OnLootReceived(_, _, itemLink)
+local function OnLootReceived(_, _, message)
+    if not message then return end
+    -- Extract item link from chat message (e.g. "You receive loot: |Hitem:...|h[Name]|h|r x2")
+    local itemLink = message:match("(|Hitem.-|h)")
     if not itemLink then return end
     local itemID = C_Item.GetItemInfoInstant(itemLink)
     if not itemID then return end
@@ -88,7 +91,7 @@ end
 local function SetupAltClickHook()
     if hooksecurefunc then
         hooksecurefunc(C_Container, "UseContainerItem", function(bag, slot)
-            if IsAltKeyDown() or ns.bulkMarkMode then
+            if ns.bulkMarkMode or (IsAltKeyDown() and ns.isMerchantOpen) then
                 OnModifiedClick(bag, slot)
                 ClearCursor()
             end
