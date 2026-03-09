@@ -179,13 +179,16 @@ function ns:IsBindOnEquip(bag, slot)
     return true
 end
 
--- Warband detection (bindType 8 = ToBnetAccount, 9 = ToBnetAccountUntilEquipped)
+-- Warband detection
+-- bindType 7 = ToWoWAccount (legacy Bind to Account, still used by many items)
+-- bindType 8 = ToBnetAccount (Binds to Warband)
+-- bindType 9 = ToBnetAccountUntilEquipped (Binds to Warband until equipped)
 function ns:IsWarband(bag, slot)
     local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
     if not itemInfo or not itemInfo.hyperlink then return false end
 
     local _, _, _, _, _, _, _, _, _, _, _, _, _, bindType = C_Item.GetItemInfo(itemInfo.hyperlink)
-    return bindType == 8 or bindType == 9
+    return bindType == 7 or bindType == 8 or bindType == 9
 end
 
 -- Feature availability flags (set by RunSelfTest in Core.lua)
