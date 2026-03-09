@@ -179,6 +179,15 @@ function ns:IsBindOnEquip(bag, slot)
     return true
 end
 
+-- Warbound detection (bindType 8 = ToBnetAccount, 9 = ToBnetAccountUntilEquipped)
+function ns:IsWarbound(bag, slot)
+    local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+    if not itemInfo or not itemInfo.hyperlink then return false end
+
+    local _, _, _, _, _, _, _, _, _, _, _, _, _, bindType = C_Item.GetItemInfo(itemInfo.hyperlink)
+    return bindType == 8 or bindType == 9
+end
+
 -- Feature availability flags (set by RunSelfTest in Core.lua)
 ns.features = {
     selling = true,
@@ -302,6 +311,9 @@ function ns:ShouldSellItem(bag, slot)
     if db.protectBoE and not db.allowBoESell then
         if self:IsBindOnEquip(bag, slot) then return false end
     end
+
+    -- Warbound protection
+    if db.protectWarbound and self:IsWarbound(bag, slot) then return false end
 
     -- Soulbound-only mode: skip items not bound to player
     if db.onlySoulbound then

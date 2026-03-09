@@ -39,6 +39,8 @@ function ns:BuildDisplayList()
                             -- Skip: soulbound-only mode, item is not bound to player
                         elseif self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
                             -- Skip: BoE protection
+                        elseif self.db.protectWarbound and self:IsWarbound(bag, slot) and not isAlwaysSell then
+                            -- Skip: Warbound protection
                         elseif self.db.protectCurrentExpMaterials
                             and bClassID == 7
                             and self:GetItemExpansion(itemLink) == ns.CURRENT_EXPANSION

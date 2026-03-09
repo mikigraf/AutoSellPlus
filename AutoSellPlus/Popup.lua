@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- Layout constants
 local ROW_HEIGHT = 28
 local POPUP_WIDTH = 580
-local POPUP_HEIGHT = 672
+local POPUP_HEIGHT = 694
 
 local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
@@ -734,6 +734,22 @@ local function CreateFilterSection(f)
     end)
     f.mountEquipCheck = mountEquipCheck
     rowY = rowY - 22
+
+    -- Protect warbound checkbox
+    local warboundCheck = CreateStyledCheck(f, 18)
+    warboundCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local warboundLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    warboundLabel:SetPoint("LEFT", warboundCheck, "RIGHT", 6, 0)
+    warboundLabel:SetText("Protect Warbound")
+    warboundLabel:SetTextColor(0.70, 0.70, 0.70)
+    warboundCheck:SetScript("OnClick", function(self)
+        ns.db.protectWarbound = self:GetChecked()
+        displayList = ns:BuildDisplayList()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+    f.warboundCheck = warboundCheck
+    rowY = rowY - 22
     rowY = rowY - 4
 
     -- Category filters
@@ -1220,6 +1236,7 @@ local function SyncFiltersFromDB(f)
     f.transmogCheck:SetChecked(not ns.db.protectUncollectedTransmog)
     f.soulboundCheck:SetChecked(ns.db.onlySoulbound)
     f.mountEquipCheck:SetChecked(ns.db.protectMountEquipment)
+    f.warboundCheck:SetChecked(ns.db.protectWarbound)
 
     if f.whiteSlider then
         f.whiteSlider:SetValue(ns.db.whiteMaxIlvl)
