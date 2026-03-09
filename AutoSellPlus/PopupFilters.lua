@@ -51,16 +51,6 @@ function ns:BuildDisplayList()
                             local classID = bClassID
                             local expansionID = self:GetItemExpansion(itemLink)
 
-                            -- AH value lookup
-                            local ahValue = 0
-                            if TSM_API and TSM_API.GetCustomPriceValue then
-                                local ok, val = pcall(TSM_API.GetCustomPriceValue, "DBMarket", "i:" .. itemID)
-                                if ok and val then ahValue = val end
-                            elseif Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.GetAuctionPriceByItemLink then
-                                local ok, val = pcall(Auctionator.API.v1.GetAuctionPriceByItemLink, "AutoSellPlus", itemLink)
-                                if ok and val then ahValue = val end
-                            end
-
                             list[#list + 1] = {
                                 bag = bag,
                                 slot = slot,
@@ -79,7 +69,7 @@ function ns:BuildDisplayList()
                                 classID = bClassID,
                                 subclassID = bSubclassID,
                                 expansionID = expansionID,
-                                ahValue = ahValue,
+                                ahValue = 0,
                                 checked = false,
                                 visible = false,
                             }
@@ -229,6 +219,17 @@ function ns:ApplyFilters(displayList, userUnchecked)
         end
 
         item.visible = visible
+
+        -- Deferred AH value lookup: only query for visible items
+        if visible and item.ahValue == 0 then
+            if TSM_API and TSM_API.GetCustomPriceValue then
+                local ok, val = pcall(TSM_API.GetCustomPriceValue, "DBMarket", "i:" .. item.itemID)
+                if ok and val then item.ahValue = val end
+            elseif Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.GetAuctionPriceByItemLink then
+                local ok, val = pcall(Auctionator.API.v1.GetAuctionPriceByItemLink, "AutoSellPlus", item.itemLink)
+                if ok and val then item.ahValue = val end
+            end
+        end
 
         local key = item.bag .. ":" .. item.slot
         if userUnchecked[key] then
