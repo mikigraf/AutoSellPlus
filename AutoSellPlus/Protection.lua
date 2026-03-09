@@ -266,6 +266,10 @@ function ns:ShouldSellItem(bag, slot)
     -- Locked items cannot be sold
     if isLocked then return false end
 
+    -- Mount equipment protection (classID 4 = Armor, subclassID 6 = Mount Equipment)
+    local _, _, _, _, _, classID, subclassID = C_Item.GetItemInfoInstant(itemID)
+    if db.protectMountEquipment and classID == 4 and subclassID == 6 then return false end
+
     -- Equipment set protection
     if db.protectEquipmentSets and self:IsInEquipmentSet(itemID) then return false end
 
@@ -283,10 +287,7 @@ function ns:ShouldSellItem(bag, slot)
     if self:IsRefundable(bag, slot) then return false end
 
     -- Quest item protection
-    if db.protectQuestItems then
-        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
-        if classID == 12 then return false end
-    end
+    if db.protectQuestItems and classID == 12 then return false end
 
     -- BoE protection
     if db.protectBoE and not db.allowBoESell then
@@ -300,7 +301,6 @@ function ns:ShouldSellItem(bag, slot)
 
     -- Current expansion materials protection
     if db.protectCurrentExpMaterials then
-        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
         if classID == 7 then
             local expansionID = ns:GetItemExpansion(itemLink)
             if expansionID == ns.CURRENT_EXPANSION then return false end

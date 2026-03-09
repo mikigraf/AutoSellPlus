@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- Layout constants
 local ROW_HEIGHT = 28
 local POPUP_WIDTH = 580
-local POPUP_HEIGHT = 650
+local POPUP_HEIGHT = 672
 
 local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
@@ -718,6 +718,22 @@ local function CreateFilterSection(f)
     end)
     f.soulboundCheck = soulboundCheck
     rowY = rowY - 22
+
+    -- Protect mount equipment checkbox
+    local mountEquipCheck = CreateStyledCheck(f, 18)
+    mountEquipCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local mountEquipLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    mountEquipLabel:SetPoint("LEFT", mountEquipCheck, "RIGHT", 6, 0)
+    mountEquipLabel:SetText("Protect Mount Equipment")
+    mountEquipLabel:SetTextColor(0.70, 0.70, 0.70)
+    mountEquipCheck:SetScript("OnClick", function(self)
+        ns.db.protectMountEquipment = self:GetChecked()
+        displayList = ns:BuildDisplayList()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+    f.mountEquipCheck = mountEquipCheck
+    rowY = rowY - 22
     rowY = rowY - 4
 
     -- Category filters
@@ -1203,6 +1219,7 @@ local function SyncFiltersFromDB(f)
     f.equipCheck:SetChecked(ns.db.onlyEquippable)
     f.transmogCheck:SetChecked(not ns.db.protectUncollectedTransmog)
     f.soulboundCheck:SetChecked(ns.db.onlySoulbound)
+    f.mountEquipCheck:SetChecked(ns.db.protectMountEquipment)
 
     if f.whiteSlider then
         f.whiteSlider:SetValue(ns.db.whiteMaxIlvl)

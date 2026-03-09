@@ -23,11 +23,13 @@ function ns:BuildDisplayList()
                     local isAlwaysSell = self:IsAlwaysSell(itemID)
                     local isMarked = self:IsMarked(itemID)
 
+                    local _, _, _, _, _, bClassID, bSubclassID = C_Item.GetItemInfoInstant(itemID)
                     if not self:IsNeverSell(itemID)
                         and not isLocked
                         and not self:IsRefundable(bag, slot)
                         and (sellPrice and sellPrice > 0 or isAlwaysSell)
                         and not hasNoValue
+                        and not (self.db.protectMountEquipment and bClassID == 4 and bSubclassID == 6)
                         and not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemID))
                         and not (self.db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmog(itemID))
                         and not (self.db.protectTransmogSource and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmogSource(itemID))
@@ -38,7 +40,7 @@ function ns:BuildDisplayList()
                         elseif self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
                             -- Skip: BoE protection
                         elseif self.db.protectCurrentExpMaterials
-                            and self:GetItemClassID(itemID) == 7
+                            and bClassID == 7
                             and self:GetItemExpansion(itemLink) == ns.CURRENT_EXPANSION
                             and not isAlwaysSell then
                             -- Skip current expansion trade goods
@@ -46,7 +48,7 @@ function ns:BuildDisplayList()
                             local ilvl = self:GetEffectiveItemLevel(itemLink)
                             local isEquippable = self:IsEquippable(itemID)
                             local equippedIlvl = isEquippable and self:GetEquippedIlvlForItem(itemID) or 0
-                            local classID = self:GetItemClassID(itemID)
+                            local classID = bClassID
                             local expansionID = self:GetItemExpansion(itemLink)
 
                             -- AH value lookup
