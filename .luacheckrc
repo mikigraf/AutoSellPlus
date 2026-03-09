@@ -108,6 +108,7 @@ read_globals = {
 
     -- WoW API: Instance
     "GetInstanceInfo",
+    "GetExpansionLevel",
 
     -- WoW API: Misc
     "strsplit",

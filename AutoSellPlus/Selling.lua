@@ -57,10 +57,13 @@ function ns:BuildSellQueue()
         for slot = 1, numSlots do
             local shouldSell, itemLink, sellPrice, stackCount = self:ShouldSellItem(bag, slot)
             if shouldSell then
+                local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
                 queue[#queue + 1] = {
                     bag = bag,
                     slot = slot,
                     itemLink = itemLink,
+                    itemID = itemInfo and itemInfo.itemID,
+                    quality = itemInfo and itemInfo.quality,
                     sellPrice = sellPrice,
                     stackCount = stackCount,
                     totalPrice = sellPrice * stackCount,
@@ -103,9 +106,9 @@ function ns:StartSelling(explicitQueue)
 
     sellQueue = explicitQueue or self:BuildSellQueue()
 
-    -- Priority sell queue: sort highest-value first for buyback safety
+    -- Priority sell queue: sell cheapest first so valuable items stay in buyback (LIFO)
     if self.db.prioritySellQueue then
-        table.sort(sellQueue, function(a, b) return a.totalPrice > b.totalPrice end)
+        table.sort(sellQueue, function(a, b) return a.totalPrice < b.totalPrice end)
     end
 
     -- Pre-sell verification
@@ -349,23 +352,31 @@ function ns:ShowUndoToast(count, copper)
     undoToast:Show()
 
     -- Auto-fade after 8 seconds
+    if not undoToast._fadeOut then
+        undoToast._fadeOut = undoToast:CreateAnimationGroup()
+        local alpha = undoToast._fadeOut:CreateAnimation("Alpha")
+        alpha:SetFromAlpha(1)
+        alpha:SetToAlpha(0)
+        alpha:SetDuration(0.5)
+        undoToast._fadeOut:SetScript("OnFinished", function()
+            undoToast:Hide()
+            undoToast:SetAlpha(1)
+        end)
+    end
     C_Timer.After(8, function()
         if undoToast and undoToast:IsShown() then
-            local fadeOut = undoToast:CreateAnimationGroup()
-            local alpha = fadeOut:CreateAnimation("Alpha")
-            alpha:SetFromAlpha(1)
-            alpha:SetToAlpha(0)
-            alpha:SetDuration(0.5)
-            fadeOut:SetScript("OnFinished", function()
-                undoToast:Hide()
-                undoToast:SetAlpha(1)
-            end)
-            fadeOut:Play()
+            undoToast._fadeOut:Stop()
+            undoToast._fadeOut:Play()
         end
     end)
 end
 
 function ns:UndoLastSale()
+    if not ns.isMerchantOpen then
+        self:Print("You must be at a merchant to undo a sale.")
+        return
+    end
+
     local buffer = self.undoBuffer
     if not buffer or not buffer.items or #buffer.items == 0 then
         self:Print("Nothing to undo.")
@@ -379,23 +390,28 @@ function ns:UndoLastSale()
         return
     end
 
-    -- Try buyback matching
-    local numBuyback = GetNumBuybackItems()
+    -- Try buyback matching (reverse iterate to handle index shifting)
     local repurchased = 0
     local repurchaseCost = 0
+    local numBuyback = GetNumBuybackItems()
 
+    -- Build a lookup of sold item names with counts
+    local soldLookup = {}
     for _, sold in ipairs(buffer.items) do
-        for i = 1, numBuyback do
-            local name, _, _, qty, price = GetBuybackItemInfo(i)
-            if name and price then
-                local soldName = sold.itemLink and sold.itemLink:match("%[(.-)%]")
-                if soldName and name == soldName then
-                    BuybackItem(i)
-                    repurchased = repurchased + 1
-                    repurchaseCost = repurchaseCost + price
-                    break
-                end
-            end
+        local soldName = sold.itemLink and sold.itemLink:match("%[(.-)%]")
+        if soldName then
+            soldLookup[soldName] = (soldLookup[soldName] or 0) + 1
+        end
+    end
+
+    -- Iterate buyback in reverse so index shifting doesn't affect earlier slots
+    for i = numBuyback, 1, -1 do
+        local name, _, _, qty, price = GetBuybackItemInfo(i)
+        if name and price and soldLookup[name] and soldLookup[name] > 0 then
+            BuybackItem(i)
+            soldLookup[name] = soldLookup[name] - 1
+            repurchased = repurchased + 1
+            repurchaseCost = repurchaseCost + price
         end
     end
 
@@ -665,25 +681,41 @@ function ns:DestroyJunk()
                 local maxQ = self.db.autoDestroyMaxQuality or 0
 
                 if quality <= maxQ then
-                    local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemInfo.hyperlink or "")
-                    sellPrice = sellPrice or 0
-                    local totalValue = sellPrice * (itemInfo.stackCount or 1)
+                    -- Skip protected items
+                    if self:IsNeverSell(itemInfo.itemID) then
+                        -- skip
+                    elseif self.db.protectEquipmentSets and self:IsInEquipmentSet(itemInfo.itemID) then
+                        -- skip
+                    elseif self.db.protectUncollectedTransmog and self:HasTransmogAppearance(itemInfo.itemID)
+                        and self:IsUncollectedTransmog(itemInfo.itemID) then
+                        -- skip
+                    elseif self.db.protectBoE and not self.db.allowBoESell
+                        and self:IsBindOnEquip(bag, slot) then
+                        -- skip
+                    elseif self:IsRefundable(bag, slot) then
+                        -- skip
+                    else
+                        local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemInfo.hyperlink or "")
+                        sellPrice = sellPrice or 0
+                        local totalValue = sellPrice * (itemInfo.stackCount or 1)
 
-                    if totalValue <= (self.db.autoDestroyMaxValue or 0) then
-                        local withinLimit = false
-                        local limits = self.db.stackLimits
-                        if limits and limits[itemInfo.itemID] then
-                            if (itemInfo.stackCount or 1) <= limits[itemInfo.itemID] then
-                                withinLimit = true
+                        local maxValue = self.db.autoDestroyMaxValue or 0
+                        if maxValue == 0 or totalValue <= maxValue then
+                            local withinLimit = false
+                            if self:ExceedsStackLimit(itemInfo.itemID) == 0 then
+                                local limits = self.db.stackLimits
+                                if limits and limits[itemInfo.itemID] then
+                                    withinLimit = true
+                                end
                             end
-                        end
-                        if not withinLimit and not self:IsNeverSell(itemInfo.itemID) then
-                            items[#items + 1] = {
-                                bag = bag,
-                                slot = slot,
-                                itemLink = itemInfo.hyperlink,
-                                value = totalValue,
-                            }
+                            if not withinLimit then
+                                items[#items + 1] = {
+                                    bag = bag,
+                                    slot = slot,
+                                    itemLink = itemInfo.hyperlink,
+                                    value = totalValue,
+                                }
+                            end
                         end
                     end
                 end
@@ -711,9 +743,12 @@ function ns:DestroyJunk()
             OnAccept = function()
                 for i = 1, count do
                     local item = items[i]
-                    C_Container.PickupContainerItem(item.bag, item.slot)
-                    DeleteCursorItem()
-                    ns:Print(format("Destroyed %s", item.itemLink or "?"))
+                    local itemInfo = C_Container.GetContainerItemInfo(item.bag, item.slot)
+                    if itemInfo and itemInfo.hyperlink == item.itemLink then
+                        C_Container.PickupContainerItem(item.bag, item.slot)
+                        DeleteCursorItem()
+                        ns:Print(format("Destroyed %s", item.itemLink or "?"))
+                    end
                 end
                 ClearCursor()
             end,
@@ -726,9 +761,12 @@ function ns:DestroyJunk()
     else
         for i = 1, count do
             local item = items[i]
-            C_Container.PickupContainerItem(item.bag, item.slot)
-            DeleteCursorItem()
-            self:Print(format("Destroyed %s", item.itemLink or "?"))
+            local itemInfo = C_Container.GetContainerItemInfo(item.bag, item.slot)
+            if itemInfo and itemInfo.hyperlink == item.itemLink then
+                C_Container.PickupContainerItem(item.bag, item.slot)
+                DeleteCursorItem()
+                self:Print(format("Destroyed %s", item.itemLink or "?"))
+            end
         end
         ClearCursor()
     end

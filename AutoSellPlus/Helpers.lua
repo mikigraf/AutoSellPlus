@@ -105,8 +105,8 @@ ns.SLOT_NAMES = {
     [16] = "Main Hand", [17] = "Off Hand",
 }
 
--- Current expansion ID (Midnight)
-ns.CURRENT_EXPANSION = 12
+-- Current expansion ID (detected dynamically, fallback to Midnight)
+ns.CURRENT_EXPANSION = GetExpansionLevel and GetExpansionLevel() or 12
 
 -- Expansion names
 ns.EXPANSION_NAMES = {

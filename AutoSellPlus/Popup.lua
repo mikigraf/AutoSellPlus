@@ -764,7 +764,7 @@ local function CreateFilterSection(f)
     expBtn:SetScript("OnClick", function()
         local current = ns.db.filterExpansion
         current = current + 1
-        if current > 12 then current = 0 end
+        if current > ns.CURRENT_EXPANSION then current = 0 end
         ns.db.filterExpansion = current
         expBtn.label:SetText(ns.EXPANSION_NAMES[current] or "All")
         ns:ApplyFilters(displayList, userUnchecked)
@@ -984,6 +984,7 @@ local function CreateBottomBar(f)
     dropIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     local function HandleDrop()
+        if not ns.isMerchantOpen then ClearCursor() return end
         if not CursorHasItem() then return end
         local infoType, itemID = GetCursorInfo()
         if infoType ~= "item" or not itemID then
@@ -1109,12 +1110,15 @@ local function CreateBottomBar(f)
         GameTooltip:Hide()
     end)
     sellAllBtn:SetScript("OnClick", function()
+        -- Track which items we force-checked so cancel can revert only those
+        local forceChecked = {}
         for _, item in ipairs(displayList) do
-            if item.visible then
+            if item.visible and not item.checked then
                 if item.quality == Enum.ItemQuality.Poor or item.isMarked then
                     item.checked = true
                     local key = item.bag .. ":" .. item.slot
                     userUnchecked[key] = nil
+                    forceChecked[key] = true
                 end
             end
         end
@@ -1141,11 +1145,14 @@ local function CreateBottomBar(f)
                 ns:SellFromPopup()
             end,
             OnCancel = function()
+                -- Only revert items that were force-checked by Sell All Junk
                 for _, item in ipairs(displayList) do
                     if item.visible then
-                        item.checked = false
                         local key = item.bag .. ":" .. item.slot
-                        userUnchecked[key] = true
+                        if forceChecked[key] then
+                            item.checked = false
+                            userUnchecked[key] = true
+                        end
                     end
                 end
                 ns:RefreshPopupList()
@@ -1726,23 +1733,26 @@ local function FlashSellButton(success)
     btn:SetBackdropColor(r, g, b, 1)
     btn:SetBackdropBorderColor(r + 0.2, g + 0.2, b + 0.2, 1)
 
-    local flashGroup = btn:CreateAnimationGroup()
-    local fadeOut = flashGroup:CreateAnimation("Alpha")
-    fadeOut:SetFromAlpha(1)
-    fadeOut:SetToAlpha(0.4)
-    fadeOut:SetDuration(0.2)
-    fadeOut:SetOrder(1)
-    local fadeIn = flashGroup:CreateAnimation("Alpha")
-    fadeIn:SetFromAlpha(0.4)
-    fadeIn:SetToAlpha(1)
-    fadeIn:SetDuration(0.2)
-    fadeIn:SetOrder(2)
-    flashGroup:SetScript("OnFinished", function()
-        btn:SetBackdropColor(0.0, 0.30, 0.50, 1)
-        btn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
-        btn:SetAlpha(1)
-    end)
-    flashGroup:Play()
+    if not btn._flashGroup then
+        btn._flashGroup = btn:CreateAnimationGroup()
+        local fo = btn._flashGroup:CreateAnimation("Alpha")
+        fo:SetFromAlpha(1)
+        fo:SetToAlpha(0.4)
+        fo:SetDuration(0.2)
+        fo:SetOrder(1)
+        local fi = btn._flashGroup:CreateAnimation("Alpha")
+        fi:SetFromAlpha(0.4)
+        fi:SetToAlpha(1)
+        fi:SetDuration(0.2)
+        fi:SetOrder(2)
+        btn._flashGroup:SetScript("OnFinished", function()
+            btn:SetBackdropColor(0.0, 0.30, 0.50, 1)
+            btn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+            btn:SetAlpha(1)
+        end)
+    end
+    btn._flashGroup:Stop()
+    btn._flashGroup:Play()
 end
 
 function ns:SellFromPopup()
@@ -1757,6 +1767,7 @@ function ns:SellFromPopup()
                 slot = item.slot,
                 itemLink = item.itemLink,
                 itemID = item.itemID,
+                quality = item.quality,
                 sellPrice = item.sellPrice,
                 stackCount = item.stackCount,
                 totalPrice = item.totalPrice,

@@ -159,11 +159,13 @@ local function CreatePage1(parent)
 
     -- Template quick-apply buttons
     if ns.profileTemplates then
+        local tplStartY = (page.selectedProfile ~= nil or
+            (AutoSellPlusDB and AutoSellPlusDB.profiles and next(AutoSellPlusDB.profiles))) and -300 or -270
         local tplLabel = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        tplLabel:SetPoint("TOPLEFT", 40, -270)
+        tplLabel:SetPoint("TOPLEFT", 40, tplStartY)
         tplLabel:SetText("Quick-start template (optional):")
 
-        local tplY = -295
+        local tplY = tplStartY - 25
         for tplName, tpl in pairs(ns.profileTemplates) do
             local tplBtn = CreateFrame("Button", nil, page, "BackdropTemplate")
             tplBtn:SetSize(330, 22)
