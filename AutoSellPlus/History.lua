@@ -63,7 +63,7 @@ function ns:PrintSessionReport()
     print(format("  Gold/hour: %dg", r.goldPerHour))
     print(format("  Starting gold: %s", self:FormatMoney(r.startGold)))
     print(format("  Current gold: %s", self:FormatMoney(r.currentGold)))
-    print(format("  Net change: %s%s", r.netGold >= 0 and "+" or "", self:FormatMoney(math.abs(r.netGold))))
+    print(format("  Net change: %s%s", r.netGold >= 0 and "+" or "-", self:FormatMoney(math.abs(r.netGold))))
 
     local dailyCopper, dailyItems = self:GetDailyStats()
     if dailyItems > 0 then
