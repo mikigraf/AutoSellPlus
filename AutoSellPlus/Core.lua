@@ -7,6 +7,7 @@ BINDING_HEADER_AUTOSELLPLUS = "AutoSellPlus"
 BINDING_NAME_ASP_TOGGLE_POPUP = "Toggle Sell Popup"
 
 ns.isMerchantOpen = false
+ns._lastInstanceType = nil
 
 function AutoSellPlus_KeybindSell()
     if ns.isMerchantOpen then
@@ -26,13 +27,9 @@ local function DoAutoRepair()
     if not canRepair or repairCost == 0 then return end
 
     -- Try guild funds first
-    if ns.db.autoRepairGuild and IsInGuild() then
-        local guildOk = pcall(function()
-            if CanGuildBankRepair() then
-                RepairAllItems(true)
-            end
-        end)
-        if guildOk then
+    if ns.db.autoRepairGuild and IsInGuild() and CanGuildBankRepair() then
+        local ok = pcall(RepairAllItems, true)
+        if ok then
             ns:Print(format("Auto-repaired for %s (guild funds)", ns:FormatMoney(repairCost)))
             return
         end
@@ -192,6 +189,10 @@ local function HandleSlashCommand(msg)
     end
 
     if cmd == "sell" then
+        if not ns.isMerchantOpen then
+            ns:Print("You must be at a merchant to sell items.")
+            return
+        end
         local queue = ns:BuildSellQueue()
         if #queue > 0 then
             ns:ConfirmAndSell(queue)
@@ -479,6 +480,7 @@ eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("MERCHANT_SHOW")
 eventFrame:RegisterEvent("MERCHANT_CLOSED")
 eventFrame:RegisterEvent("EQUIPMENT_SETS_CHANGED")
+eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 eventFrame:RegisterEvent("UI_ERROR_MESSAGE")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -552,6 +554,10 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
     elseif event == "EQUIPMENT_SETS_CHANGED" then
         ns:RebuildEquipmentSetCache()
+        ns._equippedIlvls = nil
+
+    elseif event == "PLAYER_EQUIPMENT_CHANGED" then
+        ns._equippedIlvls = nil
 
     elseif event == "UI_ERROR_MESSAGE" then
         if ns:IsSelling() then
@@ -564,12 +570,15 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
     elseif event == "PLAYER_ENTERING_WORLD" then
         local _, instanceType = GetInstanceInfo()
-        local profileName = AutoSellPlusCharDB.instanceProfiles
-            and AutoSellPlusCharDB.instanceProfiles[instanceType]
-        if profileName and profileName ~= "" then
-            if AutoSellPlusDB.profiles[profileName] then
-                ns:LoadProfile(profileName)
-                ns:Print(format("Auto-loaded instance profile: |cFF00FF00%s|r (instance type: %s)", profileName, instanceType))
+        if instanceType ~= ns._lastInstanceType then
+            ns._lastInstanceType = instanceType
+            local profileName = AutoSellPlusCharDB.instanceProfiles
+                and AutoSellPlusCharDB.instanceProfiles[instanceType]
+            if profileName and profileName ~= "" then
+                if AutoSellPlusDB.profiles[profileName] then
+                    ns:LoadProfile(profileName)
+                    ns:Print(format("Auto-loaded instance profile: |cFF00FF00%s|r (instance type: %s)", profileName, instanceType))
+                end
             end
         end
     end
