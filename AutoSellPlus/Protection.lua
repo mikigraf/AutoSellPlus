@@ -180,15 +180,34 @@ function ns:IsBindOnEquip(bag, slot)
 end
 
 -- Warband detection
--- bindType 7 = ToWoWAccount (legacy Bind to Account, still used by many items)
--- bindType 8 = ToBnetAccount (Binds to Warband)
--- bindType 9 = ToBnetAccountUntilEquipped (Binds to Warband until equipped)
+-- Primary: bindType 7/8/9 from GetItemInfo
+-- Fallback: tooltip scan using Blizzard's localized binding globals
 function ns:IsWarband(bag, slot)
     local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
     if not itemInfo or not itemInfo.hyperlink then return false end
 
     local _, _, _, _, _, _, _, _, _, _, _, _, _, bindType = C_Item.GetItemInfo(itemInfo.hyperlink)
-    return bindType == 7 or bindType == 8 or bindType == 9
+    if bindType and (bindType == 7 or bindType == 8 or bindType == 9) then return true end
+
+    -- Fallback: scan tooltip for Blizzard's localized warband/account-bound strings
+    if C_TooltipInfo and C_TooltipInfo.GetBagItem then
+        local tooltipData = C_TooltipInfo.GetBagItem(bag, slot)
+        if tooltipData and tooltipData.lines then
+            for _, line in ipairs(tooltipData.lines) do
+                local text = line.leftText
+                if text then
+                    if (ITEM_BIND_TO_BNETACCOUNT and text == ITEM_BIND_TO_BNETACCOUNT)
+                        or (ITEM_BNETACCOUNTBOUND and text == ITEM_BNETACCOUNTBOUND)
+                        or (ITEM_ACCOUNTBOUND and text == ITEM_ACCOUNTBOUND)
+                        or (ITEM_BIND_TO_ACCOUNT and text == ITEM_BIND_TO_ACCOUNT) then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
+    return false
 end
 
 -- Feature availability flags (set by RunSelfTest in Core.lua)
