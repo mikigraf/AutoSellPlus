@@ -712,9 +712,16 @@ function ns:DestroyJunk()
             OnAccept = function()
                 for i = 1, count do
                     local item = items[i]
+                    ClearCursor()
                     C_Container.PickupContainerItem(item.bag, item.slot)
-                    DeleteCursorItem()
-                    ns:Print(format("Destroyed %s", item.itemLink or "?"))
+                    local cursorType, cursorItemID = GetCursorInfo()
+                    if cursorType == "item" and cursorItemID == item.itemID then
+                        DeleteCursorItem()
+                        ns:Print(format("Destroyed %s", item.itemLink or "?"))
+                    else
+                        ClearCursor()
+                        ns:Print(format("|cFFFF6600Skipped %s — item moved or cursor mismatch|r", item.itemLink or "?"))
+                    end
                 end
                 ClearCursor()
             end,
@@ -727,9 +734,16 @@ function ns:DestroyJunk()
     else
         for i = 1, count do
             local item = items[i]
+            ClearCursor()
             C_Container.PickupContainerItem(item.bag, item.slot)
-            DeleteCursorItem()
-            self:Print(format("Destroyed %s", item.itemLink or "?"))
+            local cursorType, cursorItemID = GetCursorInfo()
+            if cursorType == "item" and cursorItemID == item.itemID then
+                DeleteCursorItem()
+                self:Print(format("Destroyed %s", item.itemLink or "?"))
+            else
+                ClearCursor()
+                self:Print(format("|cFFFF6600Skipped %s — item moved or cursor mismatch|r", item.itemLink or "?"))
+            end
         end
         ClearCursor()
     end
