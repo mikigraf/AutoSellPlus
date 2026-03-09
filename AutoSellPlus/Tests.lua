@@ -98,8 +98,21 @@ function FormatMoney:NegativeCopper()
 end
 
 -- ============================================================
--- 2. FormatGoldShort Tests
+-- New Helper Tests
 -- ============================================================
+
+local Helpers = WoWUnit("ASP Helpers")
+
+function Helpers:GetMaxBagID()
+    local maxBag = ns:GetMaxBagID()
+    IsTrue(maxBag >= 4) -- Should always be at least 4
+end
+
+function Helpers:GetServerTime()
+    local t = ns:GetServerTime()
+    IsTrue(type(t) == "number")
+    IsTrue(t > 0)
+end
 
 local FormatGoldShort = WoWUnit("ASP FormatGoldShort")
 

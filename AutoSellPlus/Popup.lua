@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- Layout constants
 local ROW_HEIGHT = 28
 local POPUP_WIDTH = 580
-local POPUP_HEIGHT = 650
+local POPUP_HEIGHT = 694
 
 local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
@@ -718,6 +718,38 @@ local function CreateFilterSection(f)
     end)
     f.soulboundCheck = soulboundCheck
     rowY = rowY - 22
+
+    -- Protect mount equipment checkbox
+    local mountEquipCheck = CreateStyledCheck(f, 18)
+    mountEquipCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local mountEquipLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    mountEquipLabel:SetPoint("LEFT", mountEquipCheck, "RIGHT", 6, 0)
+    mountEquipLabel:SetText("Protect Mount Equipment")
+    mountEquipLabel:SetTextColor(0.70, 0.70, 0.70)
+    mountEquipCheck:SetScript("OnClick", function(self)
+        ns.db.protectMountEquipment = self:GetChecked()
+        displayList = ns:BuildDisplayList()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+    f.mountEquipCheck = mountEquipCheck
+    rowY = rowY - 22
+
+    -- Protect warband checkbox
+    local warbandCheck = CreateStyledCheck(f, 18)
+    warbandCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local warbandLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    warbandLabel:SetPoint("LEFT", warbandCheck, "RIGHT", 6, 0)
+    warbandLabel:SetText("Protect Warband")
+    warbandLabel:SetTextColor(0.70, 0.70, 0.70)
+    warbandCheck:SetScript("OnClick", function(self)
+        ns.db.protectWarband = self:GetChecked()
+        displayList = ns:BuildDisplayList()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+    f.warbandCheck = warbandCheck
+    rowY = rowY - 22
     rowY = rowY - 4
 
     -- Category filters
@@ -992,7 +1024,7 @@ local function CreateBottomBar(f)
             return
         end
         -- Find the item in bags and sell it
-        for bag = 0, 4 do
+        for bag = 0, ns:GetMaxBagID() do
             local numSlots = C_Container.GetContainerNumSlots(bag)
             for slot = 1, numSlots do
                 local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -1210,6 +1242,8 @@ local function SyncFiltersFromDB(f)
     f.equipCheck:SetChecked(ns.db.onlyEquippable)
     f.transmogCheck:SetChecked(not ns.db.protectUncollectedTransmog)
     f.soulboundCheck:SetChecked(ns.db.onlySoulbound)
+    f.mountEquipCheck:SetChecked(ns.db.protectMountEquipment)
+    f.warbandCheck:SetChecked(ns.db.protectWarband)
 
     if f.whiteSlider then
         f.whiteSlider:SetValue(ns.db.whiteMaxIlvl)

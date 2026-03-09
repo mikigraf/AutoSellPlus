@@ -52,7 +52,7 @@ end
 
 function ns:BuildSellQueue()
     local queue = {}
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local shouldSell, itemLink, sellPrice, stackCount = self:ShouldSellItem(bag, slot)
@@ -179,13 +179,13 @@ function ns:ProcessNextBatch()
                 ns:UpdateSession(item.stackCount, item.totalPrice)
             end)
 
-            -- Track for undo
+            -- Track for undo (store full link for matching)
             ns.lastSoldBatch[#ns.lastSoldBatch + 1] = {
                 itemLink = item.itemLink,
                 itemID = itemInfo.itemID,
                 stackCount = item.stackCount,
                 totalPrice = item.totalPrice,
-                time = GetServerTime(),
+                time = self:GetServerTime(),
             }
 
             if self.db.showItemized then
@@ -243,7 +243,7 @@ function ns:FinishSelling()
             items = ns.lastSoldBatch,
             totalCopper = totalCopper,
             totalCount = totalSold,
-            expiry = GetServerTime() + 300,
+            expiry = self:GetServerTime() + 300,
         }
 
         -- Show undo toast
@@ -383,7 +383,7 @@ function ns:UndoLastSale()
         return
     end
 
-    if buffer.expiry and GetServerTime() > buffer.expiry then
+    if buffer.expiry and self:GetServerTime() > buffer.expiry then
         local timestamp = date("!%Y-%m-%d %H:%M", time())
         self:Print(format("Undo expired (5 min limit). Use Blizzard Item Restoration: https://battle.net/support/restoration (%s UTC)", timestamp))
         wipe(self.undoBuffer)
@@ -398,20 +398,18 @@ function ns:UndoLastSale()
     -- Build a lookup of sold item names with counts
     local soldLookup = {}
     for _, sold in ipairs(buffer.items) do
-        local soldName = sold.itemLink and sold.itemLink:match("%[(.-)%]")
-        if soldName then
-            soldLookup[soldName] = (soldLookup[soldName] or 0) + 1
-        end
-    end
-
-    -- Iterate buyback in reverse so index shifting doesn't affect earlier slots
-    for i = numBuyback, 1, -1 do
-        local name, _, _, qty, price = GetBuybackItemInfo(i)
-        if name and price and soldLookup[name] and soldLookup[name] > 0 then
-            BuybackItem(i)
-            soldLookup[name] = soldLookup[name] - 1
-            repurchased = repurchased + 1
-            repurchaseCost = repurchaseCost + price
+        for i = 1, numBuyback do
+            local name, _, _, qty, price = GetBuybackItemInfo(i)
+            local buybackLink = GetBuybackItemLink(i)
+            if name and price and buybackLink then
+                -- Match using full item link for precision
+                if buybackLink == sold.itemLink then
+                    BuybackItem(i)
+                    repurchased = repurchased + 1
+                    repurchaseCost = repurchaseCost + price
+                    break
+                end
+            end
         end
     end
 
@@ -534,7 +532,7 @@ function ns:EvictAtVendor()
     local slotsNeeded = threshold - freeSlots
     local candidates = {}
 
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -672,7 +670,7 @@ function ns:DestroyJunk()
     end
 
     local items = {}
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -743,11 +741,15 @@ function ns:DestroyJunk()
             OnAccept = function()
                 for i = 1, count do
                     local item = items[i]
-                    local itemInfo = C_Container.GetContainerItemInfo(item.bag, item.slot)
-                    if itemInfo and itemInfo.hyperlink == item.itemLink then
-                        C_Container.PickupContainerItem(item.bag, item.slot)
+                    ClearCursor()
+                    C_Container.PickupContainerItem(item.bag, item.slot)
+                    local cursorType, cursorItemID = GetCursorInfo()
+                    if cursorType == "item" and cursorItemID == item.itemID then
                         DeleteCursorItem()
                         ns:Print(format("Destroyed %s", item.itemLink or "?"))
+                    else
+                        ClearCursor()
+                        ns:Print(format("|cFFFF6600Skipped %s — item moved or cursor mismatch|r", item.itemLink or "?"))
                     end
                 end
                 ClearCursor()
@@ -761,11 +763,15 @@ function ns:DestroyJunk()
     else
         for i = 1, count do
             local item = items[i]
-            local itemInfo = C_Container.GetContainerItemInfo(item.bag, item.slot)
-            if itemInfo and itemInfo.hyperlink == item.itemLink then
-                C_Container.PickupContainerItem(item.bag, item.slot)
+            ClearCursor()
+            C_Container.PickupContainerItem(item.bag, item.slot)
+            local cursorType, cursorItemID = GetCursorInfo()
+            if cursorType == "item" and cursorItemID == item.itemID then
                 DeleteCursorItem()
                 self:Print(format("Destroyed %s", item.itemLink or "?"))
+            else
+                ClearCursor()
+                self:Print(format("|cFFFF6600Skipped %s — item moved or cursor mismatch|r", item.itemLink or "?"))
             end
         end
         ClearCursor()

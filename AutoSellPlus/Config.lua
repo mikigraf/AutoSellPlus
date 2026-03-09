@@ -51,6 +51,8 @@ ns.globalDefaults = {
     allowBoESell = false,
     onlySoulbound = false,
     protectQuestItems = true,
+    protectMountEquipment = true,
+    protectWarband = false,
     -- Display
     showSummary = true,
     showItemized = false,

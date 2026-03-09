@@ -6,7 +6,7 @@ local addonName, ns = ...
 
 function ns:BuildDisplayList()
     local list = {}
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -23,11 +23,13 @@ function ns:BuildDisplayList()
                     local isAlwaysSell = self:IsAlwaysSell(itemID)
                     local isMarked = self:IsMarked(itemID)
 
+                    local _, _, _, _, _, bClassID, bSubclassID = C_Item.GetItemInfoInstant(itemID)
                     if not self:IsNeverSell(itemID)
                         and not isLocked
                         and not self:IsRefundable(bag, slot)
                         and (sellPrice and sellPrice > 0 or isAlwaysSell)
                         and not hasNoValue
+                        and not (self.db.protectMountEquipment and bClassID == 15 and bSubclassID == 6)
                         and not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemID))
                         and not (self.db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmog(itemID))
                         and not (self.db.protectTransmogSource and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmogSource(itemID))
@@ -37,8 +39,10 @@ function ns:BuildDisplayList()
                             -- Skip: soulbound-only mode, item is not bound to player
                         elseif self.db.protectBoE and isBoe and not self.db.allowBoESell and not isAlwaysSell then
                             -- Skip: BoE protection
+                        elseif self.db.protectWarband and self:IsWarband(bag, slot) and not isAlwaysSell then
+                            -- Skip: Warband protection
                         elseif self.db.protectCurrentExpMaterials
-                            and self:GetItemClassID(itemID) == 7
+                            and bClassID == 7
                             and self:GetItemExpansion(itemLink) == ns.CURRENT_EXPANSION
                             and not isAlwaysSell then
                             -- Skip current expansion trade goods
@@ -46,18 +50,8 @@ function ns:BuildDisplayList()
                             local ilvl = self:GetEffectiveItemLevel(itemLink)
                             local isEquippable = self:IsEquippable(itemID)
                             local equippedIlvl = isEquippable and self:GetEquippedIlvlForItem(itemID) or 0
-                            local classID = self:GetItemClassID(itemID)
+                            local classID = bClassID
                             local expansionID = self:GetItemExpansion(itemLink)
-
-                            -- AH value lookup
-                            local ahValue = 0
-                            if TSM_API and TSM_API.GetCustomPriceValue then
-                                local ok, val = pcall(TSM_API.GetCustomPriceValue, "DBMarket", "i:" .. itemID)
-                                if ok and val then ahValue = val end
-                            elseif Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.GetAuctionPriceByItemLink then
-                                local ok, val = pcall(Auctionator.API.v1.GetAuctionPriceByItemLink, "AutoSellPlus", itemLink)
-                                if ok and val then ahValue = val end
-                            end
 
                             list[#list + 1] = {
                                 bag = bag,
@@ -74,9 +68,10 @@ function ns:BuildDisplayList()
                                 isAlwaysSell = isAlwaysSell,
                                 isMarked = isMarked,
                                 isBoe = isBoe,
-                                classID = classID,
+                                classID = bClassID,
+                                subclassID = bSubclassID,
                                 expansionID = expansionID,
-                                ahValue = ahValue,
+                                ahValue = 0,
                                 checked = false,
                                 visible = false,
                             }
@@ -204,6 +199,7 @@ function ns:ApplyFilters(displayList, userUnchecked)
 
         -- Category filters (non-equippable items)
         if not visible then
+            local isMountEquip = (item.classID == 15 and item.subclassID == 6)
             if item.classID == 0 and db.sellConsumables then
                 visible = true
                 autoChecked = true
@@ -214,12 +210,28 @@ function ns:ApplyFilters(displayList, userUnchecked)
                 visible = true
                 autoChecked = not db.protectQuestItems
             elseif item.classID == 15 and db.sellMiscItems then
-                visible = true
-                autoChecked = true
+                if db.protectMountEquipment and isMountEquip then
+                    visible = false
+                    autoChecked = false
+                else
+                    visible = true
+                    autoChecked = true
+                end
             end
         end
 
         item.visible = visible
+
+        -- Deferred AH value lookup: only query for visible items
+        if visible and item.ahValue == 0 then
+            if TSM_API and TSM_API.GetCustomPriceValue then
+                local ok, val = pcall(TSM_API.GetCustomPriceValue, "DBMarket", "i:" .. item.itemID)
+                if ok and val then item.ahValue = val end
+            elseif Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.GetAuctionPriceByItemLink then
+                local ok, val = pcall(Auctionator.API.v1.GetAuctionPriceByItemLink, "AutoSellPlus", item.itemLink)
+                if ok and val then item.ahValue = val end
+            end
+        end
 
         local key = item.bag .. ":" .. item.slot
         if userUnchecked[key] then

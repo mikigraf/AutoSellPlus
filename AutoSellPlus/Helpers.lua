@@ -250,10 +250,20 @@ function ns:DeserializeList(str)
     return imported > 0, imported
 end
 
+function ns:GetMaxBagID()
+    -- On Retail/Midnight, bag 5 is the reagent bag.
+    -- Future-proofing: use NUM_TOTAL_EQUIPPED_BAG_SLOTS if available (Modern WoW).
+    return (NUM_TOTAL_EQUIPPED_BAG_SLOTS or 5)
+end
+
+function ns:GetServerTime()
+    return C_DateAndTime and C_DateAndTime.GetServerTime() or GetServerTime()
+end
+
 -- Count free bag slots
 function ns:CountFreeSlots()
     local free = 0
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -265,11 +275,10 @@ function ns:CountFreeSlots()
     return free
 end
 
--- Calculate total vendor value of all bag items
 -- Count total quantity of an item across all bags
 function ns:GetItemCount(itemID)
     local count = 0
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -281,21 +290,9 @@ function ns:GetItemCount(itemID)
     return count
 end
 
--- Check if item exceeds its stack limit, returns excess count (0 if within limit)
-function ns:ExceedsStackLimit(itemID)
-    local limits = self.db.stackLimits
-    if not limits or not limits[itemID] then return 0 end
-    local limit = limits[itemID]
-    local current = self:GetItemCount(itemID)
-    if current > limit then
-        return current - limit
-    end
-    return 0
-end
-
 function ns:GetTotalBagVendorValue()
     local total = 0
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -312,7 +309,7 @@ end
 
 -- Iterate all bag items. Callback receives (bag, slot, itemInfo). Return true to stop.
 function ns:IterateBagItems(callback)
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -327,7 +324,7 @@ end
 
 -- Format a timestamp as "Xs ago", "Xm ago", "Xh ago", "Xd ago"
 function ns:FormatTimeAgo(timestamp)
-    local elapsed = GetServerTime() - timestamp
+    local elapsed = self:GetServerTime() - timestamp
     if elapsed < 60 then
         return elapsed .. "s ago"
     elseif elapsed < 3600 then

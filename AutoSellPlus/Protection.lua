@@ -102,12 +102,21 @@ function ns:IsTransmogProtectedByAddon(itemID, bag, slot)
     end
 
     -- CanIMogIt integration
+    -- Use CanIMogIt's own constants for locale-safe matching instead
+    -- of hardcoded English strings. Falls back to icon color if constants
+    -- are unavailable (green = learnable = uncollected).
     if CanIMogIt and CanIMogIt.GetTooltipText then
-        local itemLink = C_Container.GetContainerItemInfo(bag, slot)
-        if itemLink then
-            local text = CanIMogIt:GetTooltipText(itemLink.hyperlink or itemLink)
-            if text and text:find("Cannot") == nil and text:find("Collected") == nil then
-                return true
+        local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+        if itemInfo and itemInfo.hyperlink then
+            local text = CanIMogIt:GetTooltipText(itemInfo.hyperlink)
+            if text then
+                local notCollected = CanIMogIt.NOT_COLLECTED
+                local notCollectedOther = CanIMogIt.NOT_COLLECTED_KNOWN_BY_ANOTHER_CHARACTER
+                if notCollected and text:find(notCollected, 1, true) then
+                    return true
+                elseif notCollectedOther and text:find(notCollectedOther, 1, true) then
+                    return true
+                end
             end
         end
     end
@@ -172,6 +181,37 @@ function ns:IsBindOnEquip(bag, slot)
     end
 
     return true
+end
+
+-- Warband detection
+-- Primary: bindType 7/8/9 from GetItemInfo
+-- Fallback: tooltip scan using Blizzard's localized binding globals
+function ns:IsWarband(bag, slot)
+    local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+    if not itemInfo or not itemInfo.hyperlink then return false end
+
+    local _, _, _, _, _, _, _, _, _, _, _, _, _, bindType = C_Item.GetItemInfo(itemInfo.hyperlink)
+    if bindType and (bindType == 7 or bindType == 8 or bindType == 9) then return true end
+
+    -- Fallback: scan tooltip for Blizzard's localized warband/account-bound strings
+    if C_TooltipInfo and C_TooltipInfo.GetBagItem then
+        local tooltipData = C_TooltipInfo.GetBagItem(bag, slot)
+        if tooltipData and tooltipData.lines then
+            for _, line in ipairs(tooltipData.lines) do
+                local text = line.leftText
+                if text then
+                    if (ITEM_BIND_TO_BNETACCOUNT and text == ITEM_BIND_TO_BNETACCOUNT)
+                        or (ITEM_BNETACCOUNTBOUND and text == ITEM_BNETACCOUNTBOUND)
+                        or (ITEM_ACCOUNTBOUND and text == ITEM_ACCOUNTBOUND)
+                        or (ITEM_BIND_TO_ACCOUNT and text == ITEM_BIND_TO_ACCOUNT) then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
+    return false
 end
 
 -- Feature availability flags (set by RunSelfTest in Core.lua)
@@ -270,6 +310,10 @@ function ns:ShouldSellItem(bag, slot)
     -- Locked items cannot be sold
     if isLocked then return false end
 
+    -- Mount equipment protection (classID 4 = Armor, subclassID 6 = Mount Equipment)
+    local _, _, _, _, _, classID, subclassID = C_Item.GetItemInfoInstant(itemID)
+    if db.protectMountEquipment and classID == 15 and subclassID == 6 then return false end
+
     -- Equipment set protection
     if db.protectEquipmentSets and self:IsInEquipmentSet(itemID) then return false end
 
@@ -288,15 +332,15 @@ function ns:ShouldSellItem(bag, slot)
     if self:IsRefundable(bag, slot) then return false end
 
     -- Quest item protection
-    if db.protectQuestItems then
-        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
-        if classID == 12 then return false end
-    end
+    if db.protectQuestItems and classID == 12 then return false end
 
     -- BoE protection
     if db.protectBoE and not db.allowBoESell then
         if self:IsBindOnEquip(bag, slot) then return false end
     end
+
+    -- Warband protection
+    if db.protectWarband and self:IsWarband(bag, slot) then return false end
 
     -- Soulbound-only mode: skip items not bound to player
     if db.onlySoulbound then
@@ -305,7 +349,6 @@ function ns:ShouldSellItem(bag, slot)
 
     -- Current expansion materials protection
     if db.protectCurrentExpMaterials then
-        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
         if classID == 7 then
             local expansionID = ns:GetItemExpansion(itemLink)
             if expansionID == ns.CURRENT_EXPANSION then return false end

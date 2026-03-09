@@ -160,6 +160,37 @@ local function CreateDividerRow(parent, index)
 end
 
 -- ============================================================
+-- Row Creation & Pooling
+-- ============================================================
+
+local rowPool = {}
+
+local function GetRow(parent, index, isDivider)
+    local row
+    -- Find an existing hidden row of the correct type
+    for i, r in ipairs(rowPool) do
+        if not r:IsShown() and ((isDivider and r.isDivider) or (not isDivider and not r.isDivider)) then
+            row = r
+            row:SetParent(parent)
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -(index - 1) * ROW_HEIGHT)
+            break
+        end
+    end
+
+    if not row then
+        if isDivider then
+            row = CreateDividerRow(parent, index)
+        else
+            row = CreateRow(parent, index)
+        end
+        rowPool[#rowPool + 1] = row
+    end
+
+    return row
+end
+
+-- ============================================================
 -- Public API
 -- ============================================================
 
@@ -168,10 +199,9 @@ function ns:ShowConfirmList(queue, parentFrame)
 
     local f = GetOrCreatePanel()
 
-    -- Clear old rows
-    for _, row in ipairs(f.rows) do
+    -- Hide all pooled rows first
+    for _, row in ipairs(rowPool) do
         row:Hide()
-        row:SetParent(nil)
     end
     wipe(f.rows)
 
@@ -184,13 +214,13 @@ function ns:ShowConfirmList(queue, parentFrame)
         -- Insert divider before item 13
         if i == BUYBACK_LIMIT + 1 then
             rowIndex = rowIndex + 1
-            local divider = CreateDividerRow(scrollChild, rowIndex)
+            local divider = GetRow(scrollChild, rowIndex, true)
             f.rows[#f.rows + 1] = divider
             divider:Show()
         end
 
         rowIndex = rowIndex + 1
-        local row = CreateRow(scrollChild, rowIndex)
+        local row = GetRow(scrollChild, rowIndex, false)
         f.rows[#f.rows + 1] = row
 
         -- Icon

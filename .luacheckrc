@@ -91,6 +91,13 @@ read_globals = {
 
     -- WoW API: Tooltip
     "TooltipDataProcessor",
+    "C_TooltipInfo",
+
+    -- WoW API: Binding globals (localized by Blizzard)
+    "ITEM_BIND_TO_BNETACCOUNT",
+    "ITEM_BNETACCOUNTBOUND",
+    "ITEM_ACCOUNTBOUND",
+    "ITEM_BIND_TO_ACCOUNT",
 
     -- WoW API: Chat
     "ChatEdit_InsertLink",
@@ -109,6 +116,8 @@ read_globals = {
     -- WoW API: Instance
     "GetInstanceInfo",
     "GetExpansionLevel",
+    "NUM_TOTAL_EQUIPPED_BAG_SLOTS",
+    "C_DateAndTime",
 
     -- WoW API: Misc
     "strsplit",
@@ -118,6 +127,7 @@ read_globals = {
     "GetAddOnMetadata",
     "date",
     "time",
+    "GetBuybackItemLink",
     "GetLootSlotLink",
     "LootSlot",
     "CursorHasItem",
