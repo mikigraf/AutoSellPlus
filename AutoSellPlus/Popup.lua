@@ -1007,7 +1007,7 @@ local function CreateBottomBar(f)
             return
         end
         -- Find the item in bags and sell it
-        for bag = 0, 4 do
+        for bag = 0, ns:GetMaxBagID() do
             local numSlots = C_Container.GetContainerNumSlots(bag)
             for slot = 1, numSlots do
                 local itemInfo = C_Container.GetContainerItemInfo(bag, slot)

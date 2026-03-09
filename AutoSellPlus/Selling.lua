@@ -52,7 +52,7 @@ end
 
 function ns:BuildSellQueue()
     local queue = {}
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local shouldSell, itemLink, sellPrice, stackCount = self:ShouldSellItem(bag, slot)
@@ -176,13 +176,13 @@ function ns:ProcessNextBatch()
                 ns:UpdateSession(item.stackCount, item.totalPrice)
             end)
 
-            -- Track for undo
+            -- Track for undo (store full link for matching)
             ns.lastSoldBatch[#ns.lastSoldBatch + 1] = {
                 itemLink = item.itemLink,
                 itemID = itemInfo.itemID,
                 stackCount = item.stackCount,
                 totalPrice = item.totalPrice,
-                time = GetServerTime(),
+                time = self:GetServerTime(),
             }
 
             if self.db.showItemized then
@@ -240,7 +240,7 @@ function ns:FinishSelling()
             items = ns.lastSoldBatch,
             totalCopper = totalCopper,
             totalCount = totalSold,
-            expiry = GetServerTime() + 300,
+            expiry = self:GetServerTime() + 300,
         }
 
         -- Show undo toast
@@ -372,7 +372,7 @@ function ns:UndoLastSale()
         return
     end
 
-    if buffer.expiry and GetServerTime() > buffer.expiry then
+    if buffer.expiry and self:GetServerTime() > buffer.expiry then
         local timestamp = date("!%Y-%m-%d %H:%M", time())
         self:Print(format("Undo expired (5 min limit). Use Blizzard Item Restoration: https://battle.net/support/restoration (%s UTC)", timestamp))
         wipe(self.undoBuffer)
@@ -387,9 +387,10 @@ function ns:UndoLastSale()
     for _, sold in ipairs(buffer.items) do
         for i = 1, numBuyback do
             local name, _, _, qty, price = GetBuybackItemInfo(i)
-            if name and price then
-                local soldName = sold.itemLink and sold.itemLink:match("%[(.-)%]")
-                if soldName and name == soldName then
+            local buybackLink = GetBuybackItemLink(i)
+            if name and price and buybackLink then
+                -- Match using full item link for precision
+                if buybackLink == sold.itemLink then
                     BuybackItem(i)
                     repurchased = repurchased + 1
                     repurchaseCost = repurchaseCost + price
@@ -518,7 +519,7 @@ function ns:EvictAtVendor()
     local slotsNeeded = threshold - freeSlots
     local candidates = {}
 
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -656,7 +657,7 @@ function ns:DestroyJunk()
     end
 
     local items = {}
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
