@@ -108,6 +108,8 @@ read_globals = {
 
     -- WoW API: Instance
     "GetInstanceInfo",
+    "NUM_TOTAL_EQUIPPED_BAG_SLOTS",
+    "C_DateAndTime",
 
     -- WoW API: Misc
     "strsplit",
@@ -117,6 +119,7 @@ read_globals = {
     "GetAddOnMetadata",
     "date",
     "time",
+    "GetBuybackItemLink",
     "GetLootSlotLink",
     "LootSlot",
     "CursorHasItem",

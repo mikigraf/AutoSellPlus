@@ -6,7 +6,7 @@ local addonName, ns = ...
 
 function ns:BuildDisplayList()
     local list = {}
-    for bag = 0, 4 do
+    for bag = 0, self:GetMaxBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -29,7 +29,7 @@ function ns:BuildDisplayList()
                         and not self:IsRefundable(bag, slot)
                         and (sellPrice and sellPrice > 0 or isAlwaysSell)
                         and not hasNoValue
-                        and not (self.db.protectMountEquipment and bClassID == 4 and bSubclassID == 6)
+                        and not (self.db.protectMountEquipment and bClassID == 15 and bSubclassID == 6)
                         and not (self.db.protectEquipmentSets and self:IsInEquipmentSet(itemID))
                         and not (self.db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmog(itemID))
                         and not (self.db.protectTransmogSource and self:HasTransmogAppearance(itemID) and self:IsUncollectedTransmogSource(itemID))
@@ -76,7 +76,8 @@ function ns:BuildDisplayList()
                                 isAlwaysSell = isAlwaysSell,
                                 isMarked = isMarked,
                                 isBoe = isBoe,
-                                classID = classID,
+                                classID = bClassID,
+                                subclassID = bSubclassID,
                                 expansionID = expansionID,
                                 ahValue = ahValue,
                                 checked = false,
@@ -206,6 +207,7 @@ function ns:ApplyFilters(displayList, userUnchecked)
 
         -- Category filters (non-equippable items)
         if not visible then
+            local isMountEquip = (item.classID == 15 and item.subclassID == 6)
             if item.classID == 0 and db.sellConsumables then
                 visible = true
                 autoChecked = true
@@ -216,8 +218,13 @@ function ns:ApplyFilters(displayList, userUnchecked)
                 visible = true
                 autoChecked = not db.protectQuestItems
             elseif item.classID == 15 and db.sellMiscItems then
-                visible = true
-                autoChecked = true
+                if db.protectMountEquipment and isMountEquip then
+                    visible = false
+                    autoChecked = false
+                else
+                    visible = true
+                    autoChecked = true
+                end
             end
         end
 

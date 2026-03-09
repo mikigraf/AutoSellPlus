@@ -268,7 +268,7 @@ function ns:ShouldSellItem(bag, slot)
 
     -- Mount equipment protection (classID 4 = Armor, subclassID 6 = Mount Equipment)
     local _, _, _, _, _, classID, subclassID = C_Item.GetItemInfoInstant(itemID)
-    if db.protectMountEquipment and classID == 4 and subclassID == 6 then return false end
+    if db.protectMountEquipment and classID == 15 and subclassID == 6 then return false end
 
     -- Equipment set protection
     if db.protectEquipmentSets and self:IsInEquipmentSet(itemID) then return false end
