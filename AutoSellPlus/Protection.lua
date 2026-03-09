@@ -65,17 +65,21 @@ function ns:IsUncollectedTransmogSource(itemID)
         return false
     end
 
-    -- Source-level check if available
-    if C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance then
-        local allSources = C_TransmogCollection.GetAllAppearanceSources and
-            C_TransmogCollection.GetAllAppearanceSources(itemID)
-        if allSources then
-            for _, sourceID in ipairs(allSources) do
-                if not C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance(sourceID) then
-                    return true
+    -- Source-level check: get the item's visual appearance ID, then check all sources
+    if C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance
+        and C_TransmogCollection.GetItemInfo
+        and C_TransmogCollection.GetAllAppearanceSources then
+        local appearanceID = C_TransmogCollection.GetItemInfo(itemID)
+        if appearanceID then
+            local allSources = C_TransmogCollection.GetAllAppearanceSources(appearanceID)
+            if allSources then
+                for _, sourceID in ipairs(allSources) do
+                    if not C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance(sourceID) then
+                        return true
+                    end
                 end
+                return false
             end
-            return false
         end
     end
 
@@ -272,6 +276,7 @@ function ns:ShouldSellItem(bag, slot)
     -- Uncollected transmog protection (only items with visual appearances)
     if db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) then
         if self:IsUncollectedTransmog(itemID) then return false end
+        if self:IsTransmogProtectedByAddon(itemID, bag, slot) then return false end
     end
 
     -- Source-level transmog protection
