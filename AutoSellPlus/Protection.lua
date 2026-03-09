@@ -98,12 +98,21 @@ function ns:IsTransmogProtectedByAddon(itemID, bag, slot)
     end
 
     -- CanIMogIt integration
+    -- Use CanIMogIt's own constants for locale-safe matching instead
+    -- of hardcoded English strings. Falls back to icon color if constants
+    -- are unavailable (green = learnable = uncollected).
     if CanIMogIt and CanIMogIt.GetTooltipText then
-        local itemLink = C_Container.GetContainerItemInfo(bag, slot)
-        if itemLink then
-            local text = CanIMogIt:GetTooltipText(itemLink.hyperlink or itemLink)
-            if text and text:find("Cannot") == nil and text:find("Collected") == nil then
-                return true
+        local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+        if itemInfo and itemInfo.hyperlink then
+            local text = CanIMogIt:GetTooltipText(itemInfo.hyperlink)
+            if text then
+                local notCollected = CanIMogIt.NOT_COLLECTED
+                local notCollectedOther = CanIMogIt.NOT_COLLECTED_KNOWN_BY_ANOTHER_CHARACTER
+                if notCollected and text:find(notCollected, 1, true) then
+                    return true
+                elseif notCollectedOther and text:find(notCollectedOther, 1, true) then
+                    return true
+                end
             end
         end
     end
