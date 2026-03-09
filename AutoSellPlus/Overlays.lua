@@ -249,6 +249,28 @@ end
 -- Visual Flash on Bag Item
 -- ============================================================
 
+local flashPool = {}
+
+local function GetFlashTexture(parent)
+    local flash = table.remove(flashPool)
+    if not flash then
+        flash = parent:CreateTexture(nil, "OVERLAY")
+        flash._ag = parent:CreateAnimationGroup()
+        local alpha = flash._ag:CreateAnimation("Alpha")
+        alpha:SetFromAlpha(0.5)
+        alpha:SetToAlpha(0)
+        alpha:SetDuration(0.5)
+        flash._ag:SetScript("OnFinished", function()
+            flash:Hide()
+            flash:ClearAllPoints()
+            flashPool[#flashPool + 1] = flash
+        end)
+    else
+        flash:SetParent(parent)
+    end
+    return flash
+end
+
 function ns:FlashBagItem(itemID, colorR, colorG, colorB)
     if not itemID then return end
     for bag = 0, 4 do
@@ -258,20 +280,12 @@ function ns:FlashBagItem(itemID, colorR, colorG, colorB)
             if itemInfo and itemInfo.itemID == itemID then
                 local frame = self:GetBagItemFrame(bag, slot)
                 if frame and frame:IsShown() then
-                    local flash = frame:CreateTexture(nil, "OVERLAY")
+                    local flash = GetFlashTexture(frame)
                     flash:SetAllPoints(frame)
                     flash:SetColorTexture(colorR or 0, colorG or 1, colorB or 0, 0.5)
-
-                    local ag = flash:GetParent():CreateAnimationGroup()
-                    local alpha = ag:CreateAnimation("Alpha")
-                    alpha:SetFromAlpha(0.5)
-                    alpha:SetToAlpha(0)
-                    alpha:SetDuration(0.5)
-                    ag:SetScript("OnFinished", function()
-                        flash:Hide()
-                        flash:SetParent(nil)
-                    end)
-                    ag:Play()
+                    flash:Show()
+                    flash._ag:Stop()
+                    flash._ag:Play()
                 end
             end
         end
