@@ -735,20 +735,20 @@ local function CreateFilterSection(f)
     f.mountEquipCheck = mountEquipCheck
     rowY = rowY - 22
 
-    -- Protect warbound checkbox
-    local warboundCheck = CreateStyledCheck(f, 18)
-    warboundCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
-    local warboundLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    warboundLabel:SetPoint("LEFT", warboundCheck, "RIGHT", 6, 0)
-    warboundLabel:SetText("Protect Warbound")
-    warboundLabel:SetTextColor(0.70, 0.70, 0.70)
-    warboundCheck:SetScript("OnClick", function(self)
-        ns.db.protectWarbound = self:GetChecked()
+    -- Protect warband checkbox
+    local warbandCheck = CreateStyledCheck(f, 18)
+    warbandCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local warbandLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    warbandLabel:SetPoint("LEFT", warbandCheck, "RIGHT", 6, 0)
+    warbandLabel:SetText("Protect Warband")
+    warbandLabel:SetTextColor(0.70, 0.70, 0.70)
+    warbandCheck:SetScript("OnClick", function(self)
+        ns.db.protectWarband = self:GetChecked()
         displayList = ns:BuildDisplayList()
         ns:ApplyFilters(displayList, userUnchecked)
         ns:RefreshPopupList()
     end)
-    f.warboundCheck = warboundCheck
+    f.warbandCheck = warbandCheck
     rowY = rowY - 22
     rowY = rowY - 4
 
@@ -1236,7 +1236,7 @@ local function SyncFiltersFromDB(f)
     f.transmogCheck:SetChecked(not ns.db.protectUncollectedTransmog)
     f.soulboundCheck:SetChecked(ns.db.onlySoulbound)
     f.mountEquipCheck:SetChecked(ns.db.protectMountEquipment)
-    f.warboundCheck:SetChecked(ns.db.protectWarbound)
+    f.warbandCheck:SetChecked(ns.db.protectWarband)
 
     if f.whiteSlider then
         f.whiteSlider:SetValue(ns.db.whiteMaxIlvl)

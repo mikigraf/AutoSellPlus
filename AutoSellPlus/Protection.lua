@@ -179,8 +179,8 @@ function ns:IsBindOnEquip(bag, slot)
     return true
 end
 
--- Warbound detection (bindType 8 = ToBnetAccount, 9 = ToBnetAccountUntilEquipped)
-function ns:IsWarbound(bag, slot)
+-- Warband detection (bindType 8 = ToBnetAccount, 9 = ToBnetAccountUntilEquipped)
+function ns:IsWarband(bag, slot)
     local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
     if not itemInfo or not itemInfo.hyperlink then return false end
 
@@ -312,8 +312,8 @@ function ns:ShouldSellItem(bag, slot)
         if self:IsBindOnEquip(bag, slot) then return false end
     end
 
-    -- Warbound protection
-    if db.protectWarbound and self:IsWarbound(bag, slot) then return false end
+    -- Warband protection
+    if db.protectWarband and self:IsWarband(bag, slot) then return false end
 
     -- Soulbound-only mode: skip items not bound to player
     if db.onlySoulbound then

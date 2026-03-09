@@ -52,7 +52,7 @@ ns.globalDefaults = {
     onlySoulbound = false,
     protectQuestItems = true,
     protectMountEquipment = true,
-    protectWarbound = false,
+    protectWarband = false,
     -- Display
     showSummary = true,
     showItemized = false,
