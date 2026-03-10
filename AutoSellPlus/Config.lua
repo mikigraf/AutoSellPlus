@@ -32,6 +32,8 @@ ns.globalDefaults = {
     epicConfirm = true,
     -- Equippable filter
     onlyEquippable = true,
+    -- Sell criteria
+    sellCollectedTransmog = false,
     -- Category filters
     sellConsumables = false,
     sellTradeGoods = false,

@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- Layout constants
 local ROW_HEIGHT = 28
 local POPUP_WIDTH = 580
-local POPUP_HEIGHT = 694
+local POPUP_HEIGHT = 716
 
 local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
@@ -703,6 +703,22 @@ local function CreateFilterSection(f)
     f.transmogCheck = transmogCheck
     rowY = rowY - 22
 
+    -- Sell collected transmog checkbox
+    local collTransmogCheck = CreateStyledCheck(f, 18)
+    collTransmogCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local collTransmogLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    collTransmogLabel:SetPoint("LEFT", collTransmogCheck, "RIGHT", 6, 0)
+    collTransmogLabel:SetText("Sell Collected Transmog")
+    collTransmogLabel:SetTextColor(0.70, 0.70, 0.70)
+    collTransmogCheck:SetScript("OnClick", function(self)
+        ns.db.sellCollectedTransmog = self:GetChecked()
+        displayList = ns:BuildDisplayList()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+    f.collTransmogCheck = collTransmogCheck
+    rowY = rowY - 22
+
     -- Soulbound only checkbox
     local soulboundCheck = CreateStyledCheck(f, 18)
     soulboundCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
@@ -1241,6 +1257,7 @@ local function SyncFiltersFromDB(f)
     if f.epicCheck then f.epicCheck:SetChecked(ns.db.sellEpics) end
     f.equipCheck:SetChecked(ns.db.onlyEquippable)
     f.transmogCheck:SetChecked(not ns.db.protectUncollectedTransmog)
+    f.collTransmogCheck:SetChecked(ns.db.sellCollectedTransmog)
     f.soulboundCheck:SetChecked(ns.db.onlySoulbound)
     f.mountEquipCheck:SetChecked(ns.db.protectMountEquipment)
     f.warbandCheck:SetChecked(ns.db.protectWarband)
@@ -1478,6 +1495,7 @@ local function CreateSettingsOverlay(f)
                 { type = "check", key = "protectEquipmentSets", label = "Protect Equipment Sets" },
                 { type = "check", key = "protectUncollectedTransmog", label = "Protect Uncollected Transmog" },
                 { type = "check", key = "protectTransmogSource", label = "Protect Transmog Sources" },
+                { type = "check", key = "sellCollectedTransmog", label = "Sell Collected Transmog" },
                 { type = "check", key = "protectBoE", label = "Protect BoE Items" },
                 { type = "check", key = "allowBoESell", label = "Allow BoE Selling (Override)" },
                 { type = "check", key = "onlySoulbound", label = "Soulbound Only Mode" },

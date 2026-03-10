@@ -156,6 +156,14 @@ function ns:HasTransmogAppearance(itemID)
     return not NON_TRANSMOG_EQUIP_LOCS[itemEquipLoc]
 end
 
+-- Collected transmog detection (item has appearance AND it's already collected)
+function ns:IsCollectedTransmog(itemID)
+    if not self.features.transmog then return false end
+    if not self:HasTransmogAppearance(itemID) then return false end
+    if not C_TransmogCollection or not C_TransmogCollection.PlayerHasTransmog then return false end
+    return C_TransmogCollection.PlayerHasTransmog(itemID)
+end
+
 -- Soulbound detection
 function ns:IsSoulbound(bag, slot)
     local itemLoc = ItemLocation:CreateFromBagAndSlot(bag, slot)
@@ -353,6 +361,11 @@ function ns:ShouldSellItem(bag, slot)
             local expansionID = ns:GetItemExpansion(itemLink)
             if expansionID == ns.CURRENT_EXPANSION then return false end
         end
+    end
+
+    -- Sell collected transmog
+    if db.sellCollectedTransmog and self:IsCollectedTransmog(itemID) then
+        return true, itemLink, sellPrice, stackCount
     end
 
     -- Quality-based selling (data-driven)
