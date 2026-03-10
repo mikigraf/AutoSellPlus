@@ -34,6 +34,7 @@ ns.globalDefaults = {
     onlyEquippable = true,
     -- Sell criteria
     sellCollectedTransmog = false,
+    sellKnownCollectibles = false,
     -- Category filters
     sellConsumables = false,
     sellTradeGoods = false,

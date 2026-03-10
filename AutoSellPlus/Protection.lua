@@ -164,6 +164,34 @@ function ns:IsCollectedTransmog(itemID)
     return C_TransmogCollection.PlayerHasTransmog(itemID)
 end
 
+-- Known collectible detection (mounts, pets, toys)
+function ns:IsKnownMount(itemID)
+    if not C_MountJournal or not C_MountJournal.GetMountFromItem then return false end
+    local mountID = C_MountJournal.GetMountFromItem(itemID)
+    if not mountID then return false end
+    local _, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
+    return isCollected or false
+end
+
+function ns:IsKnownPet(itemID)
+    if not C_PetJournal or not C_PetJournal.GetPetInfoByItemID then return false end
+    local _, _, _, _, _, _, _, _, _, _, _, _, speciesID = C_PetJournal.GetPetInfoByItemID(itemID)
+    if not speciesID then return false end
+    local numCollected = C_PetJournal.GetNumCollectedInfo(speciesID)
+    return numCollected and numCollected > 0
+end
+
+function ns:IsKnownToy(itemID)
+    if not C_ToyBox or not PlayerHasToy then return false end
+    local toyID = C_ToyBox.GetToyInfo(itemID)
+    if not toyID then return false end
+    return PlayerHasToy(itemID)
+end
+
+function ns:IsKnownCollectible(itemID)
+    return self:IsKnownMount(itemID) or self:IsKnownPet(itemID) or self:IsKnownToy(itemID)
+end
+
 -- Soulbound detection
 function ns:IsSoulbound(bag, slot)
     local itemLoc = ItemLocation:CreateFromBagAndSlot(bag, slot)
@@ -365,6 +393,11 @@ function ns:ShouldSellItem(bag, slot)
 
     -- Sell collected transmog
     if db.sellCollectedTransmog and self:IsCollectedTransmog(itemID) then
+        return true, itemLink, sellPrice, stackCount
+    end
+
+    -- Sell known collectibles (mounts, pets, toys)
+    if db.sellKnownCollectibles and self:IsKnownCollectible(itemID) then
         return true, itemLink, sellPrice, stackCount
     end
 

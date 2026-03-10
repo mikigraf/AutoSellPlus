@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- Layout constants
 local ROW_HEIGHT = 28
 local POPUP_WIDTH = 580
-local POPUP_HEIGHT = 716
+local POPUP_HEIGHT = 738
 
 local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
@@ -766,6 +766,22 @@ local function CreateFilterSection(f)
     end)
     f.warbandCheck = warbandCheck
     rowY = rowY - 22
+
+    -- Sell known collectibles checkbox
+    local knownCollCheck = CreateStyledCheck(f, 18)
+    knownCollCheck:SetPoint("TOPLEFT", filterLeft, filterTop + rowY)
+    local knownCollLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    knownCollLabel:SetPoint("LEFT", knownCollCheck, "RIGHT", 6, 0)
+    knownCollLabel:SetText("Sell Known Collectibles")
+    knownCollLabel:SetTextColor(0.70, 0.70, 0.70)
+    knownCollCheck:SetScript("OnClick", function(self)
+        ns.db.sellKnownCollectibles = self:GetChecked()
+        displayList = ns:BuildDisplayList()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+    f.knownCollCheck = knownCollCheck
+    rowY = rowY - 22
     rowY = rowY - 4
 
     -- Category filters
@@ -1261,6 +1277,7 @@ local function SyncFiltersFromDB(f)
     f.soulboundCheck:SetChecked(ns.db.onlySoulbound)
     f.mountEquipCheck:SetChecked(ns.db.protectMountEquipment)
     f.warbandCheck:SetChecked(ns.db.protectWarband)
+    f.knownCollCheck:SetChecked(ns.db.sellKnownCollectibles)
 
     if f.whiteSlider then
         f.whiteSlider:SetValue(ns.db.whiteMaxIlvl)
@@ -1496,6 +1513,7 @@ local function CreateSettingsOverlay(f)
                 { type = "check", key = "protectUncollectedTransmog", label = "Protect Uncollected Transmog" },
                 { type = "check", key = "protectTransmogSource", label = "Protect Transmog Sources" },
                 { type = "check", key = "sellCollectedTransmog", label = "Sell Collected Transmog" },
+                { type = "check", key = "sellKnownCollectibles", label = "Sell Known Collectibles" },
                 { type = "check", key = "protectBoE", label = "Protect BoE Items" },
                 { type = "check", key = "allowBoESell", label = "Allow BoE Selling (Override)" },
                 { type = "check", key = "onlySoulbound", label = "Soulbound Only Mode" },

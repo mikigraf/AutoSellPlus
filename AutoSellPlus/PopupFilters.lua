@@ -54,6 +54,7 @@ function ns:BuildDisplayList()
                             local expansionID = self:GetItemExpansion(itemLink)
 
                             local isCollectedTransmog = self:IsCollectedTransmog(itemID)
+                            local isKnownCollectible = self:IsKnownCollectible(itemID)
 
                             list[#list + 1] = {
                                 bag = bag,
@@ -74,6 +75,7 @@ function ns:BuildDisplayList()
                                 subclassID = bSubclassID,
                                 expansionID = expansionID,
                                 isCollectedTransmog = isCollectedTransmog,
+                                isKnownCollectible = isKnownCollectible,
                                 ahValue = 0,
                                 checked = false,
                                 visible = false,
@@ -225,6 +227,12 @@ function ns:ApplyFilters(displayList, userUnchecked)
 
         -- Sell collected transmog
         if not visible and db.sellCollectedTransmog and item.isCollectedTransmog then
+            visible = true
+            autoChecked = true
+        end
+
+        -- Sell known collectibles
+        if not visible and db.sellKnownCollectibles and item.isKnownCollectible then
             visible = true
             autoChecked = true
         end
