@@ -132,6 +132,15 @@ When a quality is enabled with an ilvl threshold > 0, only items at or below tha
 
 The **"Only Equippable"** toggle (`onlyEquippable`, default: true) limits non-gray quality filters to armor and weapons only, preventing accidental sale of valuable non-gear items.
 
+### Relative iLvl Threshold
+
+When **"Relative iLvl"** (`useRelativeIlvl`, default: off) is enabled, a single ilvl threshold is computed as a percentage of the player's average equipped ilvl (`relativeIlvlPercent`, default: 70%). This replaces all per-quality ilvl sliders with one unified threshold that auto-adjusts as gear improves.
+
+- Example: avg equipped ilvl 620 at 70% → sell threshold is 434
+- The popup header shows the computed threshold when active
+- Per-quality ilvl sliders are grayed out while relative mode is on
+- The slider ranges from 10% to 100% in steps of 5
+
 ---
 
 ## Category Filters
@@ -180,8 +189,10 @@ Items are evaluated against protection rules in strict priority order. The first
 11. **Bind-on-Equip Protection** (`protectBoE`, default: on) - unbound BoE items are skipped (overridable via `allowBoESell`)
 12. **Soulbound-Only Mode** (`onlySoulbound`, default: off) - when enabled, unbound BoE items are always skipped
 13. **Current Expansion Materials** (`protectCurrentExpMaterials`, default: off) - Trade Goods from the current expansion are skipped
-14. **Quality Filters** - items matching enabled quality tiers (and within ilvl thresholds) are included
-15. **Category Filters** - items matching enabled category toggles are included
+14. **Sell Collected Transmog** (`sellCollectedTransmog`, default: off) - items with already-collected transmog appearances are sold
+15. **Sell Known Collectibles** (`sellKnownCollectibles`, default: off) - already-known mounts, pets, and toys are sold
+16. **Quality Filters** - items matching enabled quality tiers (and within ilvl thresholds) are included
+17. **Category Filters** - items matching enabled category toggles are included
 
 ---
 
@@ -667,6 +678,14 @@ All commands use `/asp` or `/autosell` as prefix.
 | `blueMaxIlvl` | int | 0 | Max ilvl for blues (0 = all) |
 | `epicMaxIlvl` | int | 0 | Max ilvl for epics (0 = all) |
 | `onlyEquippable` | bool | true | Limit non-gray filters to armor/weapons |
+| `useRelativeIlvl` | bool | false | Use % of avg equipped ilvl as threshold |
+| `relativeIlvlPercent` | int | 70 | Percentage for relative ilvl (10-100) |
+
+### Sell Criteria
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `sellCollectedTransmog` | bool | false | Sell items with already-collected appearances |
+| `sellKnownCollectibles` | bool | false | Sell already-known mounts, pets, and toys |
 
 ### Category Filters
 | Setting | Type | Default | Description |
