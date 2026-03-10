@@ -11,6 +11,9 @@
 - **Undo buyback matching** — Use full item link comparison instead of name substring for more precise buyback matching.
 
 ### Added
+- **Sell collected transmog** (`sellCollectedTransmog`, default: off) — Marks items with already-collected transmog appearances for selling. Items pass all existing protections before this criterion applies.
+- **Sell known collectibles** (`sellKnownCollectibles`, default: off) — Marks already-known mounts, pets, and toys for selling. Uses C_MountJournal, C_PetJournal, and C_ToyBox APIs.
+- **Relative ilvl threshold** (`useRelativeIlvl`, `relativeIlvlPercent`, default: off/70%) — Computes a single ilvl sell threshold as a percentage of the player's average equipped ilvl. When enabled, replaces per-quality ilvl sliders. Grays out quality ilvl controls and shows computed threshold in popup header.
 - **Mount equipment protection** (`protectMountEquipment`, default: on) — Toggleable checkbox in popup filters. Never sells mount equipment items.
 - **Warband item protection** (`protectWarband`, default: off) — Toggleable checkbox in popup filters. Protects all warband and account-bound items from selling. Detects bindType 7/8/9 with tooltip-based fallback.
 - **Dynamic bag ID support** — Uses `NUM_TOTAL_EQUIPPED_BAG_SLOTS` for reagent bag support instead of hardcoded bag range.

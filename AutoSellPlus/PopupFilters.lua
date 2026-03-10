@@ -53,6 +53,9 @@ function ns:BuildDisplayList()
                             local classID = bClassID
                             local expansionID = self:GetItemExpansion(itemLink)
 
+                            local isCollectedTransmog = self:IsCollectedTransmog(itemID)
+                            local isKnownCollectible = self:IsKnownCollectible(itemID)
+
                             list[#list + 1] = {
                                 bag = bag,
                                 slot = slot,
@@ -71,6 +74,8 @@ function ns:BuildDisplayList()
                                 classID = bClassID,
                                 subclassID = bSubclassID,
                                 expansionID = expansionID,
+                                isCollectedTransmog = isCollectedTransmog,
+                                isKnownCollectible = isKnownCollectible,
                                 ahValue = 0,
                                 checked = false,
                                 visible = false,
@@ -90,6 +95,14 @@ end
 
 function ns:ApplyFilters(displayList, userUnchecked)
     local db = self.db
+
+    -- Compute relative ilvl threshold once
+    local relativeThreshold
+    if db.useRelativeIlvl then
+        local _, avgIlvl = self:GetEquippedIlvls()
+        relativeThreshold = math.floor(avgIlvl * db.relativeIlvlPercent / 100)
+    end
+
     for _, item in ipairs(displayList) do repeat
         local visible = false
         local autoChecked = false
@@ -154,7 +167,8 @@ function ns:ApplyFilters(displayList, userUnchecked)
                     visible = false
                 else
                     visible = true
-                    if item.ilvl > 0 and db.whiteMaxIlvl > 0 and item.ilvl <= db.whiteMaxIlvl then
+                    local whiteThreshold = relativeThreshold or db.whiteMaxIlvl
+                    if item.ilvl > 0 and whiteThreshold > 0 and item.ilvl <= whiteThreshold then
                         autoChecked = not item.isUpgrade
                     end
                 end
@@ -166,7 +180,8 @@ function ns:ApplyFilters(displayList, userUnchecked)
                     visible = false
                 else
                     visible = true
-                    if item.ilvl > 0 and db.greenMaxIlvl > 0 and item.ilvl <= db.greenMaxIlvl then
+                    local greenThreshold = relativeThreshold or db.greenMaxIlvl
+                    if item.ilvl > 0 and greenThreshold > 0 and item.ilvl <= greenThreshold then
                         autoChecked = not item.isUpgrade
                     end
                 end
@@ -178,7 +193,8 @@ function ns:ApplyFilters(displayList, userUnchecked)
                     visible = false
                 else
                     visible = true
-                    if item.ilvl > 0 and db.blueMaxIlvl > 0 and item.ilvl <= db.blueMaxIlvl then
+                    local blueThreshold = relativeThreshold or db.blueMaxIlvl
+                    if item.ilvl > 0 and blueThreshold > 0 and item.ilvl <= blueThreshold then
                         autoChecked = not item.isUpgrade
                     end
                 end
@@ -190,7 +206,8 @@ function ns:ApplyFilters(displayList, userUnchecked)
                     visible = false
                 else
                     visible = true
-                    if item.ilvl > 0 and db.epicMaxIlvl > 0 and item.ilvl <= db.epicMaxIlvl then
+                    local epicThreshold = relativeThreshold or db.epicMaxIlvl
+                    if item.ilvl > 0 and epicThreshold > 0 and item.ilvl <= epicThreshold then
                         autoChecked = not item.isUpgrade
                     end
                 end
@@ -218,6 +235,18 @@ function ns:ApplyFilters(displayList, userUnchecked)
                     autoChecked = true
                 end
             end
+        end
+
+        -- Sell collected transmog
+        if not visible and db.sellCollectedTransmog and item.isCollectedTransmog then
+            visible = true
+            autoChecked = true
+        end
+
+        -- Sell known collectibles
+        if not visible and db.sellKnownCollectibles and item.isKnownCollectible then
+            visible = true
+            autoChecked = true
         end
 
         item.visible = visible

@@ -156,6 +156,42 @@ function ns:HasTransmogAppearance(itemID)
     return not NON_TRANSMOG_EQUIP_LOCS[itemEquipLoc]
 end
 
+-- Collected transmog detection (item has appearance AND it's already collected)
+function ns:IsCollectedTransmog(itemID)
+    if not self.features.transmog then return false end
+    if not self:HasTransmogAppearance(itemID) then return false end
+    if not C_TransmogCollection or not C_TransmogCollection.PlayerHasTransmog then return false end
+    return C_TransmogCollection.PlayerHasTransmog(itemID)
+end
+
+-- Known collectible detection (mounts, pets, toys)
+function ns:IsKnownMount(itemID)
+    if not C_MountJournal or not C_MountJournal.GetMountFromItem then return false end
+    local mountID = C_MountJournal.GetMountFromItem(itemID)
+    if not mountID then return false end
+    local _, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
+    return isCollected or false
+end
+
+function ns:IsKnownPet(itemID)
+    if not C_PetJournal or not C_PetJournal.GetPetInfoByItemID then return false end
+    local _, _, _, _, _, _, _, _, _, _, _, _, speciesID = C_PetJournal.GetPetInfoByItemID(itemID)
+    if not speciesID then return false end
+    local numCollected = C_PetJournal.GetNumCollectedInfo(speciesID)
+    return numCollected and numCollected > 0
+end
+
+function ns:IsKnownToy(itemID)
+    if not C_ToyBox or not PlayerHasToy then return false end
+    local toyID = C_ToyBox.GetToyInfo(itemID)
+    if not toyID then return false end
+    return PlayerHasToy(itemID)
+end
+
+function ns:IsKnownCollectible(itemID)
+    return self:IsKnownMount(itemID) or self:IsKnownPet(itemID) or self:IsKnownToy(itemID)
+end
+
 -- Soulbound detection
 function ns:IsSoulbound(bag, slot)
     local itemLoc = ItemLocation:CreateFromBagAndSlot(bag, slot)
@@ -247,7 +283,13 @@ local function CheckQualityFilter(db, quality, itemLink, itemID, sellPrice, stac
     if not cfg.ilvlKey then return true, itemLink, sellPrice, stackCount end
     local ilvl = ns:GetEffectiveItemLevel(itemLink)
     if ilvl == 0 then return false end
-    local maxIlvl = db[cfg.ilvlKey]
+    local maxIlvl
+    if db.useRelativeIlvl then
+        local _, avgIlvl = ns:GetEquippedIlvls()
+        maxIlvl = math.floor(avgIlvl * db.relativeIlvlPercent / 100)
+    else
+        maxIlvl = db[cfg.ilvlKey]
+    end
     if maxIlvl > 0 and ilvl <= maxIlvl then return true, itemLink, sellPrice, stackCount end
     return false
 end
@@ -353,6 +395,16 @@ function ns:ShouldSellItem(bag, slot)
             local expansionID = ns:GetItemExpansion(itemLink)
             if expansionID == ns.CURRENT_EXPANSION then return false end
         end
+    end
+
+    -- Sell collected transmog
+    if db.sellCollectedTransmog and self:IsCollectedTransmog(itemID) then
+        return true, itemLink, sellPrice, stackCount
+    end
+
+    -- Sell known collectibles (mounts, pets, toys)
+    if db.sellKnownCollectibles and self:IsKnownCollectible(itemID) then
+        return true, itemLink, sellPrice, stackCount
     end
 
     -- Quality-based selling (data-driven)
