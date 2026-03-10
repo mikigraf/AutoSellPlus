@@ -3,7 +3,7 @@ local addonName, ns = ...
 -- Layout constants
 local ROW_HEIGHT = 28
 local POPUP_WIDTH = 580
-local POPUP_HEIGHT = 738
+local POPUP_HEIGHT = 760
 
 local FLAT_BACKDROP = ns.FLAT_BACKDROP
 
@@ -683,6 +683,80 @@ local function CreateFilterSection(f)
 
     f.equipCheck = CreateQualityFilterRow(f, filterTop, "Only Equippable", "onlyEquippable", nil, nil, rowY)
     rowY = rowY - 22
+
+    -- Relative ilvl row: checkbox + slider + editbox + "%" label
+    local relIlvlCheck = CreateStyledCheck(f, 18)
+    relIlvlCheck:SetPoint("TOPLEFT", 14, filterTop + rowY)
+    local relIlvlLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    relIlvlLabel:SetPoint("LEFT", relIlvlCheck, "RIGHT", 6, 0)
+    relIlvlLabel:SetText("Relative iLvl")
+
+    local relIlvlSlider = CreateStyledSlider(f, 10, 100, 5)
+    relIlvlSlider:SetPoint("LEFT", relIlvlLabel, "RIGHT", 12, 0)
+
+    local relIlvlEditBox = CreateStyledEditBox(f, 32)
+    relIlvlEditBox:SetPoint("LEFT", relIlvlSlider, "RIGHT", 6, 0)
+
+    local relIlvlPctLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    relIlvlPctLabel:SetPoint("LEFT", relIlvlEditBox, "RIGHT", 2, 0)
+    relIlvlPctLabel:SetText("%")
+    relIlvlPctLabel:SetTextColor(0.65, 0.65, 0.65)
+
+    local function UpdateRelativeIlvlAlpha()
+        local enabled = relIlvlCheck:GetChecked()
+        local alpha = enabled and 0.35 or 1.0
+        if f.whiteSlider then
+            f.whiteSlider:SetAlpha(alpha)
+            f.whiteEditBox:SetAlpha(alpha)
+        end
+        f.greenSlider:SetAlpha(alpha)
+        f.greenEditBox:SetAlpha(alpha)
+        f.blueSlider:SetAlpha(alpha)
+        f.blueEditBox:SetAlpha(alpha)
+        if f.epicSlider then
+            f.epicSlider:SetAlpha(alpha)
+            f.epicEditBox:SetAlpha(alpha)
+        end
+        relIlvlSlider:SetAlpha(enabled and 1.0 or 0.35)
+        relIlvlEditBox:SetAlpha(enabled and 1.0 or 0.35)
+        relIlvlPctLabel:SetAlpha(enabled and 1.0 or 0.35)
+    end
+
+    relIlvlCheck:SetScript("OnClick", function(self)
+        ns.db.useRelativeIlvl = self:GetChecked()
+        UpdateRelativeIlvlAlpha()
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+
+    local function CommitRelIlvl(self)
+        local val = tonumber(self:GetText()) or 70
+        val = math.max(10, math.min(100, val))
+        ns.db.relativeIlvlPercent = val
+        relIlvlSlider:SetValue(val)
+        self:SetText(tostring(val))
+        self:ClearFocus()
+    end
+    relIlvlEditBox:SetScript("OnEnterPressed", CommitRelIlvl)
+    relIlvlEditBox:SetScript("OnTabPressed", CommitRelIlvl)
+    relIlvlEditBox:SetScript("OnEscapePressed", function(self)
+        self:SetText(tostring(ns.db.relativeIlvlPercent))
+        self:ClearFocus()
+    end)
+
+    relIlvlSlider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        ns.db.relativeIlvlPercent = value
+        relIlvlEditBox:SetText(tostring(value))
+        ns:ApplyFilters(displayList, userUnchecked)
+        ns:RefreshPopupList()
+    end)
+
+    f.relIlvlCheck = relIlvlCheck
+    f.relIlvlSlider = relIlvlSlider
+    f.relIlvlEditBox = relIlvlEditBox
+    f.UpdateRelativeIlvlAlpha = UpdateRelativeIlvlAlpha
+    rowY = rowY - 22
     rowY = rowY - 4
 
     -- Allow transmog checkbox (inverted: checked = protection OFF)
@@ -1272,6 +1346,10 @@ local function SyncFiltersFromDB(f)
     f.blueCheck:SetChecked(ns.db.sellBlues)
     if f.epicCheck then f.epicCheck:SetChecked(ns.db.sellEpics) end
     f.equipCheck:SetChecked(ns.db.onlyEquippable)
+    f.relIlvlCheck:SetChecked(ns.db.useRelativeIlvl)
+    f.relIlvlSlider:SetValue(ns.db.relativeIlvlPercent)
+    f.relIlvlEditBox:SetText(tostring(ns.db.relativeIlvlPercent))
+    f.UpdateRelativeIlvlAlpha()
     f.transmogCheck:SetChecked(not ns.db.protectUncollectedTransmog)
     f.collTransmogCheck:SetChecked(ns.db.sellCollectedTransmog)
     f.soulboundCheck:SetChecked(ns.db.onlySoulbound)
@@ -1518,6 +1596,9 @@ local function CreateSettingsOverlay(f)
                 { type = "check", key = "allowBoESell", label = "Allow BoE Selling (Override)" },
                 { type = "check", key = "onlySoulbound", label = "Soulbound Only Mode" },
                 { type = "check", key = "onlyEquippable", label = "Only Equippable Items" },
+                { type = "check", key = "useRelativeIlvl", label = "Use Relative iLvl" },
+                { type = "slider", key = "relativeIlvlPercent", label = "Relative iLvl %",
+                  min = 10, max = 100, step = 5 },
                 { type = "check", key = "buybackWarning", label = "Buyback Warning" },
                 { type = "check", key = "epicConfirm", label = "Confirm Epic Sales" },
                 { type = "check", key = "highValueConfirm", label = "Confirm High-Value Sales" },
@@ -1718,7 +1799,12 @@ function ns:ShowPopup()
 
     local ilvls, avgIlvl, minIlvl = self:GetEquippedIlvls()
     self._equippedIlvls = ilvls
-    popup.avgIlvlText:SetText("Avg Equipped ilvl: " .. avgIlvl)
+    if self.db.useRelativeIlvl then
+        local threshold = math.floor(avgIlvl * self.db.relativeIlvlPercent / 100)
+        popup.avgIlvlText:SetText("Avg ilvl: " .. avgIlvl .. "  |cFFFFCC00Sell <= " .. threshold .. "|r")
+    else
+        popup.avgIlvlText:SetText("Avg Equipped ilvl: " .. avgIlvl)
+    end
 
     local smartDefault = math.max(0, math.min(avgIlvl, minIlvl) - 10)
     if smartDefault > 0 then

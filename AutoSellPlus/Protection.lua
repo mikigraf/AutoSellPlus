@@ -283,7 +283,13 @@ local function CheckQualityFilter(db, quality, itemLink, itemID, sellPrice, stac
     if not cfg.ilvlKey then return true, itemLink, sellPrice, stackCount end
     local ilvl = ns:GetEffectiveItemLevel(itemLink)
     if ilvl == 0 then return false end
-    local maxIlvl = db[cfg.ilvlKey]
+    local maxIlvl
+    if db.useRelativeIlvl then
+        local _, avgIlvl = ns:GetEquippedIlvls()
+        maxIlvl = math.floor(avgIlvl * db.relativeIlvlPercent / 100)
+    else
+        maxIlvl = db[cfg.ilvlKey]
+    end
     if maxIlvl > 0 and ilvl <= maxIlvl then return true, itemLink, sellPrice, stackCount end
     return false
 end
