@@ -14,7 +14,10 @@ local BAG_ADDON_ADAPTERS = {
                 end
             end
             -- Individual container frames (search by bag ID, not index)
-            for i = 1, 13 do
+            -- Use NUM_TOTAL_EQUIPPED_BAG_SLOTS + 1 to cover backpack + all equipped bags,
+            -- rather than hardcoding 13 which may not match future expansions.
+            local maxFrames = (NUM_TOTAL_EQUIPPED_BAG_SLOTS or 5) + 1
+            for i = 1, maxFrames do
                 local frame = _G["ContainerFrame" .. i]
                 if frame and frame:IsShown() and frame.GetBagID and frame:GetBagID() == bag then
                     if frame.Items then
