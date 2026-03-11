@@ -2,6 +2,10 @@
 
 ## Unreleased (3.5)
 
+### Added
+- **Tooltip item status** (`showTooltipStatus`, default: on) — Shows ASP classification in item tooltips: "Will sell (quality filter)", "Protected (uncollected transmog)", "On never-sell list", etc. Works for items in bags, equipped gear, and merchant windows. Togglable in Settings > Display.
+- **Compact mode** (`compactMode`, default: off) — Condensed popup showing item count, total value, per-quality breakdown, and a one-click Sell button. Toggle between compact and detailed views via a button on either popup or `/asp compact`. All filters and protections still apply.
+
 ### Fixed
 - **Bindings.xml parsing error** — Removed invalid `header` attribute from Binding element. The section header is provided by the `BINDING_HEADER_AUTOSELLPLUS` global.
 - **Mount equipment misclassified** — Mount equipment is Miscellaneous (classID 15, subclassID 6), not Armor (classID 4). Items like Light-Step Hoofplates are now correctly detected.

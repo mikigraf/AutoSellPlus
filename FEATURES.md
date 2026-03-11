@@ -42,6 +42,8 @@ AutoSellPlus is a World of Warcraft addon that shows a popup when visiting a mer
 34. [Instance Auto-Profile Switching](#instance-auto-profile-switching)
 35. [Priority Sell Queue](#priority-sell-queue)
 36. [Quest Item Protection](#quest-item-protection)
+37. [Tooltip Item Status](#tooltip-item-status)
+38. [Compact Mode](#compact-mode)
 
 ---
 
@@ -746,6 +748,8 @@ All commands use `/asp` or `/autosell` as prefix.
 | `showMinimapButton` | bool | true | Show minimap button |
 | `minimapButtonAngle` | float | 225 | Minimap button position (degrees) |
 | `showBagGoldDisplay` | bool | false | Show vendor value above bags |
+| `showTooltipStatus` | bool | true | Show ASP classification in item tooltips |
+| `compactMode` | bool | false | Use condensed popup with one-click sell |
 
 ### Bag Maintenance
 | Setting | Type | Default | Description |
@@ -941,6 +945,43 @@ Previously, items were sold in bag order, which could waste buyback slots on che
 When enabled (`protectQuestItems`, default: on), items in the Quest Items category (classID 12) are never sold. This prevents accidental sale of quest objectives and quest-starting items during dailies or leveling.
 
 Respects the always-sell list override for intentional sales.
+
+---
+
+## Tooltip Item Status
+
+When enabled (`showTooltipStatus`, default: on), AutoSellPlus adds a colored status line to item tooltips showing how the addon classifies each item:
+
+- **Green** — "ASP: Will sell (quality filter)", "ASP: Will sell (collected transmog)", "ASP: On always-sell list"
+- **Red** — "ASP: Protected (uncollected transmog)", "ASP: Protected (equipment set)", "ASP: Protected (bind on equip)"
+- **Yellow** — "ASP: On never-sell list"
+- **Gray** — "ASP: Skipped (not soulbound)"
+
+Works for items in bags (full classification including BoE, refundable, warband checks), equipped gear, and merchant windows (itemID-based checks only). Does not duplicate the existing `[Marked as Junk]` tooltip line.
+
+Toggle in Settings > Display or the in-popup Settings tab.
+
+---
+
+## Compact Mode
+
+When enabled (`compactMode`, default: off), the merchant popup is replaced with a condensed view showing:
+
+- **Item count** — Total number of items matching current filters
+- **Total value** — Combined vendor value of all matched items
+- **Per-quality breakdown** — Color-coded count per quality tier (e.g., "5 Poor  3 Uncommon  1 Rare")
+- **One-click Sell button** — Sells all matched items with a single click
+
+Compact mode trusts your filter configuration and auto-checks all visible items. All protections (transmog, equipment sets, BoE, quest items, never-sell list, etc.) still apply. Epic and high-value confirmation dialogs still fire when applicable.
+
+### Switching Between Modes
+
+- **From detailed popup**: Click the "Compact" button next to the Settings tab
+- **From compact popup**: Click the "Expand" button in the title bar
+- **Slash command**: `/asp compact` toggles the setting
+- **Settings panel**: Settings > Display > Compact Mode
+
+The compact popup has independent position and scale saved separately from the full popup.
 
 ---
 
