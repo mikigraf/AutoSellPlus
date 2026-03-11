@@ -128,27 +128,10 @@ local function OnTooltipSetItem(tooltip, data)
     end
 
     -- Vendor sell price enhancement
-    local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemID)
+    local _, itemLink, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemID)
     if sellPrice and sellPrice > 0 then
-        -- Check for TSM market value
-        local tsmValue
-        if TSM_API and TSM_API.GetCustomPriceValue then
-            local ok, val = pcall(TSM_API.GetCustomPriceValue, "DBMarket", "i:" .. itemID)
-            if ok and val then tsmValue = val end
-        end
-
-        -- Check for Auctionator value
-        local auctValue
-        if Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.GetAuctionPriceByItemLink then
-            local itemLink = select(2, C_Item.GetItemInfo(itemID))
-            if itemLink then
-                local ok, val = pcall(Auctionator.API.v1.GetAuctionPriceByItemLink, "AutoSellPlus", itemLink)
-                if ok and val then auctValue = val end
-            end
-        end
-
-        local ahValue = tsmValue or auctValue
-        if ahValue and ahValue > 0 then
+        local ahValue = ns:GetAHValue(itemID, itemLink)
+        if ahValue > 0 then
             tooltip:AddDoubleLine(
                 "Vendor: " .. ns:FormatMoney(sellPrice),
                 "AH: " .. ns:FormatMoney(ahValue),

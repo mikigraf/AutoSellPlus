@@ -339,6 +339,24 @@ function ns:FormatTimeAgo(timestamp)
     end
 end
 
+-- Centralized AH price lookup (TSM or Auctionator)
+function ns:HasAHAddon()
+    return (TSM_API ~= nil) or (Auctionator ~= nil)
+end
+
+function ns:GetAHValue(itemID, itemLink)
+    if TSM_API and TSM_API.GetCustomPriceValue then
+        local ok, val = pcall(TSM_API.GetCustomPriceValue, "DBMarket", "i:" .. itemID)
+        if ok and val then return val end
+    end
+    if Auctionator and Auctionator.API and Auctionator.API.v1
+        and Auctionator.API.v1.GetAuctionPriceByItemLink and itemLink then
+        local ok, val = pcall(Auctionator.API.v1.GetAuctionPriceByItemLink, "AutoSellPlus", itemLink)
+        if ok and val then return val end
+    end
+    return 0
+end
+
 -- Format copper as short gold string ("5g", "20s", "42c")
 function ns:FormatGoldShort(copper)
     if copper >= 10000 then
