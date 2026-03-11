@@ -847,6 +847,10 @@ local function RegisterSettingsPanel()
         "Show an undo notification after selling.")
     AddBool(displayCat, "showMinimapButton", "Show Minimap Button",
         "Show the AutoSellPlus minimap button.")
+    AddBool(displayCat, "showTooltipStatus", "Show Tooltip Status",
+        "Show AutoSellPlus item classification in tooltips (will sell, protected, etc.).")
+    AddBool(displayCat, "compactMode", "Compact Mode",
+        "Show a condensed popup with item count, total value, and a Sell button.")
 
     -- ══════════════════════════════════════════
     -- Bag Maintenance

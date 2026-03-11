@@ -1625,6 +1625,8 @@ local function CreateSettingsOverlay(f)
             controls = {
                 { type = "check", key = "showUndoToast", label = "Show Undo Toast" },
                 { type = "check", key = "showMinimapButton", label = "Show Minimap Button" },
+                { type = "check", key = "showTooltipStatus", label = "Show Tooltip Status" },
+                { type = "check", key = "compactMode", label = "Compact Mode" },
             },
         },
         {
@@ -1688,6 +1690,33 @@ local function CreatePopupFrame()
     settingsTabLabel:SetText("Settings")
     settingsTab.label = settingsTabLabel
     f.settingsTab = settingsTab
+
+    -- Compact mode toggle button
+    local compactBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
+    compactBtn:SetSize(70, 22)
+    compactBtn:SetPoint("LEFT", settingsTab, "RIGHT", 4, 0)
+    compactBtn:SetBackdrop(FLAT_BACKDROP)
+    compactBtn:SetBackdropColor(0.12, 0.12, 0.12, 1)
+    compactBtn:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
+    local compactBtnLabel = compactBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    compactBtnLabel:SetPoint("CENTER")
+    compactBtnLabel:SetText("Compact")
+    compactBtnLabel:SetTextColor(0.60, 0.60, 0.60)
+    compactBtn:SetScript("OnClick", function()
+        ns.db.compactMode = true
+        ns:HidePopup()
+        ns:ShowPopup()
+    end)
+    compactBtn:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(0.18, 0.18, 0.18, 1)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine("Switch to compact view")
+        GameTooltip:Show()
+    end)
+    compactBtn:SetScript("OnLeave", function(self)
+        self:SetBackdropColor(0.12, 0.12, 0.12, 1)
+        GameTooltip:Hide()
+    end)
 
     -- Filter section, item list, bottom bar
     local filterEndY = CreateFilterSection(f)
@@ -1767,11 +1796,404 @@ local function CreatePopupFrame()
 end
 
 -- ============================================================
+-- Compact Popup
+-- ============================================================
+
+local COMPACT_WIDTH = 300
+local COMPACT_HEIGHT = 220
+local compactPopup = nil
+
+local function CreateCompactFrame()
+    local f = CreateFrame("Frame", "AutoSellPlusCompactPopup", UIParent, "BackdropTemplate")
+    f:SetSize(COMPACT_WIDTH, COMPACT_HEIGHT)
+    f:SetPoint("CENTER")
+    f:SetFrameStrata("DIALOG")
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local point, _, _, x, y = self:GetPoint(1)
+        ns.db.compactPopupPoint = point
+        ns.db.compactPopupX = x
+        ns.db.compactPopupY = y
+    end)
+    f:SetClampedToScreen(true)
+
+    f:SetBackdrop(FLAT_BACKDROP)
+    f:SetBackdropColor(0.06, 0.06, 0.06, 0.96)
+    f:SetBackdropBorderColor(0, 0, 0, 1)
+
+    -- Outer border
+    local outerBorder = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    outerBorder:SetPoint("TOPLEFT", -1, 1)
+    outerBorder:SetPoint("BOTTOMRIGHT", 1, -1)
+    outerBorder:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
+    outerBorder:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    outerBorder:SetBackdropBorderColor(0.20, 0.20, 0.20, 0.6)
+    outerBorder:EnableMouse(false)
+
+    -- Title bar
+    local titleBg = f:CreateTexture(nil, "ARTWORK")
+    titleBg:SetPoint("TOPLEFT", 1, -1)
+    titleBg:SetPoint("TOPRIGHT", -1, -1)
+    titleBg:SetHeight(30)
+    titleBg:SetColorTexture(0.10, 0.10, 0.10, 0.8)
+
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOP", 0, -8)
+    title:SetText("|cFF00CCFFAutoSellPlus|r |cFFAAAAAA(Compact)|r")
+    f.titleText = title
+
+    -- Close button
+    local closeBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
+    closeBtn:SetSize(22, 22)
+    closeBtn:SetPoint("TOPRIGHT", -6, -6)
+    closeBtn:SetBackdrop(FLAT_BACKDROP)
+    closeBtn:SetBackdropColor(0.12, 0.12, 0.12, 1)
+    closeBtn:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
+    local closeLbl = closeBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    closeLbl:SetPoint("CENTER")
+    closeLbl:SetText("x")
+    closeLbl:SetTextColor(0.60, 0.60, 0.60)
+    closeBtn:SetScript("OnClick", function() ns:HideCompactPopup() end)
+    closeBtn:SetScript("OnEnter", function(self)
+        self:SetBackdropBorderColor(0.7, 0.15, 0.15, 1)
+        closeLbl:SetTextColor(1, 0.3, 0.3)
+    end)
+    closeBtn:SetScript("OnLeave", function(self)
+        self:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
+        closeLbl:SetTextColor(0.60, 0.60, 0.60)
+    end)
+
+    -- Expand button
+    local expandBtn = CreateFlatButton(f, "Expand", 70, 22)
+    expandBtn:SetPoint("TOPRIGHT", closeBtn, "TOPLEFT", -4, 0)
+    expandBtn:SetScript("OnClick", function()
+        ns.db.compactMode = false
+        ns:HideCompactPopup()
+        ns:ShowPopup()
+    end)
+    expandBtn:SetScript("OnEnter", function(self)
+        if self:IsEnabled() then
+            self:SetBackdropColor(0.28, 0.28, 0.28, 1)
+            self:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:AddLine("Switch to detailed view")
+            GameTooltip:Show()
+        end
+    end)
+    expandBtn:SetScript("OnLeave", function(self)
+        if self:IsEnabled() then
+            self:SetBackdropColor(0.18, 0.18, 0.18, 1)
+            self:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+        end
+        GameTooltip:Hide()
+    end)
+
+    -- Dry run indicator
+    local dryRunText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    dryRunText:SetPoint("TOPLEFT", 10, -8)
+    dryRunText:SetText("|cFFFFCC00[DRY RUN]|r")
+    dryRunText:Hide()
+    f.dryRunText = dryRunText
+
+    -- Item count
+    local countText = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    countText:SetPoint("TOP", 0, -42)
+    f.countText = countText
+
+    -- Total value
+    local valueText = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    valueText:SetPoint("TOP", countText, "BOTTOM", 0, -6)
+    valueText:SetTextColor(1, 0.82, 0)
+    f.valueText = valueText
+
+    -- Per-quality breakdown
+    local breakdownText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    breakdownText:SetPoint("TOP", valueText, "BOTTOM", 0, -8)
+    breakdownText:SetWidth(COMPACT_WIDTH - 30)
+    breakdownText:SetJustifyH("CENTER")
+    f.breakdownText = breakdownText
+
+    -- Sell button
+    local sellBtn = CreateFlatButton(f, "Sell", 200, 32)
+    sellBtn:SetPoint("BOTTOM", 0, 40)
+    sellBtn:SetBackdropColor(0.0, 0.30, 0.50, 1)
+    sellBtn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+    sellBtn:SetScript("OnEnter", function(self)
+        if self:IsEnabled() then
+            self:SetBackdropColor(0.0, 0.40, 0.65, 1)
+            self:SetBackdropBorderColor(0.0, 0.55, 0.90, 1)
+        end
+    end)
+    sellBtn:SetScript("OnLeave", function(self)
+        if self:IsEnabled() then
+            self:SetBackdropColor(0.0, 0.30, 0.50, 1)
+            self:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+        end
+    end)
+    sellBtn:SetScript("OnClick", function() ns:SellFromCompact() end)
+    f.sellBtn = sellBtn
+
+    -- Session text
+    local sessionText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    sessionText:SetPoint("BOTTOM", 0, 22)
+    sessionText:SetTextColor(0.5, 0.8, 0.5)
+    sessionText:Hide()
+    f.sessionText = sessionText
+
+    -- Progress bar
+    local progressBar = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    progressBar:SetHeight(14)
+    progressBar:SetPoint("BOTTOMLEFT", 1, 14)
+    progressBar:SetPoint("BOTTOMRIGHT", -1, 14)
+    progressBar:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
+    progressBar:SetBackdropColor(0.10, 0.10, 0.10, 0.8)
+    local progressFill = progressBar:CreateTexture(nil, "ARTWORK")
+    progressFill:SetPoint("TOPLEFT")
+    progressFill:SetPoint("BOTTOMLEFT")
+    progressFill:SetWidth(0)
+    progressFill:SetColorTexture(0.0, 0.45, 0.80, 0.8)
+    progressBar.fill = progressFill
+    local progressText = progressBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    progressText:SetPoint("CENTER")
+    progressText:SetTextColor(1, 1, 1)
+    progressBar.text = progressText
+    progressBar:Hide()
+    f.progressBar = progressBar
+
+    -- Ctrl+Scroll to scale
+    f:EnableMouseWheel(true)
+    f:SetScript("OnMouseWheel", function(self, delta)
+        if IsControlKeyDown() then
+            local scale = self:GetScale()
+            scale = scale + (delta * 0.05)
+            scale = math.max(0.6, math.min(1.5, scale))
+            self:SetScale(scale)
+            ns.db.compactPopupScale = scale
+        end
+    end)
+
+    -- Fade-in animation
+    local fadeIn = f:CreateAnimationGroup()
+    local alphaIn = fadeIn:CreateAnimation("Alpha")
+    alphaIn:SetFromAlpha(0)
+    alphaIn:SetToAlpha(1)
+    alphaIn:SetDuration(0.15)
+    alphaIn:SetSmoothing("IN")
+    fadeIn:SetScript("OnFinished", function() f:SetAlpha(1) end)
+    f.fadeIn = fadeIn
+
+    f:Hide()
+    return f
+end
+
+local function RefreshCompactSummary()
+    if not compactPopup then return end
+
+    local totalCount = 0
+    local totalCopper = 0
+    local qualityCounts = {}
+
+    for _, item in ipairs(displayList) do
+        if item.visible and item.checked then
+            totalCount = totalCount + 1
+            totalCopper = totalCopper + item.totalPrice
+            local q = item.quality
+            qualityCounts[q] = (qualityCounts[q] or 0) + 1
+        end
+    end
+
+    compactPopup.countText:SetText(totalCount .. " item" .. (totalCount == 1 and "" or "s"))
+    compactPopup.valueText:SetText("Total: " .. ns:FormatMoney(totalCopper))
+
+    -- Per-quality breakdown
+    local parts = {}
+    for q = 0, 4 do
+        if qualityCounts[q] and qualityCounts[q] > 0 then
+            local color = ITEM_QUALITY_COLORS[q]
+            local qName = _G["ITEM_QUALITY" .. q .. "_DESC"] or ("Quality " .. q)
+            if color then
+                parts[#parts + 1] = format("|cFF%02x%02x%02x%d %s|r",
+                    color.r * 255, color.g * 255, color.b * 255,
+                    qualityCounts[q], qName)
+            end
+        end
+    end
+    compactPopup.breakdownText:SetText(table.concat(parts, "  "))
+
+    -- Update sell button
+    compactPopup.sellBtn.label:SetText(format("Sell (%s)", ns:FormatMoney(totalCopper)))
+    compactPopup.sellBtn:SetEnabled(totalCount > 0)
+
+    -- Dry run indicator
+    if ns.db.dryRun then
+        compactPopup.dryRunText:Show()
+    else
+        compactPopup.dryRunText:Hide()
+    end
+
+    -- Session counter
+    if compactPopup.sessionText and ns.sessionData then
+        if ns.sessionData.totalCopper > 0 then
+            compactPopup.sessionText:SetText(format("Session: +%s", ns:FormatMoney(ns.sessionData.totalCopper)))
+            compactPopup.sessionText:Show()
+        else
+            compactPopup.sessionText:Hide()
+        end
+    end
+end
+
+function ns:ShowCompactPopup()
+    if not self.db.enabled then return end
+
+    if not compactPopup then
+        compactPopup = CreateCompactFrame()
+        if self.db.compactPopupPoint then
+            compactPopup:ClearAllPoints()
+            compactPopup:SetPoint(self.db.compactPopupPoint, UIParent, self.db.compactPopupPoint,
+                self.db.compactPopupX or 0, self.db.compactPopupY or 0)
+        end
+        if self.db.compactPopupScale then
+            compactPopup:SetScale(self.db.compactPopupScale)
+        end
+    end
+
+    -- Vendor mount badge
+    if self:IsVendorMount() then
+        compactPopup.titleText:SetText("|cFF00CCFFAutoSellPlus|r |cFFFFCC00[Mount]|r")
+    else
+        compactPopup.titleText:SetText("|cFF00CCFFAutoSellPlus|r |cFFAAAAAA(Compact)|r")
+    end
+
+    wipe(userUnchecked)
+    self._equippedIlvls = self:GetEquippedIlvls()
+
+    displayList = self:BuildDisplayList()
+    self:ApplyFilters(displayList, userUnchecked)
+
+    -- Auto-check all visible items (compact trusts filters)
+    for _, item in ipairs(displayList) do
+        if item.visible then
+            item.checked = true
+        end
+    end
+
+    RefreshCompactSummary()
+
+    compactPopup:SetAlpha(0)
+    compactPopup:Show()
+    compactPopup.fadeIn:Play()
+end
+
+function ns:HideCompactPopup()
+    if compactPopup then
+        compactPopup:Hide()
+    end
+end
+
+function ns:SellFromCompact()
+    local queue = {}
+    local hasEpics = false
+    local highValueItems = {}
+
+    for _, item in ipairs(displayList) do
+        if item.visible and item.checked then
+            queue[#queue + 1] = {
+                bag = item.bag,
+                slot = item.slot,
+                itemLink = item.itemLink,
+                itemID = item.itemID,
+                quality = item.quality,
+                sellPrice = item.sellPrice,
+                stackCount = item.stackCount,
+                totalPrice = item.totalPrice,
+            }
+            if item.quality == Enum.ItemQuality.Epic then
+                hasEpics = true
+            end
+            if item.totalPrice >= (self.db.highValueThreshold or 50000) then
+                highValueItems[#highValueItems + 1] = item
+            end
+        end
+    end
+
+    if #queue == 0 then return end
+
+    -- Epic confirmation
+    if hasEpics and self.db.epicConfirm then
+        StaticPopupDialogs["ASP_COMPACT_EPIC_CONFIRM"] = {
+            text = "AutoSellPlus: You are about to sell EPIC quality items. Continue?",
+            button1 = "Sell",
+            button2 = "Cancel",
+            OnAccept = function()
+                self:HideCompactPopup()
+                self:StartSelling(queue)
+            end,
+            OnHide = function()
+                ns:HideConfirmList()
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        local dialog = StaticPopup_Show("ASP_COMPACT_EPIC_CONFIRM")
+        if dialog then
+            self:ShowConfirmList(queue, dialog)
+        end
+        return
+    end
+
+    -- High value confirmation
+    if #highValueItems > 0 and self.db.highValueConfirm then
+        local topItems = {}
+        table.sort(highValueItems, function(a, b) return a.totalPrice > b.totalPrice end)
+        for i = 1, math.min(3, #highValueItems) do
+            topItems[#topItems + 1] = format("%s (%s)", highValueItems[i].itemLink, self:FormatMoney(highValueItems[i].totalPrice))
+        end
+
+        StaticPopupDialogs["ASP_COMPACT_HIGH_VALUE_CONFIRM"] = {
+            text = "AutoSellPlus: Selling high-value items:\n" .. table.concat(topItems, "\n") .. "\n\nContinue?",
+            button1 = "Sell",
+            button2 = "Cancel",
+            OnAccept = function()
+                self:HideCompactPopup()
+                self:StartSelling(queue)
+            end,
+            OnHide = function()
+                ns:HideConfirmList()
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        local dialog = StaticPopup_Show("ASP_COMPACT_HIGH_VALUE_CONFIRM")
+        if dialog then
+            self:ShowConfirmList(queue, dialog)
+        end
+        return
+    end
+
+    self:HideCompactPopup()
+    self:StartSelling(queue)
+end
+
+-- ============================================================
 -- Show / Hide / Sell
 -- ============================================================
 
 function ns:ShowPopup()
     if not self.db.enabled then return end
+
+    -- Dispatch to compact mode if enabled
+    if self.db.compactMode then
+        self:ShowCompactPopup()
+        return
+    end
 
     if not popup then
         popup = CreatePopupFrame()
@@ -1851,29 +2273,43 @@ function ns:HidePopup()
     if contextMenu then
         contextMenu:Hide()
     end
+    self:HideCompactPopup()
 end
 
 ns.sellProgress = { current = 0, total = 0 }
 
 function ns:UpdateSellProgress()
-    if not popup or not popup.progressBar then return end
-    local bar = popup.progressBar
     local p = self.sellProgress
     if p.total <= 0 then
-        bar:Hide()
+        if popup and popup.progressBar then popup.progressBar:Hide() end
+        if compactPopup and compactPopup.progressBar then compactPopup.progressBar:Hide() end
         return
     end
     local pct = p.current / p.total
-    local barWidth = bar:GetWidth()
-    if barWidth <= 0 then barWidth = POPUP_WIDTH - 2 end
-    bar.fill:SetWidth(math.max(1, barWidth * pct))
-    bar.text:SetText(format("%d / %d", p.current, p.total))
-    bar:Show()
+
+    if popup and popup.progressBar then
+        local barWidth = popup.progressBar:GetWidth()
+        if barWidth <= 0 then barWidth = POPUP_WIDTH - 2 end
+        popup.progressBar.fill:SetWidth(math.max(1, barWidth * pct))
+        popup.progressBar.text:SetText(format("%d / %d", p.current, p.total))
+        popup.progressBar:Show()
+    end
+
+    if compactPopup and compactPopup.progressBar then
+        local barWidth = compactPopup.progressBar:GetWidth()
+        if barWidth <= 0 then barWidth = COMPACT_WIDTH - 2 end
+        compactPopup.progressBar.fill:SetWidth(math.max(1, barWidth * pct))
+        compactPopup.progressBar.text:SetText(format("%d / %d", p.current, p.total))
+        compactPopup.progressBar:Show()
+    end
 end
 
 function ns:HideSellProgress()
     if popup and popup.progressBar then
         popup.progressBar:Hide()
+    end
+    if compactPopup and compactPopup.progressBar then
+        compactPopup.progressBar:Hide()
     end
     self.sellProgress.current = 0
     self.sellProgress.total = 0

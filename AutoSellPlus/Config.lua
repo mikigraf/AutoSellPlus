@@ -63,6 +63,8 @@ ns.globalDefaults = {
     showItemized = false,
     dryRun = false,
     buybackWarning = true,
+    showTooltipStatus = true,
+    compactMode = false,
     -- Automation
     autoSellMode = "popup",
     autoSellDelay = 0,

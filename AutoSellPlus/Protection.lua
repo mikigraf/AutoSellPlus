@@ -414,3 +414,147 @@ function ns:ShouldSellItem(bag, slot)
     -- Category selling (data-driven)
     return CheckCategoryFilter(db, itemID, itemLink, sellPrice, stackCount)
 end
+
+-- ============================================================
+-- ClassifyItem — Returns human-readable sell/protect reason
+-- IMPORTANT: Must mirror the priority chain in ShouldSellItem.
+-- When adding new protections above, add them here too.
+-- ============================================================
+
+function ns:ClassifyItem(itemID, bag, slot)
+    local db = self.db
+    if not db.enabled then return nil end
+
+    -- Priority 1: Never-sell list
+    if self:IsNeverSell(itemID) then
+        return "protected", "On never-sell list", 1.0, 0.82, 0.0
+    end
+
+    -- Priority 2: Always-sell list
+    if self:IsAlwaysSell(itemID) then
+        return "sell", "On always-sell list", 0.3, 1.0, 0.3
+    end
+
+    -- Priority 2b: Marked items
+    if self:IsMarked(itemID) then
+        return "marked", nil, nil, nil, nil
+    end
+
+    -- Need item info for remaining checks
+    local _, itemLink, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemID)
+    if not sellPrice or sellPrice == 0 then return nil end
+
+    local _, _, _, _, _, classID, subclassID = C_Item.GetItemInfoInstant(itemID)
+
+    -- Mount equipment protection
+    if db.protectMountEquipment and classID == 15 and subclassID == 6 then
+        return "protected", "Protected (mount equipment)", 1.0, 0.3, 0.3
+    end
+
+    -- Equipment set protection
+    if db.protectEquipmentSets and self:IsInEquipmentSet(itemID) then
+        return "protected", "Protected (equipment set)", 1.0, 0.3, 0.3
+    end
+
+    -- Uncollected transmog protection
+    if db.protectUncollectedTransmog and self:HasTransmogAppearance(itemID) then
+        if self:IsUncollectedTransmog(itemID) then
+            return "protected", "Protected (uncollected transmog)", 1.0, 0.3, 0.3
+        end
+        if bag and slot and self:IsTransmogProtectedByAddon(itemID, bag, slot) then
+            return "protected", "Protected (uncollected transmog)", 1.0, 0.3, 0.3
+        end
+    end
+
+    -- Source-level transmog protection
+    if db.protectTransmogSource and self:HasTransmogAppearance(itemID) then
+        if self:IsUncollectedTransmogSource(itemID) then
+            return "protected", "Protected (transmog source)", 1.0, 0.3, 0.3
+        end
+    end
+
+    -- Bag-dependent checks (only when bag/slot provided)
+    if bag and slot then
+        if self:IsRefundable(bag, slot) then
+            return "protected", "Protected (refundable)", 1.0, 0.3, 0.3
+        end
+
+        if db.protectQuestItems and classID == 12 then
+            return "protected", "Protected (quest item)", 1.0, 0.3, 0.3
+        end
+
+        if db.protectBoE and not db.allowBoESell then
+            if self:IsBindOnEquip(bag, slot) then
+                return "protected", "Protected (bind on equip)", 1.0, 0.3, 0.3
+            end
+        end
+
+        if db.protectWarband and self:IsWarband(bag, slot) then
+            return "protected", "Protected (warband)", 1.0, 0.3, 0.3
+        end
+
+        if db.onlySoulbound then
+            if not self:IsSoulbound(bag, slot) then
+                return "skip", "Skipped (not soulbound)", 0.6, 0.6, 0.6
+            end
+        end
+    end
+
+    -- Current expansion materials protection
+    if db.protectCurrentExpMaterials and classID == 7 then
+        if itemLink then
+            local expansionID = ns:GetItemExpansion(itemLink)
+            if expansionID == ns.CURRENT_EXPANSION then
+                return "protected", "Protected (current exp. material)", 1.0, 0.3, 0.3
+            end
+        end
+    end
+
+    -- Sell collected transmog
+    if db.sellCollectedTransmog and self:IsCollectedTransmog(itemID) then
+        return "sell", "Will sell (collected transmog)", 0.3, 1.0, 0.3
+    end
+
+    -- Sell known collectibles
+    if db.sellKnownCollectibles and self:IsKnownCollectible(itemID) then
+        return "sell", "Will sell (known collectible)", 0.3, 1.0, 0.3
+    end
+
+    -- Quality-based checks
+    local quality = select(3, C_Item.GetItemInfo(itemID))
+    if quality then
+        local cfg = QUALITY_CONFIG[quality]
+        if cfg and db[cfg.flag] then
+            if not db.onlyEquippable or quality == 0 or self:IsEquippable(itemID) then
+                if not cfg.ilvlKey then
+                    return "sell", "Will sell (quality filter)", 0.3, 1.0, 0.3
+                end
+                if itemLink then
+                    local ilvl = self:GetEffectiveItemLevel(itemLink)
+                    if ilvl > 0 then
+                        local maxIlvl
+                        if db.useRelativeIlvl then
+                            local _, avgIlvl = self:GetEquippedIlvls()
+                            maxIlvl = math.floor(avgIlvl * db.relativeIlvlPercent / 100)
+                        else
+                            maxIlvl = db[cfg.ilvlKey]
+                        end
+                        if maxIlvl > 0 and ilvl <= maxIlvl then
+                            return "sell", "Will sell (quality + ilvl filter)", 0.3, 1.0, 0.3
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Category checks
+    if classID then
+        local flag = CATEGORY_CONFIG[classID]
+        if flag and db[flag] then
+            return "sell", "Will sell (category filter)", 0.3, 1.0, 0.3
+        end
+    end
+
+    return nil
+end

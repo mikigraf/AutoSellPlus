@@ -105,6 +105,19 @@ end
 -- Tooltip Hook
 -- ============================================================
 
+local function FindItemInBags(itemID)
+    for bag = 0, ns:GetMaxBagID() do
+        local numSlots = C_Container.GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+            if itemInfo and itemInfo.itemID == itemID then
+                return bag, slot
+            end
+        end
+    end
+    return nil, nil
+end
+
 local function OnTooltipSetItem(tooltip, data)
     if not data or not data.id then return end
     local itemID = data.id
@@ -141,6 +154,15 @@ local function OnTooltipSetItem(tooltip, data)
                 "AH: " .. ns:FormatMoney(ahValue),
                 1, 0.82, 0, 0.3, 1, 0.3
             )
+        end
+    end
+
+    -- ASP tooltip status line
+    if ns.db and ns.db.showTooltipStatus and ns.ClassifyItem then
+        local bag, slot = FindItemInBags(itemID)
+        local status, reason, r, g, b = ns:ClassifyItem(itemID, bag, slot)
+        if status and reason then
+            tooltip:AddLine("ASP: " .. reason, r or 0.7, g or 0.7, b or 0.7)
         end
     end
 end

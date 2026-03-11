@@ -152,6 +152,7 @@ local function HandleSlashCommand(msg)
         print("|cFFAAAAAA  /asp list|r - Show never-sell and always-sell lists")
         print("|cFFAAAAAA  /asp export|r - Export lists")
         print("|cFFAAAAAA  /asp import|r - Import lists")
+        print("|cFFAAAAAA  /asp compact|r - Toggle compact popup mode")
         print("|cFFAAAAAA  /asp overlay|r - Cycle overlay visual mode")
         print("|cFFAAAAAA  /asp keep <itemID> <count>|r - Set stack limit")
         print("|cFFAAAAAA  /asp keep list|r - Show stack limits")
@@ -440,6 +441,12 @@ local function HandleSlashCommand(msg)
             preferredIndex = 3,
         }
         StaticPopup_Show("ASP_RESET_CONFIRM")
+        return
+    end
+
+    if cmd == "compact" then
+        ns.db.compactMode = not ns.db.compactMode
+        ns:Print("Compact mode " .. (ns.db.compactMode and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
         return
     end
 
