@@ -52,7 +52,7 @@ local function CheckBagSpace()
     local threshold = ns.db.freeSlotThreshold
     if threshold <= 0 then return end
 
-    local now = GetServerTime()
+    local now = ns:GetServerTime()
     if now < freeSlotAlertCooldown then return end
 
     local freeSlots = ns:CountFreeSlots()

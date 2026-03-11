@@ -257,7 +257,10 @@ function ns:GetMaxBagID()
 end
 
 function ns:GetServerTime()
-    return C_DateAndTime and C_DateAndTime.GetServerTime() or GetServerTime()
+    if C_DateAndTime and C_DateAndTime.GetServerTimeLocal then
+        return C_DateAndTime.GetServerTimeLocal()
+    end
+    return time()
 end
 
 -- Count free bag slots

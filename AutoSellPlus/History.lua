@@ -12,7 +12,7 @@ ns.sessionData = {
 }
 
 function ns:InitSession()
-    self.sessionData.startTime = GetServerTime()
+    self.sessionData.startTime = self:GetServerTime()
     self.sessionData.startGold = GetMoney()
     self.sessionData.totalSold = 0
     self.sessionData.totalCopper = 0
@@ -32,7 +32,7 @@ end
 
 function ns:GetSessionReport()
     local s = self.sessionData
-    local elapsed = GetServerTime() - s.startTime
+    local elapsed = self:GetServerTime() - s.startTime
     local goldPerHour = 0
     if elapsed > 0 then
         goldPerHour = math.floor((s.totalCopper / elapsed) * 3600 / 10000)
@@ -81,7 +81,7 @@ function ns:RecordSale(itemLink, itemID, stackCount, totalPrice)
         id = itemID,
         count = stackCount,
         price = totalPrice,
-        time = GetServerTime(),
+        time = self:GetServerTime(),
     }
 
     -- FIFO cap
@@ -95,7 +95,7 @@ function ns:GetSaleHistory()
 end
 
 function ns:GetRecentSales(minutes)
-    local cutoff = GetServerTime() - (minutes * 60)
+    local cutoff = self:GetServerTime() - (minutes * 60)
     local recent = {}
     for _, entry in ipairs(self.db.saleHistory or {}) do
         if entry.time >= cutoff then
@@ -124,7 +124,7 @@ function ns:PrintSaleLog(count)
 end
 
 function ns:GetDailyStats()
-    local now = GetServerTime()
+    local now = self:GetServerTime()
     local todayStart = now - (now % 86400)
     local totalCopper = 0
     local itemCount = 0

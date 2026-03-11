@@ -233,5 +233,5 @@ function ns:UpdateCharStats(soldCount, copperEarned)
 
     stats[fullName].totalCopper = stats[fullName].totalCopper + copperEarned
     stats[fullName].totalItems = stats[fullName].totalItems + soldCount
-    stats[fullName].lastSeen = GetServerTime()
+    stats[fullName].lastSeen = ns:GetServerTime()
 end

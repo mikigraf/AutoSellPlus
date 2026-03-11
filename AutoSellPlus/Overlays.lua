@@ -260,7 +260,7 @@ end
 
 -- Throttled update for BAG_UPDATE_DELAYED
 function ns:ThrottledBagGoldUpdate()
-    local now = GetServerTime()
+    local now = ns:GetServerTime()
     if now > bagGoldThrottle then
         bagGoldThrottle = now + 1
         self:UpdateBagGoldDisplay()

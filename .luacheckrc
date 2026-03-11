@@ -58,7 +58,6 @@ read_globals = {
 
     -- WoW API: Money & Repair
     "GetMoney",
-    "GetServerTime",
     "CanMerchantRepair",
     "GetRepairAllCost",
     "RepairAllItems",
