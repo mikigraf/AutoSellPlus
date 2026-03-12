@@ -5,6 +5,13 @@
 ### Added
 - **Tooltip item status** (`showTooltipStatus`, default: on) — Shows ASP classification in item tooltips: "Will sell (quality filter)", "Protected (uncollected transmog)", "On never-sell list", etc. Works for items in bags, equipped gear, and merchant windows. Togglable in Settings > Display.
 - **Compact mode** (`compactMode`, default: off) — Condensed popup showing item count, total value, per-quality breakdown, and a one-click Sell button. Toggle between compact and detailed views via a button on either popup or `/asp compact`. All filters and protections still apply.
+- **AH value protection** (`ahProtectionEnabled`, default: off) — Protects items worth more than a configurable threshold on the AH from being auto-sold. Requires TSM or Auctionator. Popup rows where AH value exceeds a configurable multiplier of vendor price are color-coded, with a tooltip showing "Worth listing: AH Xg, vendor Yg (Nx)".
+- **Safe Mode template** — New profile template for new users: grays only, all protections on. Wizard defaults to Safe Mode when no template or profile is selected.
+- **Destruction system v1** — Complete rewrite of the auto-destroy feature with separate destroy filters (quality, ilvl, max vendor value), a never-destroy list, countdown confirmation popup, and a bag pressure valve that auto-triggers when free slots drop below a configurable threshold. Items are destroyed one per tick with cursor verification for safety.
+
+### Improved
+- **Self-test messages** — API failure messages are now user-friendly and reassuring instead of technical ("Transmog detection paused — Blizzard changed an API. Sell rules are more conservative until updated.").
+- **Centralized AH lookup** — TSM/Auctionator price queries consolidated into `ns:GetAHValue()` and `ns:HasAHAddon()`, replacing duplicated code in Popup, PopupFilters, and Overlays.
 
 ### Fixed
 - **Bindings.xml parsing error** — Removed invalid `header` attribute from Binding element. The section header is provided by the `BINDING_HEADER_AUTOSELLPLUS` global.

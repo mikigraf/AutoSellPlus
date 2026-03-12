@@ -9,10 +9,14 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 ## Selling
 
 - **Popup preview** -- sortable columns (name, ilvl, vendor price, AH value), checkboxes, one-click Sell All
+- **Compact mode** -- condensed popup showing item count, total value, per-quality breakdown, and a one-click Sell button. Toggle with `/asp compact` or the button on either popup
 - **Three sell modes** -- interactive popup (default), one-click, or fully automatic with configurable delay
 - **Quality filters** -- gray through epic, each with independent ilvl thresholds
+- **Relative ilvl threshold** -- set a single sell threshold as a percentage of your equipped ilvl instead of per-quality sliders
 - **Category filters** -- consumables, trade goods, quest items, miscellaneous
 - **Expansion and slot filters** -- narrow results by expansion or equipment slot
+- **Sell collected transmog** -- optionally sell items whose appearances you've already collected
+- **Sell known collectibles** -- optionally sell already-known mounts, pets, and toys
 - **Confirmations** -- epic, high-value, and Sell All Junk show a confirmation with item count and gold total
 - **Buyback safety** -- highest-value items are sold first so buyback slots hold the most valuable items
 - **Dry run** -- preview what would be sold without actually selling
@@ -27,9 +31,12 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 - **Transmog** -- source-level appearance checking; uncollected items are never sold
 - **Equipment sets** -- items in any saved gear set are protected
 - **BoE** -- unbound Bind on Equip items are protected
+- **Warband items** -- optionally protect all warband and account-bound items
+- **Mount equipment** -- mount equipment items are protected by default
 - **Soulbound-only mode** -- optionally skip all unbound BoE items, useful for dungeon farmers keeping BoE for AH
 - **Quest items** -- items in the Quest Items category are protected by default
 - **Current expansion materials** -- optionally protect Trade Goods from the current expansion
+- **AH value protection** -- protects items worth listing on the AH (requires TSM or Auctionator). Color-coded popup rows show when AH value exceeds vendor price
 - **Refundable** -- items in the vendor refund window are skipped
 - **Addon hooks** -- AllTheThings and CanIMogIt integration for enhanced transmog detection
 
@@ -47,6 +54,9 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 
 ## Bag Management
 
+- **Destruction system** -- destroy worthless items when not at a vendor. Separate protection chain, countdown confirmation, cursor-safe one-at-a-time deletion
+- **Bag pressure valve** -- auto-triggers destruction confirmation when free slots drop below a threshold
+- **Never-destroy list** -- per-item blacklist for destruction, independent from never-sell
 - **Bag space guard** -- automatically suggests selling the cheapest junk when free slots are low
 - **Stack limits** -- set max quantities per item, excess goes into the sell queue
 - **Free slot alerts** -- chat message or on-screen warning when bag space is low
@@ -56,6 +66,7 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 
 ## Tracking
 
+- **Tooltip item status** -- colored status line on item tooltips showing how ASP classifies each item (will sell, protected, on never-sell list, etc.)
 - **Session tracker** -- gold/hour calculation in the minimap button tooltip
 - **Sale history** -- scrollable panel showing the last 200 sales; shift-click to link items in chat
 - **Per-character stats** -- lifetime sales totals visible across alts
@@ -65,7 +76,7 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 
 ## Profiles
 
-- **Built-in templates** -- Raid Farmer, Transmog Hunter, Leveling Alt, Gold Farmer
+- **Built-in templates** -- Safe Mode, Raid Farmer, Transmog Hunter, Leveling Alt, Gold Farmer
 - **Named profiles** -- save and load settings that persist across sessions
 - **Auto-load** -- last loaded profile restores automatically on login
 - **Instance auto-profiles** -- auto-switch profiles when entering raids, dungeons, battlegrounds, or open world
@@ -87,13 +98,16 @@ Type `/asp` or `/autosell` for the full command list. Key commands:
 - `/asp session` -- View session stats
 - `/asp log ui` -- Open sale history
 - `/asp keep [id] [count]` -- Set stack limits
+- `/asp compact` -- Toggle compact popup mode
+- `/asp destroy` -- Destroy eligible junk items
+- `/asp neverdestroy add/remove/list` -- Manage never-destroy list
 - `/asp wizard` -- Re-run setup wizard
 
 ---
 
 ## Integrations
 
-- **TSM / Auctionator** -- AH price column in popup
+- **TSM / Auctionator** -- AH price column in popup, AH value protection
 - **Bagnon / AdiBags / ArkInventory / Baganator** -- junk mark overlays in bag frames
 - **AllTheThings / CanIMogIt** -- enhanced transmog protection
 - **Leatrix Plus** -- conflict detection

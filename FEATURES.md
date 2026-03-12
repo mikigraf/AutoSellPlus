@@ -21,7 +21,7 @@ AutoSellPlus is a World of Warcraft addon that shows a popup when visiting a mer
 13. [Stack Limits](#stack-limits)
 14. [Value-Based Eviction](#value-based-eviction)
 15. [Auto-Repair](#auto-repair)
-16. [Auto-Destroy](#auto-destroy)
+16. [Destruction System](#destruction-system)
 17. [Bag Space Monitoring](#bag-space-monitoring)
 18. [Minimap Button](#minimap-button)
 19. [Bag Gold Display](#bag-gold-display)
@@ -44,6 +44,9 @@ AutoSellPlus is a World of Warcraft addon that shows a popup when visiting a mer
 36. [Quest Item Protection](#quest-item-protection)
 37. [Tooltip Item Status](#tooltip-item-status)
 38. [Compact Mode](#compact-mode)
+39. [AH Value Protection](#ah-value-protection)
+40. [Safe Mode Template](#safe-mode-template)
+41. [Destruction System](#destruction-system)
 
 ---
 
@@ -390,24 +393,64 @@ Automatically repairs all gear when visiting a repair-capable merchant.
 
 ---
 
-## Auto-Destroy
+## Destruction System
 
-Safely destroy junk items that have no vendor value (or when not at a vendor).
+Complete item destruction system for clearing worthless items when not at a vendor.
 
-### Behavior
-1. Scans bags for destroyable items matching quality and value criteria
-2. Respects never-sell list and stack limits
-3. Destroys max 5 items per invocation (safety limit)
-4. Optional confirmation dialog
+### Protection Chain
+Items pass through a separate destruction protection chain before being eligible:
+1. Never-destroy list (manual blacklist)
+2. Never-sell list (also blocks destruction)
+3. Equipment set items (if `destroyProtectEquipmentSets` enabled)
+4. Uncollected transmog (if `destroyProtectTransmog` enabled)
+5. BoE items (if `destroyProtectBoE` enabled)
+6. Refundable items (always skipped)
+7. Quality filter (`destroyMaxQuality`)
+8. Item level filter (`destroyMaxIlvl`)
+9. Vendor value filter (`destroyMaxVendorValue`)
+
+### Countdown Confirmation
+Before destroying, a confirmation popup appears with:
+- Red-themed dialog listing items to destroy (up to 10 shown, remainder counted)
+- Vendor value being lost
+- Countdown timer on the Destroy button (configurable, default 3 seconds)
+- Cancel button to abort
+
+### Cursor Safety
+Each item is destroyed one at a time (0.3s per tick) with full cursor verification:
+1. `ClearCursor()` to ensure clean state
+2. `PickupContainerItem()` to pick up the item
+3. `GetCursorInfo()` to verify the correct item is on the cursor
+4. `DeleteCursorItem()` only if itemID matches
+5. Skips with a warning if cursor has wrong item (e.g., player dragging something)
+
+### Bag Pressure Valve
+Automatically triggers the destruction confirmation when free bag slots drop below a configured threshold:
+- Fires on `BAG_UPDATE_DELAYED` events
+- 60-second cooldown between triggers to avoid spam
+- Only triggers when destruction is enabled and not already in progress
+- Shows the same confirmation popup (never auto-destroys silently)
+
+### Never-Destroy List
+Separate per-item blacklist for destruction (independent from never-sell list):
+- `/asp neverdestroy add <ItemLink>` — add item to never-destroy list
+- `/asp neverdestroy remove <ItemLink>` — remove item
+- `/asp neverdestroy list` — show all items on the list
+- Also manageable via Settings > Lists > Never-Destroy tab
 
 ### Settings
-- `autoDestroyEnabled` (default: off)
-- `autoDestroyMaxQuality` (default: 0 / Poor only) - max quality to destroy (0-4)
-- `autoDestroyMaxValue` (default: 0 / unlimited) - max copper value to destroy
-- `autoDestroyConfirm` (default: on) - require confirmation
+- `destroyEnabled` (default: off) — enable destruction feature
+- `destroyMaxQuality` (default: 0 / Poor only) — max quality to destroy (0-4)
+- `destroyMaxIlvl` (default: 0 / disabled) — max ilvl for equippable items
+- `destroyMaxVendorValue` (default: 0 / unlimited) — max total vendor value (copper)
+- `destroyConfirmCountdown` (default: 3) — seconds before Destroy button activates
+- `destroyFreeSlotTrigger` (default: 0 / disabled) — bag pressure valve threshold
+- `destroyProtectTransmog` (default: on) — protect uncollected transmog
+- `destroyProtectBoE` (default: on) — protect bind-on-equip items
+- `destroyProtectEquipmentSets` (default: on) — protect equipment set items
 
 ### Command
-- `/asp destroy` - trigger item destruction
+- `/asp destroy` — trigger item destruction
 
 ---
 
@@ -715,6 +758,10 @@ All commands use `/asp` or `/autosell` as prefix.
 | `onlySoulbound` | bool | false | Only sell soulbound items, skip all unbound BoE |
 | `protectQuestItems` | bool | true | Never sell Quest Items category |
 | `protectCurrentExpMaterials` | bool | false | Never sell current expansion Trade Goods |
+| `protectMountEquipment` | bool | true | Never sell mount equipment items |
+| `protectWarband` | bool | false | Protect warband and account-bound items |
+| `sellCollectedTransmog` | bool | false | Sell items with already-collected transmog |
+| `sellKnownCollectibles` | bool | false | Sell already-known mounts, pets, and toys |
 
 ### Safety & Confirmation
 | Setting | Type | Default | Description |
@@ -758,13 +805,25 @@ All commands use `/asp` or `/autosell` as prefix.
 | `freeSlotAlertMode` | string | "chat" | Alert mode: "chat" or "screen" |
 | `evictionEnabled` | bool | false | Enable value-based eviction |
 
-### Auto-Destroy
+### Destruction
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `autoDestroyEnabled` | bool | false | Enable destruction feature |
-| `autoDestroyMaxQuality` | int | 0 | Max quality to destroy (0-4) |
-| `autoDestroyMaxValue` | int | 0 | Max copper value to destroy |
-| `autoDestroyConfirm` | bool | true | Require confirmation |
+| `destroyEnabled` | bool | false | Enable destruction feature |
+| `destroyMaxQuality` | int | 0 | Max quality to destroy (0-4) |
+| `destroyMaxIlvl` | int | 0 | Max ilvl for equippable items (0 = disabled) |
+| `destroyMaxVendorValue` | int | 0 | Max total vendor value in copper (0 = unlimited) |
+| `destroyConfirmCountdown` | int | 3 | Seconds before Destroy button activates |
+| `destroyFreeSlotTrigger` | int | 0 | Free slot threshold for pressure valve (0 = disabled) |
+| `destroyProtectTransmog` | bool | true | Protect uncollected transmog from destruction |
+| `destroyProtectBoE` | bool | true | Protect bind-on-equip items from destruction |
+| `destroyProtectEquipmentSets` | bool | true | Protect equipment set items from destruction |
+
+### AH Value Protection
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `ahProtectionEnabled` | bool | false | Protect items worth listing on AH |
+| `ahProtectionThreshold` | int | 10000 | AH value threshold in copper |
+| `ahHighlightMultiplier` | int | 2 | AH/vendor ratio to color-code popup rows |
 
 ---
 
@@ -839,8 +898,9 @@ charStats["Charactername - Realmname"] = {
 12. **PopupFilters.lua** - Popup filter logic and smart defaults
 13. **ConfirmList.lua** - Confirmation dialog item list panel
 14. **Popup.lua** - Merchant popup frame, item row rendering, sell action
-15. **Selling.lua** - Auto-sell logic, confirmations, eviction, destruction
-16. **Core.lua** - Event handling, sell queue processing, slash commands
+15. **Selling.lua** - Auto-sell logic, confirmations, eviction
+16. **Destroy.lua** - Item destruction system, countdown confirmation, bag pressure valve
+17. **Core.lua** - Event handling, sell queue processing, slash commands
 
 ### Event Flow
 ```
@@ -982,6 +1042,44 @@ Compact mode trusts your filter configuration and auto-checks all visible items.
 - **Settings panel**: Settings > Display > Compact Mode
 
 The compact popup has independent position and scale saved separately from the full popup.
+
+---
+
+## AH Value Protection
+
+When enabled (`ahProtectionEnabled`, default: off), items worth more than a configurable threshold on the auction house are protected from being auto-sold. Requires TradeSkillMaster (TSM) or Auctionator.
+
+### How It Works
+1. During sell evaluation, each item's AH market value is looked up via TSM's `DBMarket` or Auctionator's price API
+2. If the AH value exceeds `ahProtectionThreshold` (default: 1g), the item is protected from selling
+3. In the popup, rows where AH value exceeds `ahHighlightMultiplier` times the vendor price are color-coded in light blue
+4. Hovering a color-coded row shows a tooltip: "Worth listing: AH Xg, vendor Yg (Nx)"
+
+### Settings
+- `ahProtectionEnabled` (default: off) — enable AH value protection
+- `ahProtectionThreshold` (default: 10000 copper / 1g) — minimum AH value to trigger protection
+- `ahHighlightMultiplier` (default: 2) — AH/vendor price ratio for popup row coloring
+
+### Requirements
+- TSM or Auctionator must be installed and have price data available
+- Without either addon, AH protection is silently skipped (items sell normally)
+
+---
+
+## Safe Mode Template
+
+A new profile template designed for new users or anyone who wants maximum safety.
+
+### Settings Applied
+- **Quality**: Grays only (whites, greens, blues, epics all disabled)
+- **Protections**: All protections enabled (transmog, equipment sets, BoE, quest items, mount equipment, warband, current expansion materials)
+- **Confirmations**: Epic confirm and high-value confirm enabled (threshold: 1g)
+- **Mode**: Popup mode with buyback warning
+- **Categories**: Only equippable items (no consumables, trade goods, quest items, misc)
+
+### Wizard Integration
+- Safe Mode is rendered first in the wizard template list with a green accent
+- If the user completes the wizard without selecting any template or profile, Safe Mode is automatically applied as the default
 
 ---
 
