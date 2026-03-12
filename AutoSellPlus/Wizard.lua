@@ -158,6 +158,7 @@ local function CreatePage1(parent)
     end
 
     -- Template quick-apply buttons
+    page.templateApplied = false
     if ns.profileTemplates then
         local tplStartY = (page.selectedProfile ~= nil or
             (AutoSellPlusDB and AutoSellPlusDB.profiles and next(AutoSellPlusDB.profiles))) and -300 or -270
@@ -166,35 +167,69 @@ local function CreatePage1(parent)
         tplLabel:SetText("Quick-start template (optional):")
 
         local tplY = tplStartY - 25
-        for tplName, tpl in pairs(ns.profileTemplates) do
-            local tplBtn = CreateFrame("Button", nil, page, "BackdropTemplate")
-            tplBtn:SetSize(330, 22)
-            tplBtn:SetPoint("TOPLEFT", 50, tplY)
-            tplBtn:SetBackdrop(FLAT_BACKDROP)
-            tplBtn:SetBackdropColor(0.14, 0.14, 0.14, 1)
-            tplBtn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
 
-            local tplText = tplBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            tplText:SetPoint("LEFT", 8, 0)
-            tplText:SetText(format("|cFF00CCFF%s|r - %s", tplName, tpl.description))
-            tplText:SetWidth(314)
-            tplText:SetJustifyH("LEFT")
+        -- Safe Mode first as highlighted recommendation
+        if ns.profileTemplates["Safe Mode"] then
+            local safeBtn = CreateFrame("Button", nil, page, "BackdropTemplate")
+            safeBtn:SetSize(330, 22)
+            safeBtn:SetPoint("TOPLEFT", 50, tplY)
+            safeBtn:SetBackdrop(FLAT_BACKDROP)
+            safeBtn:SetBackdropColor(0.0, 0.18, 0.08, 1)
+            safeBtn:SetBackdropBorderColor(0.0, 0.45, 0.20, 1)
 
-            tplBtn:SetScript("OnClick", function()
-                ns:ApplyTemplate(tplName)
-                -- Update mode radio buttons to reflect template
+            local safeText = safeBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            safeText:SetPoint("LEFT", 8, 0)
+            safeText:SetText("|cFF00FF00Safe Mode|r |cFFAAAAAA(Recommended)|r - Grays only, all protections on")
+            safeText:SetWidth(314)
+            safeText:SetJustifyH("LEFT")
+
+            safeBtn:SetScript("OnClick", function()
+                ns:ApplyTemplate("Safe Mode")
+                page.templateApplied = true
                 for _, b in ipairs(page.modeButtons) do
                     b:SetChecked(b.value == ns.db.autoSellMode)
                 end
             end)
-            tplBtn:SetScript("OnEnter", function(self)
-                self:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+            safeBtn:SetScript("OnEnter", function(btn)
+                btn:SetBackdropBorderColor(0.0, 0.60, 0.25, 1)
             end)
-            tplBtn:SetScript("OnLeave", function(self)
-                self:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+            safeBtn:SetScript("OnLeave", function(btn)
+                btn:SetBackdropBorderColor(0.0, 0.45, 0.20, 1)
             end)
-
             tplY = tplY - 26
+        end
+
+        for tplName, tpl in pairs(ns.profileTemplates) do
+            if tplName ~= "Safe Mode" then
+                local tplBtn = CreateFrame("Button", nil, page, "BackdropTemplate")
+                tplBtn:SetSize(330, 22)
+                tplBtn:SetPoint("TOPLEFT", 50, tplY)
+                tplBtn:SetBackdrop(FLAT_BACKDROP)
+                tplBtn:SetBackdropColor(0.14, 0.14, 0.14, 1)
+                tplBtn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+
+                local tplText = tplBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+                tplText:SetPoint("LEFT", 8, 0)
+                tplText:SetText(format("|cFF00CCFF%s|r - %s", tplName, tpl.description))
+                tplText:SetWidth(314)
+                tplText:SetJustifyH("LEFT")
+
+                tplBtn:SetScript("OnClick", function()
+                    ns:ApplyTemplate(tplName)
+                    page.templateApplied = true
+                    for _, b in ipairs(page.modeButtons) do
+                        b:SetChecked(b.value == ns.db.autoSellMode)
+                    end
+                end)
+                tplBtn:SetScript("OnEnter", function(btn)
+                    btn:SetBackdropBorderColor(0.0, 0.45, 0.70, 1)
+                end)
+                tplBtn:SetScript("OnLeave", function(btn)
+                    btn:SetBackdropBorderColor(0.30, 0.30, 0.30, 1)
+                end)
+
+                tplY = tplY - 26
+            end
         end
     end
 
@@ -400,6 +435,9 @@ local function CreateWizardFrame()
         local page1 = f.pages[1]
         if page1 and page1.selectedProfile then
             ns:LoadProfile(page1.selectedProfile)
+        elseif page1 and not page1.templateApplied then
+            -- Auto-apply Safe Mode for new users who didn't choose anything
+            ns:ApplyTemplate("Safe Mode")
         end
         ns.db.firstRunComplete = true
         AutoSellPlusCharDB.charFirstRunComplete = true

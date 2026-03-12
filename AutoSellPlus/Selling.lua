@@ -99,7 +99,7 @@ end
 
 function ns:StartSelling(explicitQueue)
     if not self:IsFeatureAvailable("selling") then
-        self:Print("|cFFFF0000Selling is disabled:|r Required API (C_Container.UseContainerItem) is unavailable.")
+        self:Print("|cFFFFCC00Selling paused|r — Blizzard changed a required API. Your items are safe; selling will resume after we update.")
         return
     end
     if isSelling then return end

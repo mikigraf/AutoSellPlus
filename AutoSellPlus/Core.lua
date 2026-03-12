@@ -88,6 +88,15 @@ end
 -- Login Self-Test
 -- ============================================================
 
+local SELF_TEST_MESSAGES = {
+    selling = "Selling paused — Blizzard changed a bag API. Your items are safe; selling will resume after we update.",
+    scanning = "Bag scanning paused — a required API is missing. Your items are safe until we update.",
+    itemInfo = "Item info unavailable — some tooltips may not display correctly. Your items are safe.",
+    transmog = "Transmog detection paused — Blizzard changed an API. Sell rules are more conservative until updated.",
+    equipSets = "Equipment set detection paused — a required API is missing. Set items remain protected.",
+    destroying = "Item destruction paused — a required API is missing. No items will be destroyed.",
+}
+
 local function RunSelfTest()
     local disabled = {}
 
@@ -117,7 +126,10 @@ local function RunSelfTest()
     end
 
     if #disabled > 0 then
-        ns:Print("|cFFFF0000Warning:|r Disabled features due to missing APIs: " .. table.concat(disabled, ", "))
+        ns:Print("|cFFFFCC00Notice:|r Some features are temporarily paused:")
+        for _, name in ipairs(disabled) do
+            print("  " .. (SELF_TEST_MESSAGES[name] or ("Feature '" .. name .. "' unavailable.")))
+        end
     end
 end
 
