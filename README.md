@@ -77,14 +77,19 @@ Or skip the popup entirely: set auto-sell mode in `/asp config` and everything h
 ### Selling
 
 - **Popup preview** with sortable columns (name, ilvl, vendor price, AH value), checkboxes, and one-click Sell All
+- **Compact mode** -- condensed popup with item count, total value, per-quality breakdown, and one-click Sell
 - **Three sell modes:** interactive popup (default), one-click, or fully automatic with configurable delay
 - **Quality filters** for gray through epic, each with independent ilvl thresholds (e.g. sell greens below ilvl 200)
+- **Relative ilvl threshold** -- sell below a percentage of your equipped ilvl instead of per-quality sliders
+- **Sell collected transmog** -- optionally sell items whose appearances you've already collected
+- **Sell known collectibles** -- optionally sell already-known mounts, pets, and toys
 - **Category filters** for consumables, trade goods, quest items, and miscellaneous
 - **Expansion and slot filters** to narrow down exactly what shows up
 - **Confirmation dialogs** for epic items and high-value sales, with a scrollable item list panel showing exactly what will be sold
-- **Buyback safety** -- items beyond the 12-item buyback limit are flagged with a red divider and tinted rows
+- **Buyback safety** -- highest-value items sold first so buyback slots hold the most valuable items; red divider and tinted rows for items beyond the 12-slot limit
 - **Dry run mode** to preview what would be sold without selling anything
 - **Auto-repair** at vendors, guild funds first
+- **Key binding** in WoW's native Key Bindings UI to toggle the popup at any vendor
 
 ### Protection
 
@@ -92,6 +97,12 @@ Or skip the popup entirely: set auto-sell mode in `/asp config` and everything h
 - **Transmog protection** prevents selling uncollected appearances, with source-level checking
 - **Equipment set protection** for items in any saved gear set
 - **BoE protection** for unbound Bind on Equip items
+- **Soulbound-only mode** -- optionally skip all unbound items, useful for dungeon farmers keeping BoE for AH
+- **Quest item protection** for items in the Quest Items category
+- **Current expansion materials** -- optionally protect Trade Goods from the current expansion
+- **Mount equipment protection** -- never sell mount equipment items
+- **Warband item protection** -- optionally protect all warband and account-bound items
+- **AH value protection** -- protect items worth listing on the AH (requires TSM or Auctionator)
 - **Refundable protection** skips items still in the purchase refund window
 - **AllTheThings and CanIMogIt integration** for enhanced transmog detection
 
@@ -112,6 +123,7 @@ Or skip the popup entirely: set auto-sell mode in `/asp config` and everything h
 
 ### Tracking
 
+- **Tooltip item status** -- colored status line on item tooltips showing how ASP classifies each item
 - **Session tracker** with gold/hour calculation, accessible from the minimap button tooltip
 - **Sale history** with a scrollable UI panel (last 200 sales)
 - **Per-character stats** showing lifetime sales, visible in the minimap tooltip across alts
