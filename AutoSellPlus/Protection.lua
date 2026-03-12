@@ -397,6 +397,14 @@ function ns:ShouldSellItem(bag, slot)
         end
     end
 
+    -- AH value protection
+    if db.ahProtectionEnabled and ns:HasAHAddon() then
+        local ahValue = ns:GetAHValue(itemID, itemLink)
+        if ahValue > 0 and ahValue >= db.ahProtectionThreshold then
+            return false
+        end
+    end
+
     -- Sell collected transmog
     if db.sellCollectedTransmog and self:IsCollectedTransmog(itemID) then
         return true, itemLink, sellPrice, stackCount
@@ -507,6 +515,14 @@ function ns:ClassifyItem(itemID, bag, slot)
             if expansionID == ns.CURRENT_EXPANSION then
                 return "protected", "Protected (current exp. material)", 1.0, 0.3, 0.3
             end
+        end
+    end
+
+    -- AH value protection
+    if db.ahProtectionEnabled and ns:HasAHAddon() then
+        local ahValue = ns:GetAHValue(itemID, itemLink)
+        if ahValue > 0 and ahValue >= db.ahProtectionThreshold then
+            return "protected", format("Protected (AH value: %s)", ns:FormatMoney(ahValue)), 0.3, 0.8, 1.0
         end
     end
 

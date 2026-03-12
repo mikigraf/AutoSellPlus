@@ -353,6 +353,18 @@ local function CreateItemRow(parent, index)
         if self.itemData and self.itemData.itemLink then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetHyperlink(self.itemData.itemLink)
+            -- AH vs vendor comparison tooltip
+            local ahVal = self.itemData.ahValue or 0
+            local vendorVal = self.itemData.totalPrice or 0
+            if ahVal > 0 and vendorVal > 0 then
+                local ratio = math.floor(ahVal / vendorVal)
+                if ratio >= 2 then
+                    GameTooltip:AddLine(
+                        format("Worth listing: AH %s, vendor %s (%dx)",
+                            ns:FormatMoney(ahVal), ns:FormatMoney(vendorVal), ratio),
+                        0.3, 1.0, 0.3)
+                end
+            end
             GameTooltip:Show()
         end
     end)
@@ -367,8 +379,6 @@ local function CreateItemRow(parent, index)
 
     return row
 end
-
-local hasAHAddon = false
 
 local function SetRowData(row, item)
     row.itemData = item
@@ -412,7 +422,7 @@ local function SetRowData(row, item)
     end
 
     -- AH value
-    if hasAHAddon and item.ahValue and item.ahValue > 0 then
+    if ns:HasAHAddon() and item.ahValue and item.ahValue > 0 then
         row.ahText:SetText(ns:FormatMoney(item.ahValue))
         if item.ahValue > item.totalPrice * 10 then
             row.ahText:SetTextColor(0.1, 1.0, 0.1)
@@ -1034,8 +1044,7 @@ local function CreateItemListSection(f, dividerY)
     local hdrIlvl = CreateHeaderButton("ilvl", "ilvl", "LEFT", headerBg, "LEFT", 290, 80)
     f.headerButtons[#f.headerButtons + 1] = hdrIlvl
 
-    hasAHAddon = (TSM_API ~= nil) or (Auctionator ~= nil)
-    if hasAHAddon then
+    if ns:HasAHAddon() then
         local hdrAH = CreateHeaderButton("AH", "ah", "LEFT", headerBg, "LEFT", 372, 60)
         f.headerButtons[#f.headerButtons + 1] = hdrAH
     end
@@ -1607,6 +1616,11 @@ local function CreateSettingsOverlay(f)
                 { type = "check", key = "excludeCurrentExpansion", label = "Exclude Current Expansion" },
                 { type = "check", key = "protectCurrentExpMaterials", label = "Protect Current Exp. Materials" },
                 { type = "check", key = "protectQuestItems", label = "Protect Quest Items" },
+                { type = "check", key = "ahProtectionEnabled", label = "AH Value Protection" },
+                { type = "slider", key = "ahProtectionThreshold", label = "AH Protection Threshold",
+                  min = 0, max = 100, step = 1, gold = true },
+                { type = "slider", key = "ahHighlightMultiplier", label = "AH Highlight Multiplier",
+                  min = 2, max = 20, step = 1 },
             },
         },
         {

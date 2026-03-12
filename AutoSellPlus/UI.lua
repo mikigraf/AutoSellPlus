@@ -819,6 +819,15 @@ local function RegisterSettingsPanel()
         "Never sell Trade Goods from the current expansion (Midnight).")
     AddBool(protectionCat, "protectQuestItems", "Protect Quest Items",
         "Never sell items in the Quest Items category. Prevents accidental sale of quest objectives and quest-starting items.")
+    AddBool(protectionCat, "ahProtectionEnabled", "AH Value Protection",
+        "Protect items worth more than a threshold on the AH from being auto-sold. Requires TSM or Auctionator.")
+    AddSlider(protectionCat, "ahProtectionThreshold", "AH Protection Threshold",
+        "Items with AH value above this gold amount will be protected from auto-selling.",
+        0, 500, 1, goldProxy, math.floor((ns.globalDefaults.ahProtectionThreshold or 10000) / 10000),
+        function(val) return val .. "g" end)
+    AddSlider(protectionCat, "ahHighlightMultiplier", "AH Highlight Multiplier",
+        "Highlight popup rows where AH value exceeds this multiple of vendor price.",
+        2, 20, 1)
 
     -- ══════════════════════════════════════════
     -- Marking
