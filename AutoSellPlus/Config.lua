@@ -2,12 +2,13 @@ local addonName, ns = ...
 
 ns.version = "@project-version@"
 
-local DB_VERSION = 2
+local DB_VERSION = 3
 
 -- Keys stored at the top level of AutoSellPlusDB (not inside .global)
 local TOP_LEVEL_KEYS = {
     neverSellList = true,
     alwaysSellList = true,
+    neverDestroyList = true,
     profiles = true,
     charStats = true,
     saleHistory = true,
@@ -92,17 +93,27 @@ ns.globalDefaults = {
     freeSlotThreshold = 0,
     freeSlotAlertMode = "chat",
     evictionEnabled = false,
-    -- Auto-destroy
-    autoDestroyEnabled = false,
-    autoDestroyMaxQuality = 0,
-    autoDestroyMaxValue = 0,
-    autoDestroyConfirm = true,
+    -- AH-aware protection
+    ahProtectionEnabled = false,
+    ahProtectionThreshold = 10000,
+    ahHighlightMultiplier = 2,
+    -- Destruction system
+    destroyEnabled = false,
+    destroyMaxQuality = 0,
+    destroyMaxIlvl = 0,
+    destroyMaxVendorValue = 0,
+    destroyConfirmCountdown = 3,
+    destroyFreeSlotTrigger = 0,
+    destroyProtectTransmog = true,
+    destroyProtectBoE = true,
+    destroyProtectEquipmentSets = true,
 }
 
 -- Default top-level tables in AutoSellPlusDB
 ns.topLevelDefaults = {
     neverSellList = {},
     alwaysSellList = {},
+    neverDestroyList = {},
     profiles = {},
     charStats = {},
     saleHistory = {},
@@ -276,6 +287,31 @@ local function MigrateDB(db)
         end
     end
 
+    if version < 3 then
+        -- Migrate old auto-destroy settings to new destruction system
+        local g = db.global
+        if g then
+            if g.autoDestroyEnabled ~= nil then
+                g.destroyEnabled = g.autoDestroyEnabled
+                g.autoDestroyEnabled = nil
+            end
+            if g.autoDestroyMaxQuality ~= nil then
+                g.destroyMaxQuality = g.autoDestroyMaxQuality
+                g.autoDestroyMaxQuality = nil
+            end
+            if g.autoDestroyMaxValue ~= nil then
+                g.destroyMaxVendorValue = g.autoDestroyMaxValue
+                g.autoDestroyMaxValue = nil
+            end
+            if g.autoDestroyConfirm ~= nil then
+                g.autoDestroyConfirm = nil
+            end
+        end
+        if db.neverDestroyList == nil then
+            db.neverDestroyList = {}
+        end
+    end
+
     db.dbVersion = DB_VERSION
 end
 
@@ -306,6 +342,11 @@ end
 function ns:IsNeverSell(itemID)
     if AutoSellPlusDB.neverSellList[itemID] then return true end
     if AutoSellPlusCharDB and AutoSellPlusCharDB.charNeverSellList and AutoSellPlusCharDB.charNeverSellList[itemID] then return true end
+    return false
+end
+
+function ns:IsNeverDestroy(itemID)
+    if AutoSellPlusDB.neverDestroyList[itemID] then return true end
     return false
 end
 

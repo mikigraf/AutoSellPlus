@@ -366,6 +366,8 @@ local function CreateListsCanvas()
             return AutoSellPlusDB.neverSellList or {}, "neverSellList"
         elseif activeTab == "always" then
             return AutoSellPlusDB.alwaysSellList or {}, "alwaysSellList"
+        elseif activeTab == "neverdestroy" then
+            return AutoSellPlusDB.neverDestroyList or {}, "neverDestroyList"
         else
             return AutoSellPlusDB.stackLimits or {}, "stackLimits"
         end
@@ -481,8 +483,9 @@ local function CreateListsCanvas()
     f.tabButtons = {}
     local tabs = {
         { key = "never", label = "Never-Sell", x = 16 },
-        { key = "always", label = "Always-Sell", x = 126 },
-        { key = "stack", label = "Stack Limits", x = 236 },
+        { key = "always", label = "Always-Sell", x = 116 },
+        { key = "neverdestroy", label = "Never-Destroy", x = 216 },
+        { key = "stack", label = "Stack Limits", x = 336 },
     }
     for _, tab in ipairs(tabs) do
         local btn = CreateCanvasButton(f, tab.label, 100)
@@ -870,24 +873,41 @@ local function RegisterSettingsPanel()
         "When bags are full at a vendor, suggest selling cheapest items to free space.")
 
     -- ══════════════════════════════════════════
-    -- Auto-Destroy
+    -- Destruction
     -- ══════════════════════════════════════════
 
-    local destroyCat = Settings.RegisterVerticalLayoutSubcategory(category, "Auto-Destroy")
+    local destroyCat = Settings.RegisterVerticalLayoutSubcategory(category, "Destruction")
 
-    AddBool(destroyCat, "autoDestroyEnabled", "Enable Auto-Destroy",
-        "Allow destroying junk items via /asp destroy. Must be enabled before use.")
-    AddBool(destroyCat, "autoDestroyConfirm", "Require Confirmation",
-        "Show a confirmation dialog before destroying items.")
+    AddBool(destroyCat, "destroyEnabled", "Enable Destruction",
+        "Allow destroying junk items via /asp destroy or the bag pressure valve. Must be enabled before use.")
 
-    AddDropdown(destroyCat, "autoDestroyMaxQuality", "Max Destroy Quality",
+    AddDropdown(destroyCat, "destroyMaxQuality", "Max Destroy Quality",
         "Maximum item quality eligible for destruction.",
-        { {0, "Poor (Gray)"}, {1, "Common (White)"}, {2, "Uncommon (Green)"}, {3, "Rare (Blue)"}, {4, "Epic (Purple)"} })
+        { {0, "Poor (Gray)"}, {1, "Common (White)"}, {2, "Uncommon (Green)"} })
 
-    AddSlider(destroyCat, "autoDestroyMaxValue", "Max Destroy Value (gold)",
-        "Only destroy items worth less than this gold amount. Set 0 to destroy regardless of value.",
-        0, 100, 1, goldProxy, math.floor((ns.globalDefaults.autoDestroyMaxValue or 0) / 10000),
+    AddSlider(destroyCat, "destroyMaxIlvl", "Max Destroy Item Level",
+        "Only destroy equippable items at or below this ilvl. Set 0 to ignore ilvl.",
+        0, 700, 5)
+
+    AddSlider(destroyCat, "destroyMaxVendorValue", "Max Destroy Vendor Value",
+        "Only destroy items worth less than this gold amount. Set 0 for no limit.",
+        0, 100, 1, goldProxy, math.floor((ns.globalDefaults.destroyMaxVendorValue or 0) / 10000),
         function(val) return val .. "g" end)
+
+    AddSlider(destroyCat, "destroyConfirmCountdown", "Confirm Countdown (seconds)",
+        "Countdown timer on the Destroy button to prevent accidental clicks.",
+        1, 10, 1)
+
+    AddSlider(destroyCat, "destroyFreeSlotTrigger", "Bag Pressure Trigger",
+        "Auto-show destroy confirmation when free bag slots drop to this number. Set 0 for manual only.",
+        0, 20, 1)
+
+    AddBool(destroyCat, "destroyProtectTransmog", "Protect Uncollected Transmog",
+        "Never destroy items with uncollected transmog appearances.")
+    AddBool(destroyCat, "destroyProtectBoE", "Protect BoE Items",
+        "Never destroy unbound Bind on Equip items.")
+    AddBool(destroyCat, "destroyProtectEquipmentSets", "Protect Equipment Sets",
+        "Never destroy items in saved equipment sets.")
 
     -- ══════════════════════════════════════════
     -- Canvas sub-categories

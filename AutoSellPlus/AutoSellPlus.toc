@@ -24,5 +24,6 @@ PopupFilters.lua
 ConfirmList.lua
 Popup.lua
 Selling.lua
+Destroy.lua
 Core.lua
 Tests.lua

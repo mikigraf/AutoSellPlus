@@ -158,6 +158,7 @@ local function HandleSlashCommand(msg)
         print("|cFFAAAAAA  /asp keep list|r - Show stack limits")
         print("|cFFAAAAAA  /asp keep clear [itemID]|r - Clear stack limit(s)")
         print("|cFFAAAAAA  /asp destroy|r - Destroy junk items")
+        print("|cFFAAAAAA  /asp neverdestroy add|remove|list|r - Manage never-destroy list")
         print("|cFFAAAAAA  /asp profile save|load|list|delete <name>|r")
         print("|cFFAAAAAA  /asp template [name|list]|r - Apply a preset template")
         print("|cFFAAAAAA  /asp wizard|r - Re-run setup wizard")
@@ -381,6 +382,41 @@ local function HandleSlashCommand(msg)
         return
     end
 
+    if cmd == "neverdestroy" then
+        local sub = args[2]
+        if sub == "add" then
+            local itemID = tonumber(args[3])
+            if not itemID then
+                ns:Print("Usage: /asp neverdestroy add <itemID>")
+                return
+            end
+            AutoSellPlusDB.neverDestroyList[itemID] = true
+            local itemName = C_Item.GetItemNameByID(itemID)
+            ns:Print(format("Added %s (ID: %d) to never-destroy list", itemName or "Unknown", itemID))
+        elseif sub == "remove" then
+            local itemID = tonumber(args[3])
+            if not itemID then
+                ns:Print("Usage: /asp neverdestroy remove <itemID>")
+                return
+            end
+            AutoSellPlusDB.neverDestroyList[itemID] = nil
+            local itemName = C_Item.GetItemNameByID(itemID)
+            ns:Print(format("Removed %s (ID: %d) from never-destroy list", itemName or "Unknown", itemID))
+        elseif sub == "list" then
+            ns:Print("Never-destroy list:")
+            local count = 0
+            for itemID in pairs(AutoSellPlusDB.neverDestroyList or {}) do
+                local itemName = C_Item.GetItemNameByID(itemID)
+                print(format("  [%d] %s", itemID, itemName or "Unknown"))
+                count = count + 1
+            end
+            if count == 0 then print("  (empty)") end
+        else
+            ns:Print("Usage: /asp neverdestroy add|remove|list <itemID>")
+        end
+        return
+    end
+
     if cmd == "profile" then
         local sub = args[2]
         local name = args[3]
@@ -574,6 +610,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "BAG_UPDATE_DELAYED" then
         ns:SafeCall(CheckBagSpace)
         ns:SafeCall(function() ns:UpdateCharJunkValue() end)
+        ns:SafeCall(function() ns:CheckDestroyPressureValve() end)
 
     elseif event == "PLAYER_ENTERING_WORLD" then
         local _, instanceType = GetInstanceInfo()
