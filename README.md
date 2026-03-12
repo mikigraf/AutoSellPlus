@@ -9,7 +9,7 @@
 <h1 align="center">AutoSellPlus</h1>
 
 <p align="center">
-  <b>Smart junk selling with transmog protection, bag eviction, and cross-alt profiles.</b><br>
+  <b>Smart junk selling with transmog protection, AH-aware safeguards, and cross-alt profiles.</b><br>
   <sub>A World of Warcraft addon for Retail (Midnight)</sub>
 </p>
 
@@ -45,12 +45,12 @@
 </p>
 
 <p align="center">
-  <img src="assets/3.png" alt="Settings tab — Marking, Display, Bag Maintenance, Auto-Destroy" width="420">
+  <img src="assets/3.png" alt="Settings tab — Marking, Display, Bag Maintenance, Destruction" width="420">
 </p>
 
 <br>
 
-AutoSellPlus sells your junk at vendors with configurable quality and ilvl filters, transmog protection, and per-character profiles. Mark items as junk while looting, preview what will be sold before confirming, and protect gear you want to keep -- including uncollected appearances, BoEs, and equipment sets. Lightweight, modular, and self-testing on login so it works through patches without manual intervention.
+AutoSellPlus sells your junk at vendors with configurable quality and ilvl filters, transmog protection, AH value safeguards, and per-character profiles. Mark items as junk while looting, preview what will be sold before confirming, and protect gear you want to keep -- including uncollected appearances, BoEs, equipment sets, and items worth listing on the AH. Destroy worthless items away from vendors with cursor-safe deletion and a bag pressure valve. Lightweight, modular, and self-testing on login so it works through patches without manual intervention.
 
 <br>
 
@@ -116,7 +116,7 @@ Or skip the popup entirely: set auto-sell mode in `/asp config` and everything h
 
 ### Bag Management
 
-- **Bag space guard** automatically suggests selling the cheapest junk when free slots drop below a threshold
+- **Value-based eviction** -- automatically sell cheapest items at a vendor when bags are full
 - **Stack limits** -- set maximum quantities per item, excess is automatically included in sell queues
 - **Free slot alerts** in chat or on-screen when bag space is low
 - **Bag gold display** showing total vendor value of bag contents above the backpack button
@@ -131,16 +131,20 @@ Or skip the popup entirely: set auto-sell mode in `/asp config` and everything h
 
 ### Profiles
 
-- **Four built-in templates:** Raid Farmer, Transmog Hunter, Leveling Alt, Gold Farmer
+- **Five built-in templates:** Safe Mode, Raid Farmer, Transmog Hunter, Leveling Alt, Gold Farmer
 - **Save/load named profiles** that persist across sessions
 - **Per-character auto-load** -- the last loaded profile restores on login
+- **Instance auto-profiles** -- auto-switch profiles when entering raids, dungeons, or battlegrounds
 - **Import/export** never-sell and always-sell lists as shareable strings
-- **First-run setup wizard** walks through configuration on each new character
+- **First-run setup wizard** walks through configuration on each new character (defaults to Safe Mode)
 
-### Destroy
+### Destruction
 
-- **Auto-destroy** junk items that have no vendor value, with configurable quality and value limits
-- Confirmation dialog with safety cap of 5 items per use
+- **Destroy junk items** when not at a vendor, with separate quality, ilvl, and vendor value filters
+- **Countdown confirmation** popup with item list and vendor value lost before destroying
+- **Cursor-safe** one-at-a-time deletion with full cursor verification
+- **Bag pressure valve** auto-triggers confirmation when free bag slots drop below a threshold
+- **Never-destroy list** -- per-item blacklist independent from never-sell
 
 <br>
 
@@ -155,6 +159,7 @@ All commands are available via `/asp` or `/autosell`.
 | `/asp sell` | Sell at vendor now |
 | `/asp preview` | Dry run (nothing sold) |
 | `/asp undo` | Buyback last sale |
+| `/asp compact` | Toggle compact popup mode |
 | `/asp template [name]` | Apply a preset template |
 | `/asp toggle` | Enable / disable |
 | `/asp mark` | Toggle bulk-mark mode |
@@ -167,6 +172,7 @@ All commands are available via `/asp` or `/autosell`.
 | `/asp session` | Show session stats |
 | `/asp log ui` | Open sale history panel |
 | `/asp destroy` | Destroy qualifying junk |
+| `/asp neverdestroy add\|remove\|list` | Manage never-destroy list |
 | `/asp wizard` | Re-run setup wizard |
 | `/asp overlay` | Cycle overlay mode |
 
@@ -176,7 +182,7 @@ All commands are available via `/asp` or `/autosell`.
 
 | Addon | Integration |
 | :--- | :--- |
-| **TSM / Auctionator** | AH price column in popup, value warnings |
+| **TSM / Auctionator** | AH price column in popup, AH value protection |
 | **Bagnon / AdiBags / ArkInventory / Baganator** | Junk mark overlays in bag frames |
 | **AllTheThings / CanIMogIt** | Enhanced transmog protection |
 | **Leatrix Plus** | Conflict detection and warning |
@@ -222,6 +228,7 @@ AutoSellPlus/
 │   ├── ConfirmList.lua      # Confirmation dialog item list panel
 │   ├── Popup.lua            # Merchant popup frame, item rows, sell actions
 │   ├── Selling.lua          # Sell queue, batch processing, undo, auto-sell
+│   ├── Destroy.lua          # Destruction system, countdown confirmation, pressure valve
 │   ├── Core.lua             # Event handling, slash commands, auto-repair
 │   └── Tests.lua            # WoWUnit test suite (requires WoWUnit addon)
 ├── assets/                  # Images for README (excluded from package)
