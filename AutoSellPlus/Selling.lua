@@ -179,6 +179,16 @@ function ns:ProcessNextBatch()
                 ns:UpdateSession(item.stackCount, item.totalPrice)
             end)
 
+            -- Record sell decision for smart defaults
+            ns:SafeCall(function()
+                ns:RecordSellDecision(itemInfo.itemID, true)
+            end)
+
+            -- Record instance sell for instance-aware junk
+            ns:SafeCall(function()
+                ns:RecordInstanceSell(itemInfo.itemID)
+            end)
+
             -- Track for undo (store full link for matching)
             ns.lastSoldBatch[#ns.lastSoldBatch + 1] = {
                 itemLink = item.itemLink,
@@ -222,10 +232,17 @@ function ns:FinishSelling()
     end
 
     if self.db.showSummary and totalSold > 0 then
-        self:Print(format("Sold %d item%s for %s",
+        local summaryMsg = format("Sold %d item%s for %s",
             totalSold,
             totalSold == 1 and "" or "s",
-            self:FormatMoney(totalCopper)))
+            self:FormatMoney(totalCopper))
+        self:Print(summaryMsg)
+        -- Show toast notification
+        ns:SafeCall(function()
+            if ns.ShowToast then
+                ns:ShowToast(summaryMsg, "success", 5)
+            end
+        end)
     end
 
     -- Update character stats and exposed globals

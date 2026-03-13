@@ -148,6 +148,15 @@ local function OnTooltipSetItem(tooltip, data)
             tooltip:AddLine("ASP: " .. reason, r or 0.7, g or 0.7, b or 0.7)
         end
     end
+
+    -- Smart defaults learned indicator
+    if ns.db and ns.db.smartDefaults then
+        if ns:IsLearnedSell(itemID) then
+            tooltip:AddLine("ASP: Learned — usually sold", 0.8, 0.4, 1.0)
+        elseif ns:IsLearnedKeep(itemID) then
+            tooltip:AddLine("ASP: Learned — usually kept", 0.4, 0.8, 1.0)
+        end
+    end
 end
 
 -- ============================================================

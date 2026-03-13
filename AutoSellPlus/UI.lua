@@ -863,6 +863,8 @@ local function RegisterSettingsPanel()
         "Show AutoSellPlus item classification in tooltips (will sell, protected, etc.).")
     AddBool(displayCat, "compactMode", "Compact Mode",
         "Show a condensed popup with item count, total value, and a Sell button.")
+    AddBool(displayCat, "smartDefaults", "Smart Defaults",
+        "Learn from your sell and keep decisions. Items you consistently sell are auto-checked; items you consistently un-check are auto-unchecked.")
 
     -- ══════════════════════════════════════════
     -- Bag Maintenance

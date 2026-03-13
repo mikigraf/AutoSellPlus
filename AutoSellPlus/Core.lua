@@ -569,6 +569,10 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         -- Update junk value for alt tracking
         ns:SafeCall(function() ns:UpdateCharJunkValue() end)
 
+        -- Prune learned items and instance junk DB
+        ns:SafeCall(function() ns:PruneLearnedItems() end)
+        ns:SafeCall(function() ns:PruneInstanceJunkDB() end)
+
         -- Conflict detection
         ns:SafeCall(DetectConflicts)
 

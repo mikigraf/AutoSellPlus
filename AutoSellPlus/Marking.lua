@@ -47,12 +47,36 @@ end
 -- ============================================================
 
 -- ALT+Click hook for bag items
+-- ALT+Click: toggle junk mark
+-- Shift+ALT+Click: add to always-sell
+-- Ctrl+ALT+Click: add to never-sell
 local function OnModifiedClick(bag, slot)
-    if not IsAltKeyDown() and not ns.bulkMarkMode then return end
-
     local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
-    if itemInfo and itemInfo.itemID then
-        ns:ToggleMark(itemInfo.itemID)
+    if not itemInfo or not itemInfo.itemID then return end
+    local itemID = itemInfo.itemID
+
+    if IsAltKeyDown() and IsShiftKeyDown() then
+        -- Shift+ALT: always-sell
+        ns.db.alwaysSellList[itemID] = true
+        ns.db.neverSellList[itemID] = nil
+        local itemName = C_Item.GetItemNameByID(itemID)
+        ns:Print(format("Added %s to always-sell list", itemName or "item " .. itemID))
+        ns:FlashBagItem(itemID, 0, 1, 0)
+        return
+    end
+
+    if IsAltKeyDown() and IsControlKeyDown() then
+        -- Ctrl+ALT: never-sell
+        ns.db.neverSellList[itemID] = true
+        ns.db.alwaysSellList[itemID] = nil
+        local itemName = C_Item.GetItemNameByID(itemID)
+        ns:Print(format("Added %s to never-sell list", itemName or "item " .. itemID))
+        ns:FlashBagItem(itemID, 0, 1, 0)
+        return
+    end
+
+    if IsAltKeyDown() or ns.bulkMarkMode then
+        ns:ToggleMark(itemID)
     end
 end
 
@@ -91,7 +115,7 @@ end
 local function SetupAltClickHook()
     if hooksecurefunc then
         hooksecurefunc(C_Container, "UseContainerItem", function(bag, slot)
-            if ns.bulkMarkMode or (IsAltKeyDown() and ns.isMerchantOpen) then
+            if ns.bulkMarkMode or IsAltKeyDown() then
                 OnModifiedClick(bag, slot)
                 ClearCursor()
             end

@@ -12,8 +12,10 @@
 Config.lua
 Helpers.lua
 Widgets.lua
+Toasts.lua
 Protection.lua
 BagAdapters.lua
+InstanceJunk.lua
 Overlays.lua
 Marking.lua
 History.lua

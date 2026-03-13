@@ -14,6 +14,9 @@ local TOP_LEVEL_KEYS = {
     saleHistory = true,
     markedItems = true,
     stackLimits = true,
+    learnedSellItems = true,
+    learnedKeepItems = true,
+    instanceJunkDB = true,
 }
 
 -- Default global settings (stored in AutoSellPlusDB.global)
@@ -97,6 +100,8 @@ ns.globalDefaults = {
     ahProtectionEnabled = false,
     ahProtectionThreshold = 10000,
     ahHighlightMultiplier = 2,
+    -- Smart defaults (behavioral learning)
+    smartDefaults = true,
     -- Destruction system
     destroyEnabled = false,
     destroyMaxQuality = 0,
@@ -119,6 +124,9 @@ ns.topLevelDefaults = {
     saleHistory = {},
     markedItems = {},
     stackLimits = {},
+    learnedSellItems = {},
+    learnedKeepItems = {},
+    instanceJunkDB = {},
 }
 
 -- Default per-character settings (stored in AutoSellPlusCharDB)
@@ -383,6 +391,72 @@ function ns:IsAlwaysSell(itemID)
     if AutoSellPlusDB.alwaysSellList[itemID] then return true end
     if AutoSellPlusCharDB and AutoSellPlusCharDB.charAlwaysSellList and AutoSellPlusCharDB.charAlwaysSellList[itemID] then return true end
     return false
+end
+
+-- ============================================================
+-- Smart Defaults (Behavioral Learning)
+-- ============================================================
+
+local LEARN_THRESHOLD = 3
+local LEARN_MAX_ITEMS = 200
+local LEARN_DECAY_DAYS = 30
+
+function ns:RecordSellDecision(itemID, wasSold)
+    if not itemID or not self.db.smartDefaults then return end
+    local db = wasSold and AutoSellPlusDB.learnedSellItems or AutoSellPlusDB.learnedKeepItems
+    if not db then return end
+
+    local entry = db[itemID]
+    db[itemID] = {
+        count = (entry and entry.count or 0) + 1,
+        lastSeen = time(),
+    }
+end
+
+function ns:IsLearnedSell(itemID)
+    if not self.db.smartDefaults then return false end
+    local entry = AutoSellPlusDB.learnedSellItems and AutoSellPlusDB.learnedSellItems[itemID]
+    return entry ~= nil and entry.count >= LEARN_THRESHOLD
+end
+
+function ns:IsLearnedKeep(itemID)
+    if not self.db.smartDefaults then return false end
+    local entry = AutoSellPlusDB.learnedKeepItems and AutoSellPlusDB.learnedKeepItems[itemID]
+    return entry ~= nil and entry.count >= LEARN_THRESHOLD
+end
+
+function ns:PruneLearnedItems()
+    local now = time()
+    local cutoff = now - (LEARN_DECAY_DAYS * 24 * 60 * 60)
+
+    for _, db in ipairs({ AutoSellPlusDB.learnedSellItems, AutoSellPlusDB.learnedKeepItems }) do
+        if db then
+            -- Collect stale entries
+            local stale = {}
+            local count = 0
+            for itemID, entry in pairs(db) do
+                count = count + 1
+                if entry.lastSeen < cutoff or entry.count < LEARN_THRESHOLD then
+                    stale[#stale + 1] = itemID
+                end
+            end
+            for _, itemID in ipairs(stale) do
+                db[itemID] = nil
+                count = count - 1
+            end
+            -- Cap at max items: remove oldest if over limit
+            if count > LEARN_MAX_ITEMS then
+                local sorted = {}
+                for itemID, entry in pairs(db) do
+                    sorted[#sorted + 1] = { id = itemID, lastSeen = entry.lastSeen }
+                end
+                table.sort(sorted, function(a, b) return a.lastSeen < b.lastSeen end)
+                for i = 1, count - LEARN_MAX_ITEMS do
+                    db[sorted[i].id] = nil
+                end
+            end
+        end
+    end
 end
 
 -- Profile management

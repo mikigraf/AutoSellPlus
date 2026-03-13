@@ -249,6 +249,20 @@ function ns:ApplyFilters(displayList, userUnchecked)
             autoChecked = true
         end
 
+        -- Smart defaults: learned sell/keep behavior
+        if db.smartDefaults then
+            if visible and ns:IsLearnedKeep(item.itemID) then
+                autoChecked = false
+                item.isLearnedKeep = true
+            elseif ns:IsLearnedSell(item.itemID) then
+                if not visible then
+                    visible = true
+                end
+                autoChecked = true
+                item.isLearnedSell = true
+            end
+        end
+
         item.visible = visible
 
         -- Deferred AH value lookup: only query for visible items

@@ -182,6 +182,10 @@ local function CreateItemRow(parent, index)
             local key = item.bag .. ":" .. item.slot
             if not item.checked then
                 userUnchecked[key] = true
+                -- Record keep decision for smart defaults
+                ns:SafeCall(function()
+                    ns:RecordSellDecision(item.itemID, false)
+                end)
             else
                 userUnchecked[key] = nil
             end
@@ -310,6 +314,8 @@ local function SetRowData(row, item)
     local badges = {}
     if item.isBoe then badges[#badges + 1] = "|cFFFFCC00BoE|r" end
     if item.isMarked then badges[#badges + 1] = "|cFFFF6600Junk|r" end
+    if item.isLearnedSell then badges[#badges + 1] = "|cFFCC66FFLearned|r" end
+    if item.isLearnedKeep then badges[#badges + 1] = "|cFF66CCFFKept|r" end
     row.badge:SetText(table.concat(badges, " "))
 
     -- ilvl display
@@ -1549,6 +1555,7 @@ local function CreateSettingsOverlay(f)
                 { type = "check", key = "showMinimapButton", label = "Show Minimap Button" },
                 { type = "check", key = "showTooltipStatus", label = "Show Tooltip Status" },
                 { type = "check", key = "compactMode", label = "Compact Mode" },
+                { type = "check", key = "smartDefaults", label = "Smart Defaults (Learn Behavior)" },
             },
         },
         {
@@ -1730,7 +1737,7 @@ end
 -- ============================================================
 
 local COMPACT_WIDTH = 300
-local COMPACT_HEIGHT = 220
+local COMPACT_HEIGHT = 290
 local compactPopup = nil
 
 local function CreateCompactFrame()
@@ -1847,6 +1854,40 @@ local function CreateCompactFrame()
     breakdownText:SetJustifyH("CENTER")
     f.breakdownText = breakdownText
 
+    -- Mini item list (top 5 most valuable)
+    local miniListItems = {}
+    for i = 1, 5 do
+        local row = CreateFrame("Frame", nil, f)
+        row:SetSize(COMPACT_WIDTH - 20, 16)
+        if i == 1 then
+            row:SetPoint("TOP", breakdownText, "BOTTOM", 0, -6)
+        else
+            row:SetPoint("TOP", miniListItems[i - 1], "BOTTOM", 0, -1)
+        end
+
+        local icon = row:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(14, 14)
+        icon:SetPoint("LEFT", 0, 0)
+        row.icon = icon
+
+        local nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        nameText:SetPoint("LEFT", icon, "RIGHT", 4, 0)
+        nameText:SetWidth(180)
+        nameText:SetJustifyH("LEFT")
+        nameText:SetWordWrap(false)
+        row.nameText = nameText
+
+        local priceText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        priceText:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+        priceText:SetJustifyH("RIGHT")
+        priceText:SetTextColor(1, 0.82, 0)
+        row.priceText = priceText
+
+        row:Hide()
+        miniListItems[i] = row
+    end
+    f.miniListItems = miniListItems
+
     -- Sell button
     local sellBtn = CreateFlatButton(f, "Sell", 200, 32)
     sellBtn:SetPoint("BOTTOM", 0, 40)
@@ -1953,6 +1994,38 @@ local function RefreshCompactSummary()
         end
     end
     compactPopup.breakdownText:SetText(table.concat(parts, "  "))
+
+    -- Populate mini item list (top 5 by price)
+    if compactPopup.miniListItems then
+        local checkedItems = {}
+        for _, item in ipairs(displayList) do
+            if item.visible and item.checked then
+                checkedItems[#checkedItems + 1] = item
+            end
+        end
+        table.sort(checkedItems, function(a, b) return a.totalPrice > b.totalPrice end)
+
+        for i = 1, 5 do
+            local row = compactPopup.miniListItems[i]
+            local item = checkedItems[i]
+            if item then
+                local _, _, _, _, iconPath = C_Item.GetItemInfoInstant(item.itemID)
+                row.icon:SetTexture(iconPath)
+                local color = ITEM_QUALITY_COLORS[item.quality]
+                local itemName = C_Item.GetItemNameByID(item.itemID) or "?"
+                if color then
+                    row.nameText:SetTextColor(color.r, color.g, color.b)
+                else
+                    row.nameText:SetTextColor(0.9, 0.9, 0.9)
+                end
+                row.nameText:SetText(itemName)
+                row.priceText:SetText(ns:FormatMoney(item.totalPrice))
+                row:Show()
+            else
+                row:Hide()
+            end
+        end
+    end
 
     -- Update sell button
     compactPopup.sellBtn.label:SetText(format("Sell (%s)", ns:FormatMoney(totalCopper)))
@@ -2175,6 +2248,15 @@ function ns:ShowPopup()
     displayList = self:BuildDisplayList()
     self:ApplyFilters(displayList, userUnchecked)
     self:RefreshPopupList()
+
+    -- Instance junk suggestions
+    if ns.GetCurrentInstanceID and ns:GetCurrentInstanceID() > 0 then
+        local suggestions = ns:GetInstanceSuggestions()
+        if #suggestions > 0 then
+            local instanceName = ns:GetCurrentInstanceName()
+            popup.titleText:SetText(format("|cFF00CCFFAutoSellPlus|r |cFFAAAAAA[%s]|r", instanceName))
+        end
+    end
 
     -- Eviction / reclaim space mode
     if self.db.evictionEnabled and ns:CountFreeSlots() == 0 then
