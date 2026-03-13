@@ -47,6 +47,10 @@ AutoSellPlus is a World of Warcraft addon that shows a popup when visiting a mer
 39. [AH Value Protection](#ah-value-protection)
 40. [Safe Mode Template](#safe-mode-template)
 41. [Destruction System](#destruction-system)
+42. [Smart Defaults Engine](#smart-defaults-engine)
+43. [Toast Notification System](#toast-notification-system)
+44. [Instance-Aware Junk Detection](#instance-aware-junk-detection)
+45. [Unified Item Actions](#unified-item-actions)
 
 ---
 
@@ -825,6 +829,11 @@ All commands use `/asp` or `/autosell` as prefix.
 | `ahProtectionThreshold` | int | 10000 | AH value threshold in copper |
 | `ahHighlightMultiplier` | int | 2 | AH/vendor ratio to color-code popup rows |
 
+### Smart Defaults
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `smartDefaults` | bool | true | Learn from sell/keep decisions and auto-check/uncheck items |
+
 ---
 
 ## Data Structures
@@ -901,6 +910,8 @@ charStats["Charactername - Realmname"] = {
 15. **Selling.lua** - Auto-sell logic, confirmations, eviction
 16. **Destroy.lua** - Item destruction system, countdown confirmation, bag pressure valve
 17. **Core.lua** - Event handling, sell queue processing, slash commands
+18. **Toasts.lua** - Non-intrusive toast notification system
+19. **InstanceJunk.lua** - Instance-aware junk detection and tracking
 
 ### Event Flow
 ```
@@ -1154,3 +1165,105 @@ Post-sell option to `/send` guild materials to a banker alt. ArkInventory handle
 | 1 | Loot ALT+Mark | UX must-have, no competitor offers it |
 | 2 | Instance Auto-List | Killer feature for farmers |
 | 3 | Prof Destroy Override | Niche but vocal demand |
+
+---
+
+## Smart Defaults Engine
+
+When enabled (`smartDefaults`, default: on), AutoSellPlus learns from your sell and keep decisions over time, closing the #1 competitive gap with Scrap's "intelligent learning" feature.
+
+### How It Works
+1. **Sell tracking**: Every item you sell is recorded in `learnedSellItems` with a count and timestamp
+2. **Keep tracking**: Every item you un-check in the popup is recorded in `learnedKeepItems`
+3. **Auto-check**: Items with 3+ sell occurrences are auto-checked in the popup, even if they don't match quality filters
+4. **Auto-uncheck**: Items with 3+ keep occurrences are auto-unchecked, even if they match quality filters
+5. **Visual feedback**: "Learned" (purple) and "Kept" (blue) badges on popup rows; tooltip shows "ASP: Learned — usually sold/kept"
+
+### Data Management
+- **Decay**: Entries older than 30 days are pruned on login
+- **Cap**: Maximum 200 items per list; oldest entries removed when exceeded
+- **Threshold**: Minimum 3 occurrences before learned behavior activates
+- **Storage**: Account-wide in `AutoSellPlusDB.learnedSellItems` and `AutoSellPlusDB.learnedKeepItems`
+
+### Settings
+| Key | Default | Description |
+|-----|---------|-------------|
+| `smartDefaults` | `true` | Enable behavioral learning |
+
+---
+
+## Toast Notification System
+
+Non-intrusive slide-in notifications that supplement chat messages with visual feedback.
+
+### Design
+- Toasts slide in from the right screen edge with an ease-out animation (0.3s)
+- Auto-dismiss after configurable duration (default: 5s) with fade-out (0.3s)
+- Stack vertically from top-right (max 5 visible)
+- Color-coded left accent bar: green (success), blue (info), yellow (warning), red (danger)
+- Frame pool recycling for zero allocation after initial creation
+
+### API
+```lua
+ns:ShowToast(message, toastType, duration)
+-- toastType: "success" | "info" | "warning" | "danger"
+-- duration: seconds (default: 5)
+
+ns:DismissToast(toast)
+ns:DismissAllToasts()
+```
+
+### Usage in Addon
+- Sell summary: "Sold 15 items for 42g" (success toast)
+
+### Architecture
+File: `Toasts.lua` (loaded after Widgets.lua, before Protection.lua)
+
+---
+
+## Instance-Aware Junk Detection
+
+Tracks items sold per instance to build a per-instance junk database over time.
+
+### How It Works
+1. **Recording**: When you sell an item while inside an instance, the item is recorded in `instanceJunkDB[instanceID]` with a count and timestamp
+2. **Suggesting**: When you open a vendor while inside an instance, items in your bags that match the instance junk DB (2+ previous sells) are suggested
+3. **Popup integration**: The popup title shows the current instance name when inside one
+
+### Data Management
+- **Minimum sells**: Items require 2+ sells in an instance before being suggested
+- **Decay**: Entries older than 90 days are pruned on login
+- **Empty cleanup**: Instances with no remaining items are removed entirely
+- **Storage**: Account-wide in `AutoSellPlusDB.instanceJunkDB`
+
+### API
+```lua
+ns:GetCurrentInstanceID()     -- returns instanceID (0 if not in instance)
+ns:GetCurrentInstanceName()   -- returns instance name
+ns:RecordInstanceSell(itemID) -- record a sell for current instance
+ns:GetInstanceSuggestions()   -- get bag items matching instance junk DB
+ns:PruneInstanceJunkDB()      -- remove stale entries
+ns:GetInstanceJunkSummary()   -- { itemCount, instanceCount }
+```
+
+### Architecture
+File: `InstanceJunk.lua` (loaded after BagAdapters.lua, before Overlays.lua)
+
+---
+
+## Unified Item Actions
+
+Enhanced modifier key combinations for bag item interactions.
+
+### Key Combinations
+| Modifier | Action | Visual Feedback |
+|----------|--------|-----------------|
+| ALT+Click | Toggle junk mark | Green/red flash |
+| Shift+ALT+Click | Add to always-sell list | Green flash |
+| Ctrl+ALT+Click | Add to never-sell list | Green flash |
+
+### Loot Window
+ALT+Click in the loot window marks items as junk before they enter bags. This is handled by `SetupLootWindowHook()` in Marking.lua.
+
+### Architecture
+All handlers are in `Marking.lua`. The `OnModifiedClick` function checks modifier combinations in priority order (Shift+ALT first, Ctrl+ALT second, plain ALT last).

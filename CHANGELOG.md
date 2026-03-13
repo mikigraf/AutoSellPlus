@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (3.7)
+
+### Added
+- **Smart Defaults Engine** (`smartDefaults`, default: on) — Learns from your sell and keep decisions. Items you consistently sell (3+ times) are auto-checked in the popup; items you consistently un-check are auto-unchecked. "Learned" and "Kept" badges shown on popup rows. Tooltip shows "ASP: Learned — usually sold/kept". Data pruned on login (30-day decay, 200 item cap per list).
+- **Toast Notification System** — Non-intrusive slide-in notifications from the right screen edge. Sell summaries now appear as toasts in addition to chat. Toasts stack vertically (max 5), auto-dismiss after 5s, with type-specific accent colors (success/info/warning/danger). Frame pool recycling for zero allocation.
+- **Instance-Aware Junk Detection** — Tracks items sold per instance in a persistent database. When visiting a vendor after running an instance, items previously sold in that instance are suggested for selling. Popup title shows instance name when inside. Data pruned on login (90-day decay, min 2 sells required).
+- **Enhanced Compact Mode** — Compact popup now shows the 5 most valuable items with icon, name, and price below the quality breakdown, giving a quick preview without switching to full mode.
+- **Unified Item Actions** — Shift+ALT+Click on bag items to add to always-sell list. Ctrl+ALT+Click to add to never-sell list. Visual flash feedback on both actions.
+
 ## Unreleased (3.5)
 
 ### Added

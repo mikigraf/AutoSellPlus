@@ -50,7 +50,7 @@
 
 <br>
 
-AutoSellPlus sells your junk at vendors with configurable quality and ilvl filters, transmog protection, AH value safeguards, and per-character profiles. Mark items as junk while looting, preview what will be sold before confirming, and protect gear you want to keep -- including uncollected appearances, BoEs, equipment sets, and items worth listing on the AH. Destroy worthless items away from vendors with cursor-safe deletion and a bag pressure valve. Lightweight, modular, and self-testing on login so it works through patches without manual intervention.
+AutoSellPlus sells your junk at vendors with configurable quality and ilvl filters, transmog protection, AH value safeguards, and per-character profiles. Mark items as junk while looting, preview what will be sold before confirming, and protect gear you want to keep -- including uncollected appearances, BoEs, equipment sets, and items worth listing on the AH. Learns from your sell decisions to auto-suggest items over time. Instance-aware junk detection tracks what you sell per dungeon and raid. Destroy worthless items away from vendors with cursor-safe deletion and a bag pressure valve. Lightweight, modular, and self-testing on login so it works through patches without manual intervention.
 
 <br>
 
@@ -85,6 +85,9 @@ Or skip the popup entirely: set auto-sell mode in `/asp config` and everything h
 - **Sell known collectibles** -- optionally sell already-known mounts, pets, and toys
 - **Category filters** for consumables, trade goods, quest items, and miscellaneous
 - **Expansion and slot filters** to narrow down exactly what shows up
+- **Smart defaults** -- learns from your sell and keep decisions to auto-check/uncheck items after 3+ occurrences
+- **Instance-aware selling** -- tracks items sold per instance, suggests them next time you're in the same dungeon or raid
+- **Toast notifications** -- non-intrusive slide-in notifications for sell summaries, protection alerts, and undo availability
 - **Confirmation dialogs** for epic items and high-value sales, with a scrollable item list panel showing exactly what will be sold
 - **Buyback safety** -- highest-value items sold first so buyback slots hold the most valuable items; red divider and tinted rows for items beyond the 12-slot limit
 - **Dry run mode** to preview what would be sold without selling anything
@@ -109,6 +112,7 @@ Or skip the popup entirely: set auto-sell mode in `/asp config` and everything h
 ### Marking
 
 - **ALT+Click** items in bags to mark/unmark as junk (configurable visual overlay: border, tint, or both)
+- **Shift+ALT+Click** to add items to always-sell list, **Ctrl+ALT+Click** for never-sell list
 - **Drag-to-mark** button appears above bags
 - **Auto-mark** gray items and equippable items below an ilvl threshold on loot
 - **Bulk mark mode** (`/asp mark`) for marking multiple items without holding ALT
@@ -215,8 +219,11 @@ AutoSellPlus/
 │   ├── AutoSellPlus.toc     # Table of contents (loaded by WoW)
 │   ├── Config.lua           # Defaults, DB init, migration, profiles, templates
 │   ├── Helpers.lua          # Utilities (ilvl, money formatting, bag iteration)
+│   ├── Widgets.lua          # Shared styled widget library (checkbox, button, slider)
+│   ├── Toasts.lua           # Non-intrusive toast notification system
 │   ├── Protection.lua       # Item protection (transmog, BoE, sets, ShouldSellItem)
 │   ├── BagAdapters.lua      # Bag addon compatibility (Bagnon, AdiBags, etc.)
+│   ├── InstanceJunk.lua     # Instance-aware junk detection and tracking
 │   ├── Overlays.lua         # Bag overlays, tooltip hooks, gold display
 │   ├── Marking.lua          # Mark toggling, alt-click, loot auto-mark
 │   ├── History.lua          # Session tracking, sale history (data layer)
