@@ -1,6 +1,6 @@
-AutoSellPlus sells your junk at vendors with configurable quality and ilvl filters, transmog protection, and per-character profiles. Mark items as junk while looting, preview what will be sold before confirming, and protect gear you want to keep -- including uncollected appearances, BoEs, and equipment sets.
+AutoSellPlus sells your junk at vendors with configurable quality and ilvl filters, transmog protection, AH-aware safeguards, and cross-alt profiles. Mark items as junk while looting, preview what will be sold before confirming, and protect gear you want to keep -- including uncollected appearances, BoEs, equipment sets, and items worth listing on the AH. Learns from your sell decisions to auto-suggest items over time. Instance-aware junk detection tracks what you sell per dungeon and raid. Destroy worthless items away from vendors with cursor-safe deletion and a bag pressure valve.
 
-Lightweight, modular, and self-testing on login so it keeps working through patches.
+Lightweight, modular, and self-testing on login so it works through patches without manual intervention.
 
 ![AutoSellPlus popup](https://media.forgecdn.net/attachments/1567/371/screenshot-2026-03-06-at-11-21-55a-am-png.png)
 
@@ -9,7 +9,7 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 ## Selling
 
 - **Popup preview** -- sortable columns (name, ilvl, vendor price, AH value), checkboxes, one-click Sell All
-- **Compact mode** -- condensed popup showing item count, total value, per-quality breakdown, and a one-click Sell button. Toggle with `/asp compact` or the button on either popup
+- **Compact mode** -- condensed popup showing item count, total value, per-quality breakdown, top 5 most valuable items, and a one-click Sell button. Toggle with `/asp compact` or the button on either popup
 - **Three sell modes** -- interactive popup (default), one-click, or fully automatic with configurable delay
 - **Quality filters** -- gray through epic, each with independent ilvl thresholds
 - **Relative ilvl threshold** -- set a single sell threshold as a percentage of your equipped ilvl instead of per-quality sliders
@@ -19,6 +19,9 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 - **Sell known collectibles** -- optionally sell already-known mounts, pets, and toys
 - **Confirmations** -- epic, high-value, and Sell All Junk show a confirmation with item count and gold total
 - **Buyback safety** -- highest-value items are sold first so buyback slots hold the most valuable items
+- **Smart defaults** -- learns from your sell and keep decisions. Items you consistently sell (3+ times) are auto-checked in the popup; items you consistently un-check are auto-unchecked. "Learned" and "Kept" badges on popup rows
+- **Instance-aware junk** -- tracks items sold per instance. When visiting a vendor after running a dungeon or raid, items previously sold in that instance are suggested for selling. Popup title shows instance name
+- **Toast notifications** -- non-intrusive slide-in notifications for sell summaries, protection alerts, and undo availability. Stack vertically, auto-dismiss after 5 seconds
 - **Dry run** -- preview what would be sold without actually selling
 - **Auto-repair** -- repairs gear at vendors, guild funds first
 - **Key binding** -- bind a key to open the sell popup at any vendor via WoW's Key Bindings UI
@@ -45,6 +48,8 @@ Lightweight, modular, and self-testing on login so it keeps working through patc
 ## Marking
 
 - **ALT+Click** -- mark/unmark items in bags as junk (configurable overlay: border, tint, or both)
+- **Shift+ALT+Click** -- add item to always-sell list
+- **Ctrl+ALT+Click** -- add item to never-sell list
 - **Drag-to-mark** -- button appears above bags
 - **Auto-mark on loot** -- gray items and equippable items below an ilvl threshold
 - **Bulk mark mode** -- `/asp mark` to mark multiple items without holding ALT
