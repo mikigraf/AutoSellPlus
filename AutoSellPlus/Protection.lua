@@ -483,6 +483,16 @@ function ns:ClassifyItem(itemID, bag, slot)
 
     -- Bag-dependent checks (only when bag/slot provided)
     if bag and slot then
+        -- Mirror ShouldSellItem's hasNoValue / isLocked gates so the tooltip
+        -- never promises "Will sell" for an item the sell path refuses.
+        local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+        if itemInfo then
+            if itemInfo.hasNoValue then return nil end
+            if itemInfo.isLocked then
+                return "skip", "Skipped (item locked)", 0.6, 0.6, 0.6
+            end
+        end
+
         if self:IsRefundable(bag, slot) then
             return "protected", "Protected (refundable)", 1.0, 0.3, 0.3
         end
