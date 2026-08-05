@@ -9,6 +9,26 @@
 - **Enhanced Compact Mode** — Compact popup now shows the 5 most valuable items with icon, name, and price below the quality breakdown, giving a quick preview without switching to full mode.
 - **Unified Item Actions** — Shift+ALT+Click on bag items to add to always-sell list. Ctrl+ALT+Click to add to never-sell list. Visual flash feedback on both actions.
 
+### Fixed
+- **Undo repurchased nothing** — `UndoLastSale` read the buyback price from the wrong `GetBuybackItemInfo` return slot (`numAvailable` instead of `price`). When the client returned `nil` there, the guard rejected every entry and the undo silently did nothing. The reported cost was wrong even when it did run.
+- **Undo buyback ordering** — The buyback list is now walked from the highest index down. `BuybackItem()` removes an entry and shifts every higher index down, so a single descending pass keeps the remaining indices valid. Replaces a rescan-from-index-1 loop whose comment already claimed to iterate in reverse.
+- **Undo skips unaffordable items gracefully** — Buyback costs are checked against your gold and reported instead of failing silently.
+- **Undo buffer was wiped by the next sale** — `undoBuffer.items` aliased `ns.lastSoldBatch`, which is wiped in place at the start of every sell. The batch is now copied into the buffer.
+- **Smart Defaults could never learn** — `PruneLearnedItems` dropped every entry below the 3-occurrence threshold on each login. Since counts start at 1, nothing survived long enough to be learned unless it was sold 3+ times in a single session. Pruning is now by 30-day age decay only.
+- **First-run wizard could never be replayed** — `charFirstRunComplete` was force-set to `true` on every load for any existing character, before the wizard had a chance to run. It is now only backfilled for characters saved before the flag existed; `Wizard.lua` still sets it on genuine completion.
+- **Selling away from a merchant** — `ProcessNextBatch` now verifies the merchant window is open before calling `UseContainerItem`, which sells at a vendor but *uses* the item anywhere else.
+- **Destruction ignored Blizzard's confirmation dialog** — Valuable items raise a typed "DELETE" confirmation. The queue previously counted them as destroyed and cleared the cursor underneath the open dialog on the next tick. Destruction now pauses and hands the item back to you. Destroyed items are also verified a tick later instead of being counted optimistically.
+- **Tooltip promised "Will sell" for unsellable items** — `ClassifyItem` now mirrors `ShouldSellItem`'s `isLocked` and `hasNoValue` gates.
+- **Mount equipment comment** — Corrected a stale comment that said `classID 4 = Armor` above a `classID == 15` check.
+- **`/asp undo` missing from help** — The command was implemented and documented in the README but absent from `/asp help`.
+
+### Improved
+- **Vendor mount detection** — `IsVendorMount` queries the four known vendor mount IDs directly instead of walking the player's entire mount collection on every popup open.
+- **Test coverage** — Added 40 tests across 7 new suites covering undo/buyback, undo buffer independence, Smart Defaults pruning, the sell-batch merchant guard, the destroy protection chain, vendor mount detection, and ClassifyItem parity. These were previously the least-covered paths despite being the ones that move or delete items.
+
+### Removed
+- **Dead code** — Unused `ns.defaults` table and an unreachable loop in the destroy confirmation dialog.
+
 ## Unreleased (3.5)
 
 ### Added

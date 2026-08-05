@@ -294,6 +294,10 @@ After selling, an undo notification toast appears (if `showUndoToast` is on).
 - "Undo" button repurchases items from the vendor's buyback tab
 - Undo buffer expires after 5 minutes
 - Limited to 12 items (WoW buyback limit)
+- Buyback entries are matched by full item link and walked from the highest
+  index down, because repurchasing an item shifts every higher index
+- Items you can't currently afford to buy back are skipped and reported,
+  rather than failing silently
 - If items can't be repurchased, a link to Blizzard's item restoration page is provided
 - Triggered via `/asp undo` or the toast button
 
@@ -1180,7 +1184,9 @@ When enabled (`smartDefaults`, default: on), AutoSellPlus learns from your sell 
 5. **Visual feedback**: "Learned" (purple) and "Kept" (blue) badges on popup rows; tooltip shows "ASP: Learned — usually sold/kept"
 
 ### Data Management
-- **Decay**: Entries older than 30 days are pruned on login
+- **Decay**: Entries older than 30 days are pruned on login. Pruning is by age
+  only — partially-learned entries (count 1 or 2) are kept so a count can build
+  up across sessions
 - **Cap**: Maximum 200 items per list; oldest entries removed when exceeded
 - **Threshold**: Minimum 3 occurrences before learned behavior activates
 - **Storage**: Account-wide in `AutoSellPlusDB.learnedSellItems` and `AutoSellPlusDB.learnedKeepItems`
