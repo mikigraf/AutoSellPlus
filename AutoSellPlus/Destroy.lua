@@ -472,3 +472,7 @@ end
 function ns:StopDestroying()
     StopDestroying()
 end
+
+-- Exposed for the test suite (Tests.lua). Not part of the public surface.
+ns._ShouldDestroyItem = ShouldDestroyItem
+ns._BuildDestroyQueue = BuildDestroyQueue

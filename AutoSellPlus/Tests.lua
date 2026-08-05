@@ -1629,3 +1629,653 @@ function Priority:AlwaysSellWithZeroPriceSkipped()
     AutoSellPlusDB.alwaysSellList[50000] = nil
     for k, v in pairs(saved) do AutoSellPlusDB.global[k] = v end
 end
+
+-- ============================================================
+-- Undo / Buyback Tests
+--
+-- Regression cover for two defects in the original UndoLastSale:
+--   1. Price was read from return slot 5 (numAvailable) instead of slot 3.
+--      When numAvailable came back nil the `if name and price` guard failed
+--      and nothing was ever repurchased.
+--   2. The loop rescanned the buyback list from index 1 for every sold item
+--      while claiming in a comment to iterate in reverse.
+-- ============================================================
+
+local UndoBuyback = WoWUnit("ASP UndoBuyback")
+
+-- Build a fake vendor buyback list that shifts on purchase, the way the
+-- real BuybackItem() does. Returns the list plus the indices bought.
+local function SetupBuybackMocks(links, prices, numAvailable)
+    local list = {}
+    for i, link in ipairs(links) do
+        list[i] = { link = link, price = prices[i] }
+    end
+    local bought = {}
+
+    Replace("GetNumBuybackItems", function() return #list end)
+    Replace("GetBuybackItemLink", function(i)
+        return list[i] and list[i].link or nil
+    end)
+    Replace("GetBuybackItemInfo", function(i)
+        local entry = list[i]
+        if not entry then return nil end
+        -- name, texture, price, quantity, numAvailable
+        return "Item " .. i, "texture", entry.price, 1, numAvailable
+    end)
+    Replace("BuybackItem", function(i)
+        bought[#bought + 1] = list[i] and list[i].link or nil
+        table.remove(list, i)
+    end)
+    Replace("GetMoney", function() return 10000000 end)
+
+    return list, bought
+end
+
+local function SetupUndoBuffer(links)
+    local items = {}
+    for i, link in ipairs(links) do
+        items[i] = { itemLink = link, stackCount = 1, totalPrice = 100 }
+    end
+    ns.undoBuffer = {
+        items = items,
+        totalCopper = 100 * #links,
+        totalCount = #links,
+        expiry = ns:GetServerTime() + 300,
+    }
+end
+
+-- Capture Print output so assertions can inspect the reported cost.
+local function CapturePrints()
+    local lines = {}
+    Replace(ns, "Print", function(_, msg) lines[#lines + 1] = tostring(msg) end)
+    return lines
+end
+
+local function JoinLines(lines)
+    return table.concat(lines, "\n")
+end
+
+function UndoBuyback:RepurchasesAllWantedItems()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = true
+    CapturePrints()
+    local _, bought = SetupBuybackMocks(
+        { "[LinkA]", "[LinkB]", "[LinkC]" }, { 100, 200, 300 }, nil)
+    SetupUndoBuffer({ "[LinkA]", "[LinkC]" })
+
+    ns:UndoLastSale()
+
+    AreEqual(2, #bought)
+    -- Descending walk buys the higher index first.
+    AreEqual("[LinkC]", bought[1])
+    AreEqual("[LinkA]", bought[2])
+    ns.isMerchantOpen = savedOpen
+end
+
+-- The original guard was `if name and price and buybackLink`, where `price`
+-- held numAvailable. A nil numAvailable made undo silently do nothing.
+function UndoBuyback:NilNumAvailableStillRepurchases()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = true
+    CapturePrints()
+    local _, bought = SetupBuybackMocks({ "[LinkA]" }, { 500 }, nil)
+    SetupUndoBuffer({ "[LinkA]" })
+
+    ns:UndoLastSale()
+
+    AreEqual(1, #bought)
+    AreEqual("[LinkA]", bought[1])
+    ns.isMerchantOpen = savedOpen
+end
+
+function UndoBuyback:ReportsCostFromPriceSlot()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = true
+    local lines = CapturePrints()
+    -- numAvailable is deliberately a bogus number: reading it as the price
+    -- would produce "2g" instead of the real 1g 50s.
+    SetupBuybackMocks({ "[LinkA]", "[LinkB]" }, { 10000, 5000 }, 20000)
+    SetupUndoBuffer({ "[LinkA]", "[LinkB]" })
+
+    ns:UndoLastSale()
+
+    IsTrue(JoinLines(lines):find("1g 50s", 1, true) ~= nil)
+    ns.isMerchantOpen = savedOpen
+end
+
+function UndoBuyback:SkipsItemsPlayerCannotAfford()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = true
+    local lines = CapturePrints()
+    local _, bought = SetupBuybackMocks({ "[LinkA]" }, { 999999 }, nil)
+    Replace("GetMoney", function() return 10 end)
+    SetupUndoBuffer({ "[LinkA]" })
+
+    ns:UndoLastSale()
+
+    AreEqual(0, #bought)
+    IsTrue(JoinLines(lines):find("not enough gold", 1, true) ~= nil)
+    ns.isMerchantOpen = savedOpen
+end
+
+function UndoBuyback:DuplicateStacksBuyBackBoth()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = true
+    CapturePrints()
+    local _, bought = SetupBuybackMocks(
+        { "[LinkA]", "[LinkA]", "[LinkB]" }, { 100, 100, 200 }, nil)
+    SetupUndoBuffer({ "[LinkA]", "[LinkA]" })
+
+    ns:UndoLastSale()
+
+    AreEqual(2, #bought)
+    AreEqual("[LinkA]", bought[1])
+    AreEqual("[LinkA]", bought[2])
+    ns.isMerchantOpen = savedOpen
+end
+
+function UndoBuyback:DoesNotBuyBackUnsoldItems()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = true
+    CapturePrints()
+    local _, bought = SetupBuybackMocks(
+        { "[LinkA]", "[LinkB]" }, { 100, 200 }, nil)
+    SetupUndoBuffer({ "[LinkA]" })
+
+    ns:UndoLastSale()
+
+    AreEqual(1, #bought)
+    AreEqual("[LinkA]", bought[1])
+    ns.isMerchantOpen = savedOpen
+end
+
+function UndoBuyback:RequiresMerchantOpen()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = false
+    CapturePrints()
+    local _, bought = SetupBuybackMocks({ "[LinkA]" }, { 100 }, nil)
+    SetupUndoBuffer({ "[LinkA]" })
+
+    ns:UndoLastSale()
+
+    AreEqual(0, #bought)
+    ns.isMerchantOpen = savedOpen
+end
+
+function UndoBuyback:ExpiredBufferDoesNotRepurchase()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = true
+    CapturePrints()
+    local _, bought = SetupBuybackMocks({ "[LinkA]" }, { 100 }, nil)
+    SetupUndoBuffer({ "[LinkA]" })
+    ns.undoBuffer.expiry = ns:GetServerTime() - 1
+
+    ns:UndoLastSale()
+
+    AreEqual(0, #bought)
+    ns.isMerchantOpen = savedOpen
+end
+
+-- ============================================================
+-- Undo Buffer Independence
+--
+-- undoBuffer.items used to alias ns.lastSoldBatch, so the wipe() at the top
+-- of the next StartSelling emptied the buffer in place.
+-- ============================================================
+
+local UndoBuffer = WoWUnit("ASP UndoBuffer")
+
+function UndoBuffer:BufferSurvivesLastSoldBatchWipe()
+    wipe(ns.lastSoldBatch)
+    ns.lastSoldBatch[1] = { itemLink = "[LinkA]", stackCount = 1, totalPrice = 100 }
+    ns.lastSoldBatch[2] = { itemLink = "[LinkB]", stackCount = 1, totalPrice = 200 }
+
+    local items = {}
+    for i = 1, #ns.lastSoldBatch do items[i] = ns.lastSoldBatch[i] end
+    ns.undoBuffer = { items = items, totalCopper = 300, totalCount = 2 }
+
+    wipe(ns.lastSoldBatch)
+
+    AreEqual(2, #ns.undoBuffer.items)
+    AreEqual("[LinkA]", ns.undoBuffer.items[1].itemLink)
+end
+
+function UndoBuffer:BufferIsNotTheSameTable()
+    wipe(ns.lastSoldBatch)
+    ns.lastSoldBatch[1] = { itemLink = "[LinkA]", stackCount = 1, totalPrice = 100 }
+
+    local items = {}
+    for i = 1, #ns.lastSoldBatch do items[i] = ns.lastSoldBatch[i] end
+    ns.undoBuffer = { items = items }
+
+    IsFalse(ns.undoBuffer.items == ns.lastSoldBatch)
+end
+
+-- ============================================================
+-- Smart Defaults Pruning
+--
+-- PruneLearnedItems used to drop every entry with count < LEARN_THRESHOLD.
+-- Entries start at 1 and the prune runs on every login, so nothing could
+-- ever reach the threshold across sessions.
+-- ============================================================
+
+local SmartPrune = WoWUnit("ASP SmartDefaultsPrune")
+
+-- These tests run against live SavedVariables in-game, so snapshot the real
+-- learned lists and hand back a restore function.
+local function SetupLearnedDB(sellEntries, keepEntries)
+    local savedSell = AutoSellPlusDB.learnedSellItems
+    local savedKeep = AutoSellPlusDB.learnedKeepItems
+    AutoSellPlusDB.learnedSellItems = sellEntries or {}
+    AutoSellPlusDB.learnedKeepItems = keepEntries or {}
+    return function()
+        AutoSellPlusDB.learnedSellItems = savedSell
+        AutoSellPlusDB.learnedKeepItems = savedKeep
+    end
+end
+
+function SmartPrune:KeepsPartiallyLearnedEntries()
+    local restore = SetupLearnedDB({ [1001] = { count = 1, lastSeen = time() } })
+
+    ns:PruneLearnedItems()
+
+    IsTrue(AutoSellPlusDB.learnedSellItems[1001] ~= nil)
+    AreEqual(1, AutoSellPlusDB.learnedSellItems[1001].count)
+    restore()
+end
+
+function SmartPrune:KeepsCountTwoEntries()
+    local restore = SetupLearnedDB({ [1002] = { count = 2, lastSeen = time() } })
+
+    ns:PruneLearnedItems()
+
+    IsTrue(AutoSellPlusDB.learnedSellItems[1002] ~= nil)
+    restore()
+end
+
+function SmartPrune:KeepsFullyLearnedEntries()
+    local restore = SetupLearnedDB({ [1003] = { count = 5, lastSeen = time() } })
+
+    ns:PruneLearnedItems()
+
+    IsTrue(AutoSellPlusDB.learnedSellItems[1003] ~= nil)
+    restore()
+end
+
+function SmartPrune:DropsStaleEntries()
+    local old = time() - (31 * 24 * 60 * 60)
+    local restore = SetupLearnedDB({ [1004] = { count = 9, lastSeen = old } })
+
+    ns:PruneLearnedItems()
+
+    IsTrue(AutoSellPlusDB.learnedSellItems[1004] == nil)
+    restore()
+end
+
+function SmartPrune:DropsStaleEvenWhenPartiallyLearned()
+    local old = time() - (31 * 24 * 60 * 60)
+    local restore = SetupLearnedDB({ [1005] = { count = 1, lastSeen = old } })
+
+    ns:PruneLearnedItems()
+
+    IsTrue(AutoSellPlusDB.learnedSellItems[1005] == nil)
+    restore()
+end
+
+function SmartPrune:PrunesKeepListToo()
+    local old = time() - (31 * 24 * 60 * 60)
+    local restore = SetupLearnedDB({}, {
+        [2001] = { count = 1, lastSeen = time() },
+        [2002] = { count = 4, lastSeen = old },
+    })
+
+    ns:PruneLearnedItems()
+
+    IsTrue(AutoSellPlusDB.learnedKeepItems[2001] ~= nil)
+    IsTrue(AutoSellPlusDB.learnedKeepItems[2002] == nil)
+    restore()
+end
+
+function SmartPrune:MissingLastSeenIsTreatedAsStale()
+    local restore = SetupLearnedDB({ [1006] = { count = 4 } })
+
+    ns:PruneLearnedItems()
+
+    IsTrue(AutoSellPlusDB.learnedSellItems[1006] == nil)
+    restore()
+end
+
+-- Learning across sessions is the whole point: record, prune, record again.
+function SmartPrune:LearningAccumulatesAcrossPrunes()
+    local restore = SetupLearnedDB({})
+    local saved = AutoSellPlusDB.global.smartDefaults
+    AutoSellPlusDB.global.smartDefaults = true
+
+    ns:RecordSellDecision(1007, true)
+    ns:PruneLearnedItems()
+    ns:RecordSellDecision(1007, true)
+    ns:PruneLearnedItems()
+    ns:RecordSellDecision(1007, true)
+    ns:PruneLearnedItems()
+
+    IsTrue(ns:IsLearnedSell(1007))
+    AutoSellPlusDB.global.smartDefaults = saved
+    restore()
+end
+
+-- ============================================================
+-- Sell Batch Merchant Guard
+--
+-- UseContainerItem sells at a vendor but *uses* the item away from one.
+-- ============================================================
+
+local SellGuard = WoWUnit("ASP SellMerchantGuard")
+
+local function SetupSellBatchMocks()
+    local used = {}
+    Replace(ns, "IsFeatureAvailable", function() return true end)
+    Replace(ns, "Print", function() end)
+    Replace(C_Container, "GetContainerItemInfo", function()
+        return { itemID = 50000, hyperlink = "[Junk]", quality = 0, stackCount = 1 }
+    end)
+    Replace(C_Container, "UseContainerItem", function(bag, slot)
+        used[#used + 1] = { bag = bag, slot = slot }
+    end)
+    Replace(ns, "RecordSale", function() end)
+    Replace(ns, "UpdateSession", function() end)
+    Replace(ns, "RecordSellDecision", function() end)
+    Replace(ns, "RecordInstanceSell", function() end)
+    Replace(ns, "UpdateCharStats", function() end)
+    Replace(ns, "ShowUndoToast", function() end)
+    return used
+end
+
+local function SingleItemQueue()
+    return { {
+        bag = 0, slot = 1,
+        itemLink = "[Junk]", itemID = 50000, quality = 0,
+        sellPrice = 100, stackCount = 1, totalPrice = 100,
+    } }
+end
+
+function SellGuard:DoesNotSellWhenMerchantClosed()
+    local savedOpen = ns.isMerchantOpen
+    local savedDry = AutoSellPlusDB.global.dryRun
+    AutoSellPlusDB.global.dryRun = false
+    ns.isMerchantOpen = false
+    local used = SetupSellBatchMocks()
+
+    ns:StartSelling(SingleItemQueue())
+
+    AreEqual(0, #used)
+    IsFalse(ns:IsSelling())
+    ns.isMerchantOpen = savedOpen
+    AutoSellPlusDB.global.dryRun = savedDry
+end
+
+function SellGuard:SellsWhenMerchantOpen()
+    local savedOpen = ns.isMerchantOpen
+    local savedDry = AutoSellPlusDB.global.dryRun
+    AutoSellPlusDB.global.dryRun = false
+    ns.isMerchantOpen = true
+    local used = SetupSellBatchMocks()
+
+    ns:StartSelling(SingleItemQueue())
+
+    AreEqual(1, #used)
+    AreEqual(0, used[1].bag)
+    AreEqual(1, used[1].slot)
+    ns.isMerchantOpen = savedOpen
+    AutoSellPlusDB.global.dryRun = savedDry
+end
+
+function SellGuard:StopsSellingWhenMerchantCloses()
+    local savedOpen = ns.isMerchantOpen
+    ns.isMerchantOpen = false
+    SetupSellBatchMocks()
+
+    ns:ProcessNextBatch()
+
+    IsFalse(ns:IsSelling())
+    ns.isMerchantOpen = savedOpen
+end
+
+-- ============================================================
+-- Destroy Protection Chain
+-- ============================================================
+
+local DestroyProtect = WoWUnit("ASP DestroyProtection")
+
+local function SetupDestroyMocks(itemOverrides)
+    local itemInfo = {
+        itemID = 60000,
+        hyperlink = "|cff9d9d9d[Destroyable]|r",
+        quality = 0,
+        isLocked = false,
+        stackCount = 1,
+    }
+    if itemOverrides then
+        for k, v in pairs(itemOverrides) do itemInfo[k] = v end
+    end
+
+    Replace(C_Container, "GetContainerItemInfo", function() return itemInfo end)
+    Replace(C_Item, "GetItemInfo", function()
+        return "Destroyable", nil, 0, 10, nil, nil, nil, nil, nil, nil, 10
+    end)
+    Replace(ns, "IsInEquipmentSet", function() return false end)
+    Replace(ns, "HasTransmogAppearance", function() return false end)
+    Replace(ns, "IsUncollectedTransmog", function() return false end)
+    Replace(ns, "IsBindOnEquip", function() return false end)
+    Replace(ns, "IsRefundable", function() return false end)
+    Replace(ns, "IsEquippable", function() return false end)
+    Replace(ns, "GetEffectiveItemLevel", function() return 10 end)
+    return itemInfo
+end
+
+function DestroyProtect:DestroysPlainGrayJunk()
+    SetupDestroyMocks()
+    IsTrue(ns._ShouldDestroyItem(0, 1))
+end
+
+function DestroyProtect:EmptySlotIsNotDestroyed()
+    Replace(C_Container, "GetContainerItemInfo", function() return nil end)
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+end
+
+function DestroyProtect:LockedItemIsNotDestroyed()
+    SetupDestroyMocks({ isLocked = true })
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+end
+
+function DestroyProtect:NeverDestroyListBlocks()
+    SetupDestroyMocks()
+    AutoSellPlusDB.neverDestroyList[60000] = true
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+    AutoSellPlusDB.neverDestroyList[60000] = nil
+end
+
+function DestroyProtect:NeverSellListAlsoBlocksDestroy()
+    SetupDestroyMocks()
+    AutoSellPlusDB.neverSellList[60000] = true
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+    AutoSellPlusDB.neverSellList[60000] = nil
+end
+
+function DestroyProtect:EquipmentSetItemIsProtected()
+    local saved = AutoSellPlusDB.global.destroyProtectEquipmentSets
+    AutoSellPlusDB.global.destroyProtectEquipmentSets = true
+    SetupDestroyMocks()
+    Replace(ns, "IsInEquipmentSet", function() return true end)
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+    AutoSellPlusDB.global.destroyProtectEquipmentSets = saved
+end
+
+function DestroyProtect:UncollectedTransmogIsProtected()
+    local saved = AutoSellPlusDB.global.destroyProtectTransmog
+    AutoSellPlusDB.global.destroyProtectTransmog = true
+    SetupDestroyMocks()
+    Replace(ns, "HasTransmogAppearance", function() return true end)
+    Replace(ns, "IsUncollectedTransmog", function() return true end)
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+    AutoSellPlusDB.global.destroyProtectTransmog = saved
+end
+
+function DestroyProtect:BoEIsProtected()
+    local saved = AutoSellPlusDB.global.destroyProtectBoE
+    AutoSellPlusDB.global.destroyProtectBoE = true
+    SetupDestroyMocks()
+    Replace(ns, "IsBindOnEquip", function() return true end)
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+    AutoSellPlusDB.global.destroyProtectBoE = saved
+end
+
+function DestroyProtect:RefundableIsAlwaysProtected()
+    SetupDestroyMocks()
+    Replace(ns, "IsRefundable", function() return true end)
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+end
+
+function DestroyProtect:QualityAboveThresholdIsProtected()
+    local saved = AutoSellPlusDB.global.destroyMaxQuality
+    AutoSellPlusDB.global.destroyMaxQuality = 0
+    SetupDestroyMocks({ quality = 2 })
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+    AutoSellPlusDB.global.destroyMaxQuality = saved
+end
+
+function DestroyProtect:VendorValueAboveThresholdIsProtected()
+    local saved = AutoSellPlusDB.global.destroyMaxVendorValue
+    AutoSellPlusDB.global.destroyMaxVendorValue = 5
+    SetupDestroyMocks()
+    -- sellPrice 10 * stackCount 1 = 10, above the threshold of 5
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+    AutoSellPlusDB.global.destroyMaxVendorValue = saved
+end
+
+function DestroyProtect:IlvlAboveThresholdIsProtected()
+    local saved = AutoSellPlusDB.global.destroyMaxIlvl
+    AutoSellPlusDB.global.destroyMaxIlvl = 50
+    SetupDestroyMocks()
+    Replace(ns, "IsEquippable", function() return true end)
+    Replace(ns, "GetEffectiveItemLevel", function() return 200 end)
+    IsFalse(ns._ShouldDestroyItem(0, 1))
+    AutoSellPlusDB.global.destroyMaxIlvl = saved
+end
+
+-- ============================================================
+-- Vendor Mount Detection
+-- ============================================================
+
+local VendorMount = WoWUnit("ASP VendorMount")
+
+function VendorMount:UnmountedIsNotVendorMount()
+    Replace("IsMounted", function() return false end)
+    IsFalse(ns:IsVendorMount())
+end
+
+function VendorMount:ActiveVendorMountDetected()
+    Replace("IsMounted", function() return true end)
+    Replace(C_MountJournal, "GetMountInfoByID", function(mountID)
+        -- 460 = Grand Expedition Yak
+        return "Mount", nil, nil, mountID == 460
+    end)
+    IsTrue(ns:IsVendorMount())
+end
+
+function VendorMount:ActiveNonVendorMountIsNotDetected()
+    Replace("IsMounted", function() return true end)
+    Replace(C_MountJournal, "GetMountInfoByID", function()
+        return "Mount", nil, nil, false
+    end)
+    IsFalse(ns:IsVendorMount())
+end
+
+-- Only the four known vendor mounts should ever be queried.
+function VendorMount:QueriesOnlyVendorMountIDs()
+    Replace("IsMounted", function() return true end)
+    local queried = {}
+    Replace(C_MountJournal, "GetMountInfoByID", function(mountID)
+        queried[#queried + 1] = mountID
+        return "Mount", nil, nil, false
+    end)
+    ns:IsVendorMount()
+    AreEqual(4, #queried)
+end
+
+-- ============================================================
+-- ClassifyItem / ShouldSellItem Parity
+--
+-- ClassifyItem drives the tooltip and popup labels, so it must not promise
+-- "Will sell" for items the sell path refuses.
+-- ============================================================
+
+local ClassifyParity = WoWUnit("ASP ClassifyParity")
+
+local function SetupClassifyMocks(itemOverrides)
+    local itemInfo = {
+        itemID = 70000,
+        hyperlink = "|cff9d9d9d[Gray Junk]|r",
+        quality = 0,
+        isLocked = false,
+        hasNoValue = false,
+        stackCount = 1,
+    }
+    if itemOverrides then
+        for k, v in pairs(itemOverrides) do itemInfo[k] = v end
+    end
+
+    Replace(C_Container, "GetContainerItemInfo", function() return itemInfo end)
+    Replace(C_Item, "GetItemInfo", function()
+        return "Gray Junk", "|cff9d9d9d[Gray Junk]|r", 0, 10, nil, nil, nil, nil, nil, nil, 50
+    end)
+    Replace(C_Item, "GetItemInfoInstant", function()
+        return nil, nil, nil, nil, nil, 15
+    end)
+    Replace(ns, "IsInEquipmentSet", function() return false end)
+    Replace(ns, "HasTransmogAppearance", function() return false end)
+    Replace(ns, "IsRefundable", function() return false end)
+    Replace(ns, "IsBindOnEquip", function() return false end)
+    Replace(ns, "IsWarband", function() return false end)
+    Replace(ns, "IsMarked", function() return false end)
+    Replace(ns, "HasAHAddon", function() return false end)
+    Replace(ns, "IsEquippable", function() return false end)
+    Replace(ns, "GetEffectiveItemLevel", function() return 10 end)
+    return itemInfo
+end
+
+function ClassifyParity:LockedItemIsNotLabelledWillSell()
+    local saved = ns.DeepCopy(AutoSellPlusDB.global)
+    AutoSellPlusDB.global.enabled = true
+    AutoSellPlusDB.global.sellGrays = true
+    SetupClassifyMocks({ isLocked = true })
+
+    local verdict = ns:ClassifyItem(70000, 0, 1)
+
+    IsFalse(verdict == "sell")
+    for k, v in pairs(saved) do AutoSellPlusDB.global[k] = v end
+end
+
+function ClassifyParity:NoValueItemIsNotLabelledWillSell()
+    local saved = ns.DeepCopy(AutoSellPlusDB.global)
+    AutoSellPlusDB.global.enabled = true
+    AutoSellPlusDB.global.sellGrays = true
+    SetupClassifyMocks({ hasNoValue = true })
+
+    local verdict = ns:ClassifyItem(70000, 0, 1)
+
+    IsFalse(verdict == "sell")
+    for k, v in pairs(saved) do AutoSellPlusDB.global[k] = v end
+end
+
+function ClassifyParity:NormalGrayIsLabelledWillSell()
+    local saved = ns.DeepCopy(AutoSellPlusDB.global)
+    AutoSellPlusDB.global.enabled = true
+    AutoSellPlusDB.global.sellGrays = true
+    AutoSellPlusDB.global.onlyEquippable = true
+    SetupClassifyMocks()
+
+    local verdict = ns:ClassifyItem(70000, 0, 1)
+
+    AreEqual("sell", verdict)
+    for k, v in pairs(saved) do AutoSellPlusDB.global[k] = v end
+end
