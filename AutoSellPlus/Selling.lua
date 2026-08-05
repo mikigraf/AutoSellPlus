@@ -158,6 +158,15 @@ end
 function ns:ProcessNextBatch()
     if not isSelling then return end
 
+    -- UseContainerItem sells at a vendor but *uses* the item away from one
+    -- (eats food, opens containers, learns recipes). MERCHANT_CLOSED normally
+    -- stops us first; this is the belt-and-braces check for anything that
+    -- closes the window without firing it.
+    if not ns.isMerchantOpen then
+        self:StopSelling()
+        return
+    end
+
     local processed = 0
     while #sellQueue > 0 and processed < 10 do
         local item = table.remove(sellQueue, 1)
