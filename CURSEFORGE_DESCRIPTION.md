@@ -59,7 +59,7 @@ Lightweight, modular, and self-testing on login so it works through patches with
 
 ## Bag Management
 
-- **Destruction system** -- destroy worthless items when not at a vendor. Separate protection chain, countdown confirmation, cursor-safe one-at-a-time deletion
+- **Destruction system** -- destroy worthless items when not at a vendor. Separate protection chain, countdown confirmation, cursor-safe one-at-a-time deletion. Blizzard's "type DELETE" prompt is never auto-answered -- the run pauses and hands the item back to you
 - **Bag pressure valve** -- auto-triggers destruction confirmation when free slots drop below a threshold
 - **Never-destroy list** -- per-item blacklist for destruction, independent from never-sell
 - **Bag space guard** -- automatically suggests selling the cheapest junk when free slots are low

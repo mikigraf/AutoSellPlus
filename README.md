@@ -147,6 +147,7 @@ Or skip the popup entirely: set auto-sell mode in `/asp config` and everything h
 - **Destroy junk items** when not at a vendor, with separate quality, ilvl, and vendor value filters
 - **Countdown confirmation** popup with item list and vendor value lost before destroying
 - **Cursor-safe** one-at-a-time deletion with full cursor verification
+- **Never auto-answers Blizzard's "type DELETE" prompt** -- if one appears, the run pauses and hands the item back to you
 - **Bag pressure valve** auto-triggers confirmation when free bag slots drop below a threshold
 - **Never-destroy list** -- per-item blacklist independent from never-sell
 

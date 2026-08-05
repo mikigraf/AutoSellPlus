@@ -270,15 +270,15 @@ When any sell confirmation dialog appears, a scrollable item list panel appears 
 The complete sell flow works as follows:
 
 1. **Build Sell Queue** - iterate all bag slots, apply protection rules and filters to determine sellable items
-2. **Priority Sort** - if `prioritySellQueue` is enabled (default), sort queue by total value descending so the most valuable items occupy the 12 buyback slots
+2. **Priority Sort** - if `prioritySellQueue` is enabled (default), sort queue by total value *ascending* so the cheapest items are sold first. Buyback keeps only the last 12 items sold, so selling cheapest-first leaves the most valuable items occupying those slots
 3. **Verify Queue** - re-check that items are still present in bags before proceeding
 4. **Show Confirmations** - if epic or high-value items are in the queue, display confirmation dialogs with the item list panel
-4. **Mute Sounds** - silence vendor sell sounds during bulk selling (if `muteVendorSounds` enabled)
-5. **Process Batches** - sell 10 items per tick with 0.2 second delay between batches (prevents server throttling)
-6. **Record History** - add each sold item to the sale history table
-7. **Update Session** - increment session copper and item counters
-8. **Show Progress** - update the popup's selling progress bar with percentage
-9. **Finish** - print summary to chat, create undo buffer, update per-character stats, fire WeakAura event
+5. **Mute Sounds** - silence vendor sell sounds during bulk selling (if `muteVendorSounds` enabled)
+6. **Process Batches** - sell 10 items per tick with 0.2 second delay between batches (prevents server throttling). Each batch first confirms the merchant window is still open, because `UseContainerItem` sells at a vendor but *uses* the item anywhere else
+7. **Record History** - add each sold item to the sale history table
+8. **Update Session** - increment session copper and item counters
+9. **Show Progress** - update the popup's selling progress bar with percentage
+10. **Finish** - print summary to chat, create undo buffer, update per-character stats, fire WeakAura event
 
 ### Dry Run Mode
 When `dryRun` is enabled, the entire sell process runs but no items are actually sold. The addon prints what would have been sold with full details. Useful for testing filter configurations.
@@ -432,6 +432,19 @@ Each item is destroyed one at a time (0.3s per tick) with full cursor verificati
 4. `DeleteCursorItem()` only if itemID matches
 5. Skips with a warning if cursor has wrong item (e.g., player dragging something)
 
+### Blizzard Delete Confirmation
+Valuable items make WoW raise its own "type DELETE" confirmation instead of
+deleting immediately. AutoSellPlus never auto-answers that prompt. If one
+appears, the run stops, reports how many items were destroyed beforehand, and
+asks you to answer the dialog by hand and re-run `/asp destroy`. This prevents
+the queue from clearing the cursor underneath an open dialog and advancing to
+the next item.
+
+### Destruction Accounting
+Bags do not update synchronously after `DeleteCursorItem()`, so a destruction is
+confirmed on the following tick rather than assumed. If the item is still in its
+slot when we look again, it is reported as skipped instead of counted.
+
 ### Bag Pressure Valve
 Automatically triggers the destruction confirmation when free bag slots drop below a configured threshold:
 - Fires on `BAG_UPDATE_DELAYED` events
@@ -579,7 +592,11 @@ Lists are serialized as: `NEVER:id1,id2,id3;ALWAYS:id4,id5`
 
 ## Setup Wizard
 
-A three-page first-run configuration guide shown once per character.
+A three-page first-run configuration guide shown once per character. It is
+marked complete only when the wizard is actually finished, so closing it early
+means it reappears on the next login. Characters that were already using the
+addon before the completion flag existed are treated as onboarded and are not
+shown the wizard on upgrade.
 
 ### Page 1: Auto-Sell Mode
 - Radio buttons: "Review Popup", "One-Click Popup", "Fully Automatic"
@@ -1030,7 +1047,11 @@ When enabled (`showTooltipStatus`, default: on), AutoSellPlus adds a colored sta
 - **Green** — "ASP: Will sell (quality filter)", "ASP: Will sell (collected transmog)", "ASP: On always-sell list"
 - **Red** — "ASP: Protected (uncollected transmog)", "ASP: Protected (equipment set)", "ASP: Protected (bind on equip)"
 - **Yellow** — "ASP: On never-sell list"
-- **Gray** — "ASP: Skipped (not soulbound)"
+- **Gray** — "ASP: Skipped (not soulbound)", "ASP: Skipped (item locked)"
+
+Items the sell path refuses are never labelled "Will sell": locked items and
+items with no vendor value are classified the same way `ShouldSellItem` treats
+them.
 
 Works for items in bags (full classification including BoE, refundable, warband checks), equipped gear, and merchant windows (itemID-based checks only). Does not duplicate the existing `[Marked as Junk]` tooltip line.
 

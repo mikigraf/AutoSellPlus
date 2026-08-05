@@ -29,6 +29,10 @@
 ### Removed
 - **Dead code** — Unused `ns.defaults` table and an unreachable loop in the destroy confirmation dialog.
 
+### Documentation
+- **Priority sell queue described backwards** — FEATURES.md said the queue was sorted by value *descending*. It sorts ascending (cheapest first), which is what leaves the most valuable items in the 12 buyback slots. The stated outcome was right, the mechanism was wrong.
+- Documented the destruction confirmation pause and deferred destruction accounting, the sell-batch merchant check, the "Skipped (item locked)" tooltip status, and the corrected setup wizard completion behaviour. Renumbered a duplicated step in the Selling Process list.
+
 ## Unreleased (3.5)
 
 ### Added
