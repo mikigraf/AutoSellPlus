@@ -538,8 +538,15 @@ frame:SetScript("OnEvent", function(self, event, loadedAddon)
     if AutoSellPlusCharDB == nil then
         AutoSellPlusCharDB = DeepCopy(ns.charDefaults)
     else
+        -- A character saved before charFirstRunComplete existed has already
+        -- been using the addon, so don't replay the wizard at them on upgrade.
+        -- A character that already has the key keeps whatever value it had —
+        -- Wizard.lua sets it to true once the wizard is actually finished.
+        local isLegacyChar = AutoSellPlusCharDB.charFirstRunComplete == nil
         ValidateDB(AutoSellPlusCharDB, ns.charDefaults)
-        AutoSellPlusCharDB.charFirstRunComplete = true
+        if isLegacyChar then
+            AutoSellPlusCharDB.charFirstRunComplete = true
+        end
     end
 
     SetupDBProxy()
