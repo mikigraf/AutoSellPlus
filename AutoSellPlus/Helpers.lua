@@ -186,13 +186,12 @@ local VENDOR_MOUNT_IDS = {
 
 function ns:IsVendorMount()
     if not IsMounted() then return false end
-    local mountIDs = C_MountJournal.GetMountIDs()
-    if not mountIDs then return false end
-    for _, mountID in ipairs(mountIDs) do
+    if not C_MountJournal or not C_MountJournal.GetMountInfoByID then return false end
+    -- Query the four vendor mounts directly instead of walking the player's
+    -- whole collection — this runs on every popup open.
+    for mountID in pairs(VENDOR_MOUNT_IDS) do
         local _, _, _, isActive = C_MountJournal.GetMountInfoByID(mountID)
-        if isActive and VENDOR_MOUNT_IDS[mountID] then
-            return true
-        end
+        if isActive then return true end
     end
     return false
 end
