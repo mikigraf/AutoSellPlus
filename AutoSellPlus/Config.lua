@@ -436,7 +436,11 @@ function ns:PruneLearnedItems()
             local count = 0
             for itemID, entry in pairs(db) do
                 count = count + 1
-                if entry.lastSeen < cutoff or entry.count < LEARN_THRESHOLD then
+                -- Age decay only. Do NOT prune on count < LEARN_THRESHOLD:
+                -- entries start at 1 and this runs on every login, so that
+                -- would delete every partially-learned item before it could
+                -- ever reach the threshold.
+                if (entry.lastSeen or 0) < cutoff then
                     stale[#stale + 1] = itemID
                 end
             end
