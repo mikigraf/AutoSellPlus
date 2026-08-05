@@ -8,6 +8,27 @@ local isDestroying = false
 local destroyedCount = 0
 local destroyPressureCooldown = 0
 
+-- Slot we asked the server to delete on the previous tick, verified on the
+-- next one. Bags do not update synchronously after DeleteCursorItem, so the
+-- only honest way to count a destruction is to look again a tick later.
+local pendingVerify = nil
+
+-- StaticPopups Blizzard raises when an item is valuable enough to need a
+-- typed confirmation. We never auto-answer these.
+local DELETE_CONFIRM_POPUPS = {
+    "DELETE_GOOD_ITEM",
+    "DELETE_ITEM",
+    "DELETE_GOOD_QUEST_ITEM",
+    "DELETE_QUEST_ITEM",
+}
+
+local function IsDeleteConfirmShowing()
+    for _, popup in ipairs(DELETE_CONFIRM_POPUPS) do
+        if StaticPopup_Visible(popup) then return true end
+    end
+    return false
+end
+
 -- ============================================================
 -- ShouldDestroyItem — Protection priority chain for destruction
 -- ============================================================
@@ -102,8 +123,25 @@ end
 -- Destroy Queue Processing
 -- ============================================================
 
+-- Confirm the previous tick's delete actually landed before counting it.
+local function VerifyPending()
+    if not pendingVerify then return end
+    local prev = pendingVerify
+    pendingVerify = nil
+
+    local itemInfo = C_Container.GetContainerItemInfo(prev.bag, prev.slot)
+    if itemInfo and itemInfo.hyperlink == prev.itemLink then
+        ns:Print(format("|cFFFF6600Skipped %s — delete did not go through|r", prev.itemLink or "?"))
+    else
+        destroyedCount = destroyedCount + 1
+        ns:DebugPrint(format("Destroyed %s", prev.itemLink or "?"))
+    end
+end
+
 local function ProcessNextDestroy()
     if not isDestroying then return end
+
+    VerifyPending()
 
     if #destroyQueue == 0 then
         isDestroying = false
@@ -123,8 +161,26 @@ local function ProcessNextDestroy()
         local cursorType, cursorItemID = GetCursorInfo()
         if cursorType == "item" and cursorItemID == item.itemID then
             DeleteCursorItem()
-            destroyedCount = destroyedCount + 1
-            ns:DebugPrint(format("Destroyed %s", item.itemLink or "?"))
+
+            -- Valuable items make Blizzard raise a typed confirmation. Never
+            -- auto-answer it: hand the run back to the player instead of
+            -- clearing the cursor underneath an open dialog and marching on
+            -- to the next item.
+            if IsDeleteConfirmShowing() then
+                ns:Print(format(
+                    "|cFFFFCC00Destruction paused|r — Blizzard wants you to confirm %s by hand. Answer the dialog, then run /asp destroy again.",
+                    item.itemLink or "this item"))
+                isDestroying = false
+                destroyTimer = nil
+                destroyQueue = {}
+                if destroyedCount > 0 then
+                    ns:Print(format("Destroyed %d item%s before pausing.", destroyedCount, destroyedCount == 1 and "" or "s"))
+                end
+                destroyedCount = 0
+                return
+            end
+
+            pendingVerify = { bag = item.bag, slot = item.slot, itemLink = item.itemLink }
         else
             ClearCursor()
             ns:Print(format("|cFFFF6600Skipped %s — cursor mismatch|r", item.itemLink or "?"))
@@ -142,6 +198,7 @@ local function StartDestroying(queue)
     destroyQueue = queue
     isDestroying = true
     destroyedCount = 0
+    pendingVerify = nil
     ProcessNextDestroy()
 end
 
@@ -151,6 +208,7 @@ local function StopDestroying()
         destroyTimer:Cancel()
         destroyTimer = nil
     end
+    VerifyPending()
     isDestroying = false
     ClearCursor()
     if destroyedCount > 0 then
