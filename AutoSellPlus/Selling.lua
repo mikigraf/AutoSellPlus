@@ -254,10 +254,16 @@ function ns:FinishSelling()
         end)
     end
 
-    -- Populate undo buffer with 5-min expiry
+    -- Populate undo buffer with 5-min expiry.
+    -- Copy the batch rather than aliasing it: the next StartSelling wipes
+    -- lastSoldBatch in place, which would silently empty this buffer.
     if #ns.lastSoldBatch > 0 then
+        local items = {}
+        for i = 1, #ns.lastSoldBatch do
+            items[i] = ns.lastSoldBatch[i]
+        end
         ns.undoBuffer = {
-            items = ns.lastSoldBatch,
+            items = items,
             totalCopper = totalCopper,
             totalCount = totalSold,
             expiry = self:GetServerTime() + 300,
@@ -407,32 +413,49 @@ function ns:UndoLastSale()
         return
     end
 
-    -- Try buyback matching (reverse iterate to handle index shifting)
+    -- How many of each item link we still want back. A link can appear more
+    -- than once in a batch (two separate stacks of the same item).
+    local wanted = {}
+    for _, sold in ipairs(buffer.items) do
+        if sold.itemLink then
+            wanted[sold.itemLink] = (wanted[sold.itemLink] or 0) + 1
+        end
+    end
+
+    -- Walk the buyback list from the highest index down. BuybackItem() removes
+    -- that entry and shifts every higher index down by one, so descending order
+    -- keeps the indices we have not visited yet valid. Ascending order would
+    -- repurchase the wrong slots after the first buyback.
     local repurchased = 0
     local repurchaseCost = 0
-    local numBuyback = GetNumBuybackItems()
+    local skippedCost = 0
 
-    -- Build a lookup of sold item names with counts
-    local soldLookup = {}
-    for _, sold in ipairs(buffer.items) do
-        for i = 1, numBuyback do
-            local name, _, _, qty, price = GetBuybackItemInfo(i)
-            local buybackLink = GetBuybackItemLink(i)
-            if name and price and buybackLink then
-                -- Match using full item link for precision
-                if buybackLink == sold.itemLink then
-                    BuybackItem(i)
-                    repurchased = repurchased + 1
-                    repurchaseCost = repurchaseCost + price
-                    break
-                end
+    for i = GetNumBuybackItems(), 1, -1 do
+        local buybackLink = GetBuybackItemLink(i)
+        if buybackLink and (wanted[buybackLink] or 0) > 0 then
+            -- GetBuybackItemInfo returns name, texture, price, quantity, numAvailable.
+            local _, _, price = GetBuybackItemInfo(i)
+            price = price or 0
+            if price > GetMoney() then
+                skippedCost = skippedCost + 1
+            else
+                BuybackItem(i)
+                wanted[buybackLink] = wanted[buybackLink] - 1
+                repurchased = repurchased + 1
+                repurchaseCost = repurchaseCost + price
             end
         end
     end
 
     if repurchased > 0 then
         self:Print(format("Repurchased %d item%s for %s", repurchased, repurchased == 1 and "" or "s", self:FormatMoney(repurchaseCost)))
-    else
+    end
+
+    if skippedCost > 0 then
+        self:Print(format("|cFFFF6600Skipped %d item%s — not enough gold to buy them back.|r", skippedCost, skippedCost == 1 and "" or "s"))
+    end
+
+    if repurchased == 0 and skippedCost == 0 then
         local timestamp = date("!%Y-%m-%d %H:%M", time())
         self:Print(format("Could not find items in buyback. Use Blizzard Item Restoration: https://battle.net/support/restoration (%s UTC)", timestamp))
     end
