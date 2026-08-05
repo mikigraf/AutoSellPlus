@@ -349,12 +349,8 @@ local function ShowDestroyConfirmation(queue)
         f.itemRows[i]:Show()
     end
 
-    -- Add remaining count for items beyond display
-    for i = #queue + 1, maxDisplay do
-        totalValue = totalValue + (queue[i] and queue[i].value or 0)
-    end
     if #queue > maxDisplay then
-        -- Accumulate remaining values
+        -- Accumulate the values of the items we are not listing individually
         for i = maxDisplay + 1, #queue do
             totalValue = totalValue + (queue[i].value or 0)
         end

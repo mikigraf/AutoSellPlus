@@ -352,7 +352,7 @@ function ns:ShouldSellItem(bag, slot)
     -- Locked items cannot be sold
     if isLocked then return false end
 
-    -- Mount equipment protection (classID 4 = Armor, subclassID 6 = Mount Equipment)
+    -- Mount equipment protection (classID 15 = Miscellaneous, subclassID 6 = Mount Equipment)
     local _, _, _, _, _, classID, subclassID = C_Item.GetItemInfoInstant(itemID)
     if db.protectMountEquipment and classID == 15 and subclassID == 6 then return false end
 

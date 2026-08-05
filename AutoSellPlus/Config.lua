@@ -266,12 +266,6 @@ function ns:ListTemplates()
     end
 end
 
--- Legacy flat defaults for migration detection
-ns.defaults = {}
-for k, v in pairs(ns.globalDefaults) do ns.defaults[k] = v end
-ns.defaults.neverSellList = {}
-ns.defaults.alwaysSellList = {}
-
 local function DeepCopy(orig)
     if type(orig) ~= "table" then return orig end
     local copy = {}
