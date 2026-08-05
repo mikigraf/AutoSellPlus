@@ -1,60 +1,21 @@
 # Changelog
 
-## Unreleased (3.7)
+## v4.0.0 - 2026-08-05
+
+Major release. Consolidates all previously unreleased work (the destruction
+system, smart defaults, toasts, instance-aware junk) with a correctness pass
+over the sell, undo and destroy paths.
 
 ### Added
 - **Smart Defaults Engine** (`smartDefaults`, default: on) — Learns from your sell and keep decisions. Items you consistently sell (3+ times) are auto-checked in the popup; items you consistently un-check are auto-unchecked. "Learned" and "Kept" badges shown on popup rows. Tooltip shows "ASP: Learned — usually sold/kept". Data pruned on login (30-day decay, 200 item cap per list).
 - **Toast Notification System** — Non-intrusive slide-in notifications from the right screen edge. Sell summaries now appear as toasts in addition to chat. Toasts stack vertically (max 5), auto-dismiss after 5s, with type-specific accent colors (success/info/warning/danger). Frame pool recycling for zero allocation.
 - **Instance-Aware Junk Detection** — Tracks items sold per instance in a persistent database. When visiting a vendor after running an instance, items previously sold in that instance are suggested for selling. Popup title shows instance name when inside. Data pruned on login (90-day decay, min 2 sells required).
-- **Enhanced Compact Mode** — Compact popup now shows the 5 most valuable items with icon, name, and price below the quality breakdown, giving a quick preview without switching to full mode.
-- **Unified Item Actions** — Shift+ALT+Click on bag items to add to always-sell list. Ctrl+ALT+Click to add to never-sell list. Visual flash feedback on both actions.
-
-### Fixed
-- **Undo repurchased nothing** — `UndoLastSale` read the buyback price from the wrong `GetBuybackItemInfo` return slot (`numAvailable` instead of `price`). When the client returned `nil` there, the guard rejected every entry and the undo silently did nothing. The reported cost was wrong even when it did run.
-- **Undo buyback ordering** — The buyback list is now walked from the highest index down. `BuybackItem()` removes an entry and shifts every higher index down, so a single descending pass keeps the remaining indices valid. Replaces a rescan-from-index-1 loop whose comment already claimed to iterate in reverse.
-- **Undo skips unaffordable items gracefully** — Buyback costs are checked against your gold and reported instead of failing silently.
-- **Undo buffer was wiped by the next sale** — `undoBuffer.items` aliased `ns.lastSoldBatch`, which is wiped in place at the start of every sell. The batch is now copied into the buffer.
-- **Smart Defaults could never learn** — `PruneLearnedItems` dropped every entry below the 3-occurrence threshold on each login. Since counts start at 1, nothing survived long enough to be learned unless it was sold 3+ times in a single session. Pruning is now by 30-day age decay only.
-- **First-run wizard could never be replayed** — `charFirstRunComplete` was force-set to `true` on every load for any existing character, before the wizard had a chance to run. It is now only backfilled for characters saved before the flag existed; `Wizard.lua` still sets it on genuine completion.
-- **Selling away from a merchant** — `ProcessNextBatch` now verifies the merchant window is open before calling `UseContainerItem`, which sells at a vendor but *uses* the item anywhere else.
-- **Destruction ignored Blizzard's confirmation dialog** — Valuable items raise a typed "DELETE" confirmation. The queue previously counted them as destroyed and cleared the cursor underneath the open dialog on the next tick. Destruction now pauses and hands the item back to you. Destroyed items are also verified a tick later instead of being counted optimistically.
-- **Tooltip promised "Will sell" for unsellable items** — `ClassifyItem` now mirrors `ShouldSellItem`'s `isLocked` and `hasNoValue` gates.
-- **Mount equipment comment** — Corrected a stale comment that said `classID 4 = Armor` above a `classID == 15` check.
-- **`/asp undo` missing from help** — The command was implemented and documented in the README but absent from `/asp help`.
-
-### Improved
-- **Vendor mount detection** — `IsVendorMount` queries the four known vendor mount IDs directly instead of walking the player's entire mount collection on every popup open.
-- **Test coverage** — Added 40 tests across 7 new suites covering undo/buyback, undo buffer independence, Smart Defaults pruning, the sell-batch merchant guard, the destroy protection chain, vendor mount detection, and ClassifyItem parity. These were previously the least-covered paths despite being the ones that move or delete items.
-
-### Removed
-- **Dead code** — Unused `ns.defaults` table and an unreachable loop in the destroy confirmation dialog.
-
-### Documentation
-- **Priority sell queue described backwards** — FEATURES.md said the queue was sorted by value *descending*. It sorts ascending (cheapest first), which is what leaves the most valuable items in the 12 buyback slots. The stated outcome was right, the mechanism was wrong.
-- Documented the destruction confirmation pause and deferred destruction accounting, the sell-batch merchant check, the "Skipped (item locked)" tooltip status, and the corrected setup wizard completion behaviour. Renumbered a duplicated step in the Selling Process list.
-
-## Unreleased (3.5)
-
-### Added
-- **Tooltip item status** (`showTooltipStatus`, default: on) — Shows ASP classification in item tooltips: "Will sell (quality filter)", "Protected (uncollected transmog)", "On never-sell list", etc. Works for items in bags, equipped gear, and merchant windows. Togglable in Settings > Display.
-- **Compact mode** (`compactMode`, default: off) — Condensed popup showing item count, total value, per-quality breakdown, and a one-click Sell button. Toggle between compact and detailed views via a button on either popup or `/asp compact`. All filters and protections still apply.
-- **AH value protection** (`ahProtectionEnabled`, default: off) — Protects items worth more than a configurable threshold on the AH from being auto-sold. Requires TSM or Auctionator. Popup rows where AH value exceeds a configurable multiplier of vendor price are color-coded, with a tooltip showing "Worth listing: AH Xg, vendor Yg (Nx)".
-- **Safe Mode template** — New profile template for new users: grays only, all protections on. Wizard defaults to Safe Mode when no template or profile is selected.
 - **Destruction system v1** — Complete rewrite of the auto-destroy feature with separate destroy filters (quality, ilvl, max vendor value), a never-destroy list, countdown confirmation popup, and a bag pressure valve that auto-triggers when free slots drop below a configurable threshold. Items are destroyed one per tick with cursor verification for safety.
-
-### Improved
-- **Self-test messages** — API failure messages are now user-friendly and reassuring instead of technical ("Transmog detection paused — Blizzard changed an API. Sell rules are more conservative until updated.").
-- **Centralized AH lookup** — TSM/Auctionator price queries consolidated into `ns:GetAHValue()` and `ns:HasAHAddon()`, replacing duplicated code in Popup, PopupFilters, and Overlays.
-
-### Fixed
-- **Bindings.xml parsing error** — Removed invalid `header` attribute from Binding element. The section header is provided by the `BINDING_HEADER_AUTOSELLPLUS` global.
-- **Mount equipment misclassified** — Mount equipment is Miscellaneous (classID 15, subclassID 6), not Armor (classID 4). Items like Light-Step Hoofplates are now correctly detected.
-- **Destroy cursor safety** — Verify `GetCursorInfo` matches expected itemID before `DeleteCursorItem` to prevent accidentally destroying the wrong item when the player is dragging something.
-- **CanIMogIt locale detection** — Use CanIMogIt's own `NOT_COLLECTED` constants instead of hardcoded English string matching. Fixes false positives on non-English clients.
-- **Warband detection unreliable** — `GetItemInfo` bindType is unreliable for many warband items (reagents, trade goods). Added tooltip fallback via `C_TooltipInfo` using Blizzard's localized binding globals for reliable detection.
-- **Undo buyback matching** — Use full item link comparison instead of name substring for more precise buyback matching.
-
-### Added
+- **AH value protection** (`ahProtectionEnabled`, default: off) — Protects items worth more than a configurable threshold on the AH from being auto-sold. Requires TSM or Auctionator. Popup rows where AH value exceeds a configurable multiplier of vendor price are color-coded, with a tooltip showing "Worth listing: AH Xg, vendor Yg (Nx)".
+- **Tooltip item status** (`showTooltipStatus`, default: on) — Shows ASP classification in item tooltips: "Will sell (quality filter)", "Protected (uncollected transmog)", "On never-sell list", etc. Works for items in bags, equipped gear, and merchant windows. Togglable in Settings > Display.
+- **Compact mode** (`compactMode`, default: off) — Condensed popup showing item count, total value, per-quality breakdown, and a one-click Sell button. Toggle between compact and detailed views via a button on either popup or `/asp compact`. All filters and protections still apply. The compact popup also shows the 5 most valuable items with icon, name, and price below the quality breakdown.
+- **Unified Item Actions** — Shift+ALT+Click on bag items to add to always-sell list. Ctrl+ALT+Click to add to never-sell list. Visual flash feedback on both actions.
+- **Safe Mode template** — New profile template for new users: grays only, all protections on. Wizard defaults to Safe Mode when no template or profile is selected.
 - **Sell collected transmog** (`sellCollectedTransmog`, default: off) — Marks items with already-collected transmog appearances for selling. Items pass all existing protections before this criterion applies.
 - **Sell known collectibles** (`sellKnownCollectibles`, default: off) — Marks already-known mounts, pets, and toys for selling. Uses C_MountJournal, C_PetJournal, and C_ToyBox APIs.
 - **Relative ilvl threshold** (`useRelativeIlvl`, `relativeIlvlPercent`, default: off/70%) — Computes a single ilvl sell threshold as a percentage of the player's average equipped ilvl. When enabled, replaces per-quality ilvl sliders. Grays out quality ilvl controls and shows computed threshold in popup header.
@@ -62,9 +23,40 @@
 - **Warband item protection** (`protectWarband`, default: off) — Toggleable checkbox in popup filters. Protects all warband and account-bound items from selling. Detects bindType 7/8/9 with tooltip-based fallback.
 - **Dynamic bag ID support** — Uses `NUM_TOTAL_EQUIPPED_BAG_SLOTS` for reagent bag support instead of hardcoded bag range.
 
+### Fixed
+- **Undo repurchased nothing** — `UndoLastSale` read the buyback price from the wrong `GetBuybackItemInfo` return slot (`numAvailable` instead of `price`). When the client returned `nil` there, the guard rejected every entry and the undo silently did nothing. The reported cost was wrong even when it did run.
+- **Undo buyback ordering** — The buyback list is now walked from the highest index down. `BuybackItem()` removes an entry and shifts every higher index down, so a single descending pass keeps the remaining indices valid. Replaces a rescan-from-index-1 loop whose comment already claimed to iterate in reverse.
+- **Undo skips unaffordable items gracefully** — Buyback costs are checked against your gold and reported instead of failing silently.
+- **Undo buffer was wiped by the next sale** — `undoBuffer.items` aliased `ns.lastSoldBatch`, which is wiped in place at the start of every sell. The batch is now copied into the buffer.
+- **Undo buyback matching** — Use full item link comparison instead of name substring for more precise buyback matching.
+- **Smart Defaults could never learn** — `PruneLearnedItems` dropped every entry below the 3-occurrence threshold on each login. Since counts start at 1, nothing survived long enough to be learned unless it was sold 3+ times in a single session. Pruning is now by 30-day age decay only.
+- **First-run wizard could never be replayed** — `charFirstRunComplete` was force-set to `true` on every load for any existing character, before the wizard had a chance to run. It is now only backfilled for characters saved before the flag existed; `Wizard.lua` still sets it on genuine completion.
+- **Selling away from a merchant** — `ProcessNextBatch` now verifies the merchant window is open before calling `UseContainerItem`, which sells at a vendor but *uses* the item anywhere else.
+- **Destruction ignored Blizzard's confirmation dialog** — Valuable items raise a typed "DELETE" confirmation. The queue previously counted them as destroyed and cleared the cursor underneath the open dialog on the next tick. Destruction now pauses and hands the item back to you. Destroyed items are also verified a tick later instead of being counted optimistically.
+- **Destroy cursor safety** — Verify `GetCursorInfo` matches expected itemID before `DeleteCursorItem` to prevent accidentally destroying the wrong item when the player is dragging something.
+- **Tooltip promised "Will sell" for unsellable items** — `ClassifyItem` now mirrors `ShouldSellItem`'s `isLocked` and `hasNoValue` gates.
+- **Mount equipment misclassified** — Mount equipment is Miscellaneous (classID 15, subclassID 6), not Armor (classID 4). Items like Light-Step Hoofplates are now correctly detected, and the stale comment claiming classID 4 has been corrected.
+- **CanIMogIt locale detection** — Use CanIMogIt's own `NOT_COLLECTED` constants instead of hardcoded English string matching. Fixes false positives on non-English clients.
+- **Warband detection unreliable** — `GetItemInfo` bindType is unreliable for many warband items (reagents, trade goods). Added tooltip fallback via `C_TooltipInfo` using Blizzard's localized binding globals for reliable detection.
+- **Bindings.xml parsing error** — Removed invalid `header` attribute from Binding element. The section header is provided by the `BINDING_HEADER_AUTOSELLPLUS` global.
+- **`/asp undo` missing from help** — The command was implemented and documented in the README but absent from `/asp help`.
+
+### Improved
+- **Test coverage** — Added 40 tests across 7 new suites covering undo/buyback, undo buffer independence, Smart Defaults pruning, the sell-batch merchant guard, the destroy protection chain, vendor mount detection, and ClassifyItem parity. These were previously the least-covered paths despite being the ones that move or delete items.
+- **Self-test messages** — API failure messages are now user-friendly and reassuring instead of technical ("Transmog detection paused — Blizzard changed an API. Sell rules are more conservative until updated.").
+- **Centralized AH lookup** — TSM/Auctionator price queries consolidated into `ns:GetAHValue()` and `ns:HasAHAddon()`, replacing duplicated code in Popup, PopupFilters, and Overlays.
+
 ### Performance
+- **Vendor mount detection** — `IsVendorMount` queries the four known vendor mount IDs directly instead of walking the player's entire mount collection on every popup open.
 - **Deferred AH value lookup** — TSM/Auctionator price queries now only run for visible items instead of all bag items.
 - **Confirm list row pooling** — Reuses hidden row frames instead of creating new ones each time the confirm list is shown.
+
+### Removed
+- **Dead code** — Unused `ns.defaults` table and an unreachable loop in the destroy confirmation dialog.
+
+### Documentation
+- **Priority sell queue described backwards** — FEATURES.md said the queue was sorted by value *descending*. It sorts ascending (cheapest first), which is what leaves the most valuable items in the 12 buyback slots. The stated outcome was right, the mechanism was wrong.
+- Documented the destruction confirmation pause and deferred destruction accounting, the sell-batch merchant check, the "Skipped (item locked)" tooltip status, and the corrected setup wizard completion behaviour. Renumbered a duplicated step in the Selling Process list.
 
 ## v3.3.0
 
